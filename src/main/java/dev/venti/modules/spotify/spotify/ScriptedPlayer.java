@@ -224,7 +224,7 @@ abstract class ScriptedPlayer implements PlayerSource {
    private HttpClient http() {
       if (this.http == null) {
          this.httpExecutor = Executors.newCachedThreadPool(task -> {
-            Thread thread = new Thread(task, "Anubis-Spotify-Art");
+            Thread thread = new Thread(task, "Venti-Spotify-Art");
             thread.setDaemon(true);
             return thread;
          });

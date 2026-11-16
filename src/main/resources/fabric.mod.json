@@ -3,19 +3,37 @@
   "id": "venti",
   "version": "${version}",
   "name": "Venti",
-  "description": "Venti client: Spotify HUD, 3D characters, Hit FX, Discord presence, custom sky and totem images, with an Anubis-style GUI. Built from GPL-3.0 code by the Anubis (4ldenz), LiquidBounce (CCBlueX) and Meteor Client (MeteorDevelopment) projects.",
-  "authors": ["Valentin"],
-  "contributors": ["4ldenz (Anubis)", "CCBlueX (LiquidBounce)", "MeteorDevelopment (Meteor Client)"],
+  "description": "A visual and quality-of-life client: smooth themeable GUI, Spotify HUD with synced lyrics, custom sky and totem images, 3D characters, waypoints and more.",
+  "authors": [
+    "mishoassenov10-prog"
+  ],
   "license": "GPL-3.0-only",
   "environment": "client",
   "entrypoints": {
-    "client": ["dev.venti.VentiClient"]
+    "client": [
+      "dev.venti.VentiClient"
+    ]
   },
-  "mixins": ["venti.mixins.json", "venti.hitfx.mixins.json", "venti.character.mixins.json", "venti.hand.mixins.json", "venti.world.mixins.json", "venti.noinvleak.mixins.json", "venti.hud.mixins.json", "venti.view.mixins.json", "venti.waypoints.mixins.json"],
+  "mixins": [
+    "venti.mixins.json",
+    "venti.hitfx.mixins.json",
+    "venti.character.mixins.json",
+    "venti.hand.mixins.json",
+    "venti.world.mixins.json",
+    "venti.noinvleak.mixins.json",
+    "venti.hud.mixins.json",
+    "venti.view.mixins.json",
+    "venti.waypoints.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.16.0",
     "minecraft": "~1.21.11",
     "fabric-api": "*",
     "java": ">=21"
+  },
+  "contact": {
+    "homepage": "https://github.com/mishoassenov10-prog/VentiClient",
+    "sources": "https://github.com/mishoassenov10-prog/VentiClient",
+    "issues": "https://github.com/mishoassenov10-prog/VentiClient/issues"
   }
 }
