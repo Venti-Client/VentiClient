@@ -5,7 +5,11 @@ import dev.venti.modules.waypoints.WaypointRenderer;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.WorldRenderer;
+//? if >=1.21.11 {
 import net.minecraft.client.util.memory.ObjectAllocator;
+//?} else {
+/*import net.minecraft.client.util.ObjectAllocator;
+*///?}
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;

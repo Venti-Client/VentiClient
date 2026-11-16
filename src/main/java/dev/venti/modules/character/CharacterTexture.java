@@ -47,6 +47,11 @@ final class CharacterTexture extends AbstractTexture {
          h = Math.max(1, h / 2);
       }
 
+      //? if >=1.21.11 {
       this.sampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR, true);
+      //?} else {
+      /*this.setClamp(true);
+      this.setFilter(true, true);
+      *///?}
    }
 }

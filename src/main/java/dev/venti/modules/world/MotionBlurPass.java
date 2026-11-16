@@ -115,7 +115,12 @@ final class MotionBlurPass {
       try {
          pass.setPipeline(PIPELINE);
          pass.setUniform("MotionBlurConfig", configSlice);
+         //? if >=1.21.11 {
          pass.bindTexture("InSampler", history.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.NEAREST));
+         //?} else {
+         /*history.getColorAttachment().setTextureFilter(FilterMode.NEAREST, false);
+         pass.bindSampler("InSampler", history.getColorAttachmentView());
+         *///?}
          pass.draw(0, 3);
       } catch (Throwable var7) {
          if (pass != null) {
@@ -150,7 +155,11 @@ final class MotionBlurPass {
 
    private static void allocate(int width, int height) {
       history = new SimpleFramebuffer("Venti motion blur history", width, height, false);
+      //? if >=1.21.11 {
       config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, 16L);
+      //?} else {
+      /*config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, 16);
+      *///?}
       configSlice = config.slice();
       configData = BufferUtils.createByteBuffer(16);
    }

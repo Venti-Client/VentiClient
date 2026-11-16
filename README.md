@@ -4,7 +4,7 @@
 
 **A clean, performance-minded visual and quality-of-life client for Minecraft.**
 
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-62B47A?style=flat-square)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21.9%20%E2%80%93%201.21.11-62B47A?style=flat-square)
 ![Loader](https://img.shields.io/badge/Loader-Fabric-DBD0B4?style=flat-square)
 ![Java](https://img.shields.io/badge/Java-21%2B-E76F00?style=flat-square)
 ![License](https://img.shields.io/badge/License-GPL--3.0-8B7CF7?style=flat-square)
@@ -38,9 +38,9 @@ Nametags follow vanilla visibility rules: they show name, held item, ping and di
 
 ## Installation
 
-1. Install [Fabric Loader](https://fabricmc.net/use/) for Minecraft **1.21.11**.
+1. Install [Fabric Loader](https://fabricmc.net/use/) for Minecraft **1.21.9, 1.21.10 or 1.21.11**.
 2. Download [Fabric API](https://modrinth.com/mod/fabric-api) for the same version.
-3. Place the Venti `.jar` and Fabric API in your `.minecraft/mods` folder.
+3. Place the Venti `.jar` built for that Minecraft version (e.g. `venti-1.0.0+mc1.21.10.jar`) and Fabric API in your `.minecraft/mods` folder.
 4. Launch the game and press <kbd>Right Shift</kbd>.
 
 ## Building from source
@@ -50,10 +50,28 @@ Requires JDK 21 or newer.
 ```bash
 git clone https://github.com/mishoassenov10-prog/VentiClient.git
 cd VentiClient
-./gradlew build
+./gradlew buildAll
 ```
 
-The finished jar is written to `build/libs/`.
+`buildAll` builds one jar per supported Minecraft version and collects them in `build/libs/`
+(`venti-<version>+mc<minecraft>.jar`). Each jar is also in `versions/<minecraft>/build/libs/`.
+
+### Multi-version layout
+
+The project uses [Stonecutter](https://stonecutter.kikugie.dev/) so one codebase builds every version:
+
+- `src/` is shared by all versions. Version-specific code is written as Stonecutter comments, for example
+  `//? if >=1.21.11 { ... } else { ... }`; the inactive branch is kept commented out.
+- `versions/<minecraft>/gradle.properties` holds what differs per version (Minecraft, Yarn and Fabric API
+  versions, and the `minecraft` range written into `fabric.mod.json`). Shared properties are in the root
+  `gradle.properties`.
+- `settings.gradle` lists the versions, `stonecutter.gradle` sets the active version (the one `src/` is
+  written for, and the one your IDE compiles), and `build.gradle` is the shared per-version build script.
+- The active version is **1.21.11**. To edit code for another version, switch with
+  `./gradlew "Set active project to 1.21.10"` (Stonecutter rewrites the comments in `src/`), and switch back to
+  1.21.11 before committing.
+
+Useful tasks: `./gradlew :1.21.10:build` builds a single version, `./gradlew :1.21.10:runClient` starts that version.
 
 ## Configuration
 

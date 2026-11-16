@@ -53,6 +53,7 @@ public final class HandModelModule extends Module {
          || stack.isIn(ItemTags.PICKAXES)
          || stack.isIn(ItemTags.SHOVELS)
          || stack.isIn(ItemTags.HOES)
+         //? if >=1.21.11
          || stack.isIn(ItemTags.SPEARS)
          || stack.isOf(Items.MACE)
          || stack.isOf(Items.FISHING_ROD)

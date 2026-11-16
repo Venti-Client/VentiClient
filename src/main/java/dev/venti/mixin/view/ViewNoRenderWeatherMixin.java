@@ -28,11 +28,19 @@ public abstract class ViewNoRenderWeatherMixin {
    }
 
    @Inject(
+      //? if >=1.21.11 {
       method = "addParticlesAndSound(Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/client/render/Camera;ILnet/minecraft/particle/ParticlesMode;I)V",
+      //?} else {
+      /*method = "addParticlesAndSound(Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/client/render/Camera;ILnet/minecraft/particle/ParticlesMode;)V",
+      *///?}
       at = @At("HEAD"),
       cancellable = true
    )
+   //? if >=1.21.11 {
    private void venti$hideRainSplashes(ClientWorld world, Camera camera, int ticks, ParticlesMode particlesMode, int weatherRadius, CallbackInfo ci) {
+   //?} else {
+   /*private void venti$hideRainSplashes(ClientWorld world, Camera camera, int ticks, ParticlesMode particlesMode, CallbackInfo ci) {
+   *///?}
       if (NoRenderModule.hideWeather()) {
          ci.cancel();
       }

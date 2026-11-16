@@ -1,0 +1,21 @@
+plugins {
+    id 'dev.kikugie.stonecutter'
+    id 'fabric-loom' version "${loom_version}" apply false
+}
+
+// The version whose state the shared src/ is in. Keep it on the newest version when committing
+// (switch with `./gradlew "Set active project to 1.21.10"` etc., then switch back).
+stonecutter.active '1.21.11'
+
+// One command for every version: builds each versions/<mc> project and collects the jars in build/libs/.
+def versionProjects = stonecutter.versions.collect { it.project }
+tasks.register('buildAll', Copy) {
+    group = 'build'
+    description = 'Builds the mod jar for every Minecraft version and collects them in build/libs/.'
+    dependsOn versionProjects.collect { ":${it}:build" }
+    from(versionProjects.collect { project(":${it}").layout.buildDirectory.dir('libs') }) {
+        include '*.jar'
+        exclude '*-sources.jar'
+    }
+    into layout.buildDirectory.dir('libs')
+}

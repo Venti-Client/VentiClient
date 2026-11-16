@@ -568,7 +568,11 @@ public final class StreamOverlay {
 
    private static GpuTexture itemAtlas(MinecraftClient mc) {
       try {
+         //? if >=1.21.11 {
          return mc.getAtlasManager().getAtlasTexture(Atlases.ITEMS).getGlTexture();
+         //?} else {
+         /*return mc.getAtlasManager().getAtlasTexture(Atlases.BLOCKS).getGlTexture(); // items share the block atlas before 1.21.11
+         *///?}
       } catch (RuntimeException var2) {
          return null;
       }
@@ -597,7 +601,11 @@ public final class StreamOverlay {
                readback.close();
             }
 
+            //? if >=1.21.11 {
             readback = device.createBuffer(() -> "Venti overlay readback", 9, needed);
+            //?} else {
+            /*readback = device.createBuffer(() -> "Venti overlay readback", 9, (int)needed);
+            *///?}
          }
 
          CommandEncoder encoder = device.createCommandEncoder();
@@ -605,7 +613,11 @@ public final class StreamOverlay {
 
          try {
             if (pending > 0) {
+               //? if >=1.21.11 {
                encoder.copyTextureToBuffer(scratch, readback, 0L, NOTHING, 0);
+               //?} else {
+               /*encoder.copyTextureToBuffer(scratch, readback, 0, NOTHING, 0);
+               *///?}
             }
 
             if (framed) {
@@ -638,7 +650,11 @@ public final class StreamOverlay {
             view.close();
          }
 
+         //? if >=1.21.11 {
          MappedView viewx = encoder.mapBuffer(readback.slice(0L, used), true, false);
+         //?} else {
+         /*MappedView viewx = encoder.mapBuffer(readback.slice(0, (int)used), true, false);
+         *///?}
 
          try {
             ByteBuffer data = viewx.data();
@@ -683,7 +699,11 @@ public final class StreamOverlay {
                asyncBuffer.close();
             }
 
+            //? if >=1.21.11 {
             asyncBuffer = device.createBuffer(() -> "Venti overlay background", 9, frameBytes);
+            //?} else {
+            /*asyncBuffer = device.createBuffer(() -> "Venti overlay background", 9, (int)frameBytes);
+            *///?}
          }
 
          CommandEncoder encoder = device.createCommandEncoder();
@@ -721,7 +741,11 @@ public final class StreamOverlay {
          if (usable) {
             long bytes = (long)asyncRegion[2] * asyncRegion[3] * 4L;
             CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+            //? if >=1.21.11 {
             MappedView view = encoder.mapBuffer(asyncBuffer.slice(0L, bytes), true, false);
+            //?} else {
+            /*MappedView view = encoder.mapBuffer(asyncBuffer.slice(0, (int)bytes), true, false);
+            *///?}
 
             try {
                changed = unpackBackground(view.data(), 0, asyncRegion, true, slotBits, scale);
@@ -805,7 +829,11 @@ public final class StreamOverlay {
 
    private static void copyRegion(CommandEncoder encoder, GpuBuffer target, long offset, int[] region) {
       GpuTexture color = MinecraftClient.getInstance().getFramebuffer().getColorAttachment();
+      //? if >=1.21.11 {
       encoder.copyTextureToBuffer(color, target, offset, NOTHING, 0, region[0], color.getHeight(0) - region[1] - region[3], region[2], region[3]);
+      //?} else {
+      /*encoder.copyTextureToBuffer(color, target, (int)offset, NOTHING, 0, region[0], color.getHeight(0) - region[1] - region[3], region[2], region[3]);
+      *///?}
    }
 
    private static int[] unpackIcon(ByteBuffer data, int cellX, int cellY, int side, int px) {

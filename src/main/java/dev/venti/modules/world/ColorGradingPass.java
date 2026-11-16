@@ -86,7 +86,12 @@ final class ColorGradingPass {
             try {
                pass.setPipeline(PIPELINE);
                pass.setUniform("ColorGradingConfig", configSlice);
+               //? if >=1.21.11 {
                pass.bindTexture("InSampler", copy.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.NEAREST));
+               //?} else {
+               /*copy.getColorAttachment().setTextureFilter(FilterMode.NEAREST, false);
+               pass.bindSampler("InSampler", copy.getColorAttachmentView());
+               *///?}
                pass.draw(0, 3);
             } catch (Throwable var15) {
                if (pass != null) {
@@ -123,7 +128,11 @@ final class ColorGradingPass {
 
    private static void allocate(int width, int height) {
       copy = new SimpleFramebuffer("Venti color grading copy", width, height, false);
+      //? if >=1.21.11 {
       config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, 32L);
+      //?} else {
+      /*config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, 32);
+      *///?}
       configSlice = config.slice();
       configData = BufferUtils.createByteBuffer(32);
    }

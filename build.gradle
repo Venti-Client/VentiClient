@@ -1,5 +1,7 @@
+// Shared build script: Stonecutter evaluates it once per Minecraft version (versions/<mc>/),
+// reading that version's versions/<mc>/gradle.properties.
 plugins {
-    id 'fabric-loom' version "${loom_version}"
+    id 'fabric-loom'
 }
 
 version = "${project.mod_version}+mc${project.minecraft_version}"
@@ -44,8 +46,9 @@ loom {
 }
 
 processResources {
-    inputs.property "version", project.version
-    filesMatching("fabric.mod.json") { expand "version": project.version }
+    def props = [version: project.version, minecraft: project.mc_dep]
+    inputs.properties props
+    filesMatching("fabric.mod.json") { expand props }
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -59,5 +62,5 @@ java {
 }
 
 jar {
-    from("LICENSE") { rename { "LICENSE_${project.archives_base_name}" } }
+    from(rootProject.file("LICENSE")) { rename { "LICENSE_${project.archives_base_name}" } }
 }
