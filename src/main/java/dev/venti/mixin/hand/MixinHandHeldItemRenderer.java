@@ -21,6 +21,8 @@ import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
+//? if <1.21.11
+//import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -150,9 +152,14 @@ public abstract class MixinHandHeldItemRenderer {
       method = RENDER_FIRST_PERSON_ITEM,
       at = @At(
          value = "INVOKE",
+         //? if >=1.21.11 {
          target = "Lnet/minecraft/client/render/item/HeldItemRenderer;swingArm(FLnet/minecraft/client/util/math/MatrixStack;ILnet/minecraft/util/Arm;)V"
+         //?} else {
+         /*target = "Lnet/minecraft/client/render/item/HeldItemRenderer;swingArm(FFLnet/minecraft/client/util/math/MatrixStack;ILnet/minecraft/util/Arm;)V"
+         *///?}
       )
    )
+   //? if >=1.21.11 {
    private void venti$swingStyle(
       HeldItemRenderer renderer, float progress, MatrixStack poseStack, int side, Arm arm, Operation<Void> original, @Local(argsOnly = true) Hand hand
    ) {
@@ -163,4 +170,24 @@ public abstract class MixinHandHeldItemRenderer {
          original.call(renderer, progress, poseStack, side, arm);
       }
    }
+   //?} else {
+   /*private void venti$swingStyle(
+      HeldItemRenderer renderer, float progress, float equipProgress, MatrixStack poseStack, int side, Arm arm, Operation<Void> original,
+      @Local(argsOnly = true) Hand hand
+   ) {
+      SwingAnimationModule module = SwingAnimationModule.active;
+      if (module != null && module.covers(hand == Hand.MAIN_HAND)) {
+         // Before 1.21.11 swingArm also applies the equip offset, so keep that part.
+         this.applyEquipOffset(poseStack, arm, equipProgress);
+         module.pose(poseStack, progress, side);
+      } else {
+         original.call(renderer, progress, equipProgress, poseStack, side, arm);
+      }
+   }
+
+   @Shadow
+   private void applyEquipOffset(MatrixStack matrices, Arm arm, float equipProgress) {
+      throw new AssertionError();
+   }
+   *///?}
 }

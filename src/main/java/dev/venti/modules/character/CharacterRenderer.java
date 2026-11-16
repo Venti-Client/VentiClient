@@ -244,7 +244,11 @@ final class CharacterRenderer {
          } else {
             float share = switch (pose) {
                case EMPTY -> 1.0F;
+               //? if >=1.21.11 {
                case ITEM, BLOCK, BRUSH, THROW_TRIDENT -> 0.5F;
+               //?} else {
+               /*case ITEM, BLOCK, BRUSH, THROW_SPEAR -> 0.5F;
+               *///?}
                default -> 0.0F;
             };
             return state.isUsingItem ? share : share * (1.0F - state.leaningPitch);

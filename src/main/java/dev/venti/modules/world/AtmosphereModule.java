@@ -128,7 +128,11 @@ public final class AtmosphereModule extends Module {
       float rain = 1.0F - state.rainGradient;
       float thunder = level.getThunderGradient(partialTick);
       if (this.keepInRain.get()) {
+         //? if >=1.21.11 {
          this.night = Math.max(this.night, clearNight(state.sunAngle) * rain);
+         //?} else {
+         /*this.night = Math.max(this.night, clearNight(state.solarAngle) * rain);
+         *///?}
          state.starBrightness = Math.max(state.starBrightness, this.night * 0.5F);
          state.rainGradient = 1.0F;
          rain = 0.0F;
@@ -140,8 +144,13 @@ public final class AtmosphereModule extends Module {
       int flashTicks = ((AccessorAtmosphereClientLevel)level).venti$atmosphereSkyFlash();
       this.sky
          .update(
+            //? if >=1.21.11 {
             state.sunAngle,
             state.moonAngle,
+            //?} else {
+            /*state.solarAngle,
+            state.solarAngle + (float)Math.PI, // the moon sits opposite the sun before 1.21.11
+            *///?}
             rain,
             thunder,
             flashTicks > 0 ? Math.min(1.0F, (flashTicks - partialTick) / 2.0F) : 0.0F,

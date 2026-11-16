@@ -23,7 +23,11 @@ public abstract class MixinAtmosphereFogRenderer {
       at = {@At("RETURN")}
    )
    private void venti$fogColour(
+      //? if >=1.21.11 {
       Camera camera, float partialTick, ClientWorld level, int renderDistance, float darkness, CallbackInfoReturnable<Vector4f> cir
+      //?} else {
+      /*Camera camera, float partialTick, ClientWorld level, int renderDistance, float darkness, boolean thick, CallbackInfoReturnable<Vector4f> cir
+      *///?}
    ) {
       CameraSubmersionType fluid = camera.getSubmersionType();
       if (fluid == CameraSubmersionType.NONE && !(darkness > 0.0F)) {

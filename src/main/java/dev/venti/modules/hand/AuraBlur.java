@@ -78,7 +78,12 @@ final class AuraBlur {
       try (RenderPass pass = encoder.createRenderPass(this.passLabel, into.getColorAttachmentView(), OptionalInt.empty())) {
          pass.setPipeline(PIPELINE);
          pass.setUniform("AuraSpread", slice);
+         //? if >=1.21.11 {
          pass.bindTexture("InSampler", from, RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
+         //?} else {
+         /*from.texture().setTextureFilter(FilterMode.LINEAR, false);
+         pass.bindSampler("InSampler", from);
+         *///?}
          pass.draw(0, 3);
       }
    }

@@ -186,7 +186,11 @@ public final class SkyCanvas implements SkyPaint {
                      ShapeIndexBuffer indices = RenderSystem.getSequentialBuffer(DrawMode.QUADS);
                      GpuBuffer indexBuffer = indices.getIndexBuffer(this.quads * 6);
                      GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
+                        //? if >=1.21.11 {
                         .write(RenderSystem.getModelViewStack(), new Vector4f(1.0F, 1.0F, 1.0F, alpha), new Vector3f(), new Matrix4f());
+                        //?} else {
+                        /*.write(RenderSystem.getModelViewStack(), new Vector4f(1.0F, 1.0F, 1.0F, alpha), new Vector3f(), new Matrix4f(), 0.0F);
+                        *///?}
                      Framebuffer target = MinecraftClient.getInstance().getFramebuffer();
                      RenderPass pass = RenderSystem.getDevice()
                         .createCommandEncoder()
@@ -207,7 +211,12 @@ public final class SkyCanvas implements SkyPaint {
                               pass.setIndexBuffer(indexBuffer, indices.getIndexType());
                            }
 
+                           //? if >=1.21.11 {
                            pass.bindTexture("Sampler0", run.texture.view(), run.texture.sampler());
+                           //?} else {
+                           /*run.texture.applySampler();
+                           pass.bindSampler("Sampler0", run.texture.view());
+                           *///?}
                            pass.drawIndexed(0, run.first * 6, run.count * 6, 1);
                         }
                      } catch (Throwable var22) {

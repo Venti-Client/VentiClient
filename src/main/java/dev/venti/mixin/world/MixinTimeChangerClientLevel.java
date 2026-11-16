@@ -29,9 +29,11 @@ public abstract class MixinTimeChangerClientLevel {
          long shown = levelData.getTimeOfDay();
          long forced = timeChanger.interceptServerDayTime(level, dayTime);
          original.call(levelData, forced);
+         //? if >=1.21.11 {
          if (forced != shown) {
             level.getEnvironmentAttributes().tick();
          }
+         //?}
       }
    }
 }

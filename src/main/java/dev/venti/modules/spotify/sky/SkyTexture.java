@@ -9,7 +9,11 @@ import com.mojang.blaze3d.textures.TextureFormat;
 import java.nio.IntBuffer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+//? if >=1.21.11 {
 import net.minecraft.client.gl.GpuSampler;
+//?} else {
+/*import com.mojang.blaze3d.textures.AddressMode;
+*///?}
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.util.math.ColorHelper;
 import org.lwjgl.system.MemoryUtil;
@@ -135,9 +139,17 @@ public final class SkyTexture implements SkyImage {
       return this.view;
    }
 
+   //? if >=1.21.11 {
    GpuSampler sampler() {
       return RenderSystem.getSamplerCache().get(FilterMode.LINEAR, this.mipmapped);
    }
+   //?} else {
+   /*// Before 1.21.11 filtering is texture state rather than a sampler object.
+   void applySampler() {
+      this.texture.setAddressMode(AddressMode.CLAMP_TO_EDGE);
+      this.texture.setTextureFilter(FilterMode.LINEAR, this.mipmapped);
+   }
+   *///?}
 
    @Override
    public void close() {

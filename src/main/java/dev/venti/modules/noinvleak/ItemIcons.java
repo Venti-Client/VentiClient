@@ -40,7 +40,11 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.OverlayTexture;
+//? if >=1.21.11 {
 import net.minecraft.client.render.BlockRenderLayers;
+//?} else {
+/*import net.minecraft.client.render.RenderLayers;
+*///?}
 import net.minecraft.item.ItemDisplayContext;
 import net.minecraft.client.util.BufferAllocator;
 import net.minecraft.client.texture.NativeImage.Format;
@@ -194,7 +198,11 @@ public final class ItemIcons {
 
    private static GpuTexture currentAtlas() {
       try {
+         //? if >=1.21.11 {
          return MinecraftClient.getInstance().getAtlasManager().getAtlasTexture(Atlases.ITEMS).getGlTexture();
+         //?} else {
+         /*return MinecraftClient.getInstance().getAtlasManager().getAtlasTexture(Atlases.BLOCKS).getGlTexture(); // items share the block atlas before 1.21.11
+         *///?}
       } catch (RuntimeException var1) {
          return null;
       }
@@ -285,7 +293,11 @@ public final class ItemIcons {
    }
 
    private static boolean seeThrough(Item item) {
+      //? if >=1.21.11 {
       return item instanceof BlockItem block ? BlockRenderLayers.getBlockLayer(block.getBlock().getDefaultState()) == BlockRenderLayer.TRANSLUCENT : false;
+      //?} else {
+      /*return item instanceof BlockItem block ? RenderLayers.getBlockLayer(block.getBlock().getDefaultState()) == BlockRenderLayer.TRANSLUCENT : false;
+      *///?}
    }
 
    private static ItemIcons.Cell paint(ItemIcons.Sheet sheet, boolean seeThrough) {
@@ -409,7 +421,11 @@ public final class ItemIcons {
                   readback.close();
                }
 
+               //? if >=1.21.11 {
                readback = device.createBuffer(() -> "Venti icon readback", 9, whole);
+               //?} else {
+               /*readback = device.createBuffer(() -> "Venti icon readback", 9, (int)whole);
+               *///?}
             }
 
             if (straightened == null || straightened.capacity() < bytes) {
@@ -417,7 +433,11 @@ public final class ItemIcons {
             }
 
             CommandEncoder encoder = device.createCommandEncoder();
+            //? if >=1.21.11 {
             encoder.copyTextureToBuffer(page, readback, 0L, () -> {}, 0, x, y, cell, cell);
+            //?} else {
+            /*encoder.copyTextureToBuffer(page, readback, 0, () -> {}, 0, x, y, cell, cell);
+            *///?}
             GpuFence copied = encoder.createFence();
 
             try {
@@ -442,7 +462,11 @@ public final class ItemIcons {
             }
 
             straightened.clear().limit(bytes);
+            //? if >=1.21.11 {
             MappedView view = encoder.mapBuffer(readback.slice(0L, bytes), true, false);
+            //?} else {
+            /*MappedView view = encoder.mapBuffer(readback.slice(0, bytes), true, false);
+            *///?}
 
             try {
                ByteBuffer read = view.data();

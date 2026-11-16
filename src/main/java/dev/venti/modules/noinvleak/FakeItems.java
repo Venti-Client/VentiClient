@@ -206,8 +206,10 @@ final class FakeItems {
          return Items.WOODEN_SHOVEL;
       } else if (real.isIn(ItemTags.HOES)) {
          return Items.WOODEN_HOE;
+      //? if >=1.21.11 {
       } else if (real.isIn(ItemTags.SPEARS)) {
          return Items.WOODEN_SPEAR;
+      //?}
       } else if (item == Items.MACE || item == Items.TRIDENT) {
          return Items.WOODEN_SWORD;
       } else if (item == Items.BOW || item == Items.CROSSBOW) {

@@ -121,8 +121,15 @@ final class HandAuraPass {
       try (RenderPass pass = encoder.createRenderPass(PASS_LABEL, main.getColorAttachmentView(), OptionalInt.empty())) {
          pass.setPipeline(PIPELINE);
          pass.setUniform("HandAuraConfig", configSlice);
+         //? if >=1.21.11 {
          pass.bindTexture("CaptureSampler", hand.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
          pass.bindTexture("HaloSampler", halo, RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
+         //?} else {
+         /*hand.getColorAttachment().setTextureFilter(FilterMode.LINEAR, false);
+         halo.texture().setTextureFilter(FilterMode.LINEAR, false);
+         pass.bindSampler("CaptureSampler", hand.getColorAttachmentView());
+         pass.bindSampler("HaloSampler", halo);
+         *///?}
          pass.draw(0, 3);
       }
    }

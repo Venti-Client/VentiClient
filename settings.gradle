@@ -5,4 +5,22 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
+plugins {
+    id 'dev.kikugie.stonecutter' version '0.9.8'
+}
+
+stonecutter {
+    // Groovy controller (stonecutter.gradle) and shared build script (build.gradle).
+    kotlinController = false
+    centralScript = 'build.gradle'
+
+    create(getRootProject()) {
+        // One subproject per Minecraft version: versions/<mc>/ (holds gradle.properties for that version).
+        versions '1.21.9', '1.21.10', '1.21.11'
+        // The version whose code is checked in to src/ (newest).
+        vcsVersion = '1.21.11'
+    }
+}
+
 rootProject.name = 'venti'
