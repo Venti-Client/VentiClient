@@ -12,7 +12,11 @@ import dev.venti.module.Modules;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+//? if >=1.21.9 {
 import net.minecraft.client.render.state.SkyRenderState;
+//?} else {
+/*
+*///?}
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.util.math.BlockPos;
@@ -122,6 +126,15 @@ public final class AtmosphereModule extends Module {
       this.auroraHere = 0.0F;
    }
 
+   //? if <1.21.9 {
+   /*// Stand-in for 1.21.9's sky render state: the values the sky mixin reads before the dome and feeds back to the sky pass.
+   public static final class SkyRenderState {
+      public float solarAngle;
+      public float rainGradient;
+      public float starBrightness;
+   }
+
+   *///?}
    public void extract(ClientWorld level, float partialTick, SkyRenderState state) {
       this.shaderRendered = false;
       this.night = MathHelper.clamp(state.starBrightness * 2.0F, 0.0F, 1.0F);

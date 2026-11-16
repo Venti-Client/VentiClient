@@ -17,10 +17,18 @@ import net.minecraft.client.render.RenderLayers;
 /*import net.minecraft.client.render.RenderLayer;
 *///?}
 import net.minecraft.client.render.VertexConsumer;
+//? if >=1.21.9 {
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
+//?} else {
+/*import net.minecraft.client.render.VertexConsumerProvider;
+*///?}
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.minecraft.client.render.item.ItemRenderState;
+//? if >=1.21.9 {
 import net.minecraft.client.render.state.CameraRenderState;
+//?} else {
+/*
+*///?}
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.font.TextRenderer.TextLayerType;
 import net.minecraft.item.ItemDisplayContext;
@@ -153,7 +161,11 @@ public final class NametagsModule extends Module {
    }
 
    /** Draws the restyled tag at vanilla's label anchor. Everything uses depth-tested layers (no see-through pass). */
+   //? if >=1.21.9 {
    public static void render(PlayerEntityRenderState state, Tag tag, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState) {
+   //?} else {
+   /*public static void render(PlayerEntityRenderState state, Tag tag, MatrixStack matrices, VertexConsumerProvider queue, int stateLight) {
+   *///?}
       NametagsModule module = instance;
       if (module == null || state.nameLabelPos == null) {
          return;
@@ -175,12 +187,20 @@ public final class NametagsModule extends Module {
       float surface = Math.max(0.0F, Math.min(1.0F, module.backgroundAlpha.get())) * fade;
       float chrome = Math.min(1.0F, surface * 2.0F);
       boolean shadow = surface < 0.55F;
+      //? if >=1.21.9 {
       int light = LightmapTextureManager.applyEmission(state.light, 2);
+      //?} else {
+      /*int light = LightmapTextureManager.applyEmission(stateLight, 2);
+      *///?}
       float s = 0.025F * Math.max(0.5F, Math.min(2.0F, module.scale.get()));
 
       matrices.push();
       matrices.translate(state.nameLabelPos.x, state.nameLabelPos.y + 0.5, state.nameLabelPos.z);
+      //? if >=1.21.9 {
       matrices.multiply(cameraState.orientation);
+      //?} else {
+      /*matrices.multiply(mc.getEntityRenderDispatcher().getRotation());
+      *///?}
       matrices.scale(s, -s, s);
       int x = -panelW / 2;
       int y = 9 + PADDING - panelH;
@@ -192,20 +212,36 @@ public final class NametagsModule extends Module {
       int border = scaleAlpha(BORDER, chrome);
       //? if >=1.21.11 {
       queue.submitCustom(matrices, RenderLayers.textBackground(), (entry, vc) -> {
-      //?} else {
+      //?} elif >=1.21.9 {
       /*queue.submitCustom(matrices, RenderLayer.getTextBackground(), (entry, vc) -> {
+      *///?} else {
+      /*{
+         MatrixStack.Entry entry = matrices.peek();
+         VertexConsumer vc = queue.getBuffer(RenderLayer.getTextBackground());
       *///?}
          Matrix4f m = entry.getPositionMatrix();
          roundedRect(vc, m, x, y, x + panelW, y + panelH, panel, light);
          roundedBorder(vc, m, x, y, x + panelW, y + panelH, border, light);
+      //? if >=1.21.9 {
       });
+      //?} else {
+      /*}
+      *///?}
       matrices.pop();
 
       int left = x + PADDING;
       int textY = y + PADDING;
+      //? if >=1.21.9 {
       queue.submitText(matrices, left, textY, name.asOrderedText(), shadow, TextLayerType.NORMAL, light, scaleAlpha(TEXT_NAME, fade), 0, 0);
+      //?} else {
+      /*font.draw(name.asOrderedText(), left, textY, scaleAlpha(TEXT_NAME, fade), shadow, matrices.peek().getPositionMatrix(), queue, TextLayerType.NORMAL, 0, light);
+      *///?}
       if (tag.pingText != null) {
+         //? if >=1.21.9 {
          queue.submitText(matrices, left + nameW + 5, textY, Text.literal(tag.pingText).asOrderedText(), shadow, TextLayerType.NORMAL, light, scaleAlpha(tag.pingColor, fade), 0, 0);
+         //?} else {
+         /*font.draw(Text.literal(tag.pingText).asOrderedText(), left + nameW + 5, textY, scaleAlpha(tag.pingColor, fade), shadow, matrices.peek().getPositionMatrix(), queue, TextLayerType.NORMAL, 0, light);
+         *///?}
       }
 
       if (secondRow) {
@@ -216,13 +252,21 @@ public final class NametagsModule extends Module {
             matrices.translate(cursor + ICON_SIZE / 2.0F, rowY + ICON_SIZE / 2.0F, 0.5F);
             // Same orientation as GUI item icons; depth squashed so 3D block models stay in front of the panel.
             matrices.scale(ICON_SIZE, -ICON_SIZE, 0.5F);
+            //? if >=1.21.9 {
             tag.item.render(matrices, queue, light, OverlayTexture.DEFAULT_UV, 0);
+            //?} else {
+            /*tag.item.render(matrices, queue, light, OverlayTexture.DEFAULT_UV);
+            *///?}
             matrices.pop();
             cursor += ICON_SIZE + TEXT_GAP;
          }
 
          if (tag.distanceText != null) {
+            //? if >=1.21.9 {
             queue.submitText(matrices, cursor, rowY + 2, Text.literal(tag.distanceText).asOrderedText(), shadow, TextLayerType.NORMAL, light, scaleAlpha(TEXT_LABEL, fade), 0, 0);
+            //?} else {
+            /*font.draw(Text.literal(tag.distanceText).asOrderedText(), cursor, rowY + 2, scaleAlpha(TEXT_LABEL, fade), shadow, matrices.peek().getPositionMatrix(), queue, TextLayerType.NORMAL, 0, light);
+            *///?}
          }
       }
 

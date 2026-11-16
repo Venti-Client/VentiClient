@@ -5,6 +5,8 @@ import dev.venti.modules.spotify.sky.SkyLyrics;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.SkyRendering;
 import net.minecraft.client.util.math.MatrixStack;
+//? if <1.21.9
+//import net.minecraft.client.render.VertexConsumerProvider;
 //? if >=1.21.11
 import net.minecraft.world.MoonPhase;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,7 +37,11 @@ public abstract class SkyRenderingMixin {
    }
 
    @Inject(method = "renderGlowingSky", at = @At("HEAD"), cancellable = true)
+   //? if >=1.21.9 {
    private void venti$noSunset(MatrixStack matrices, float angle, int color, CallbackInfo ci) {
+   //?} else {
+   /*private void venti$noSunset(MatrixStack matrices, VertexConsumerProvider.Immediate buffers, float angle, int color, CallbackInfo ci) {
+   *///?}
       CustomSkyModule sky = CustomSkyModule.active();
       if (sky != null && sky.hideSunset()) {
          ci.cancel();
@@ -43,7 +49,11 @@ public abstract class SkyRenderingMixin {
    }
 
    @Inject(method = "renderSun", at = @At("HEAD"), cancellable = true)
+   //? if >=1.21.9 {
    private void venti$noSun(float alpha, MatrixStack matrices, CallbackInfo ci) {
+   //?} else {
+   /*private void venti$noSun(float alpha, VertexConsumerProvider buffers, MatrixStack matrices, CallbackInfo ci) {
+   *///?}
       CustomSkyModule sky = CustomSkyModule.active();
       if (sky != null && sky.hideSunMoon()) {
          ci.cancel();
@@ -53,8 +63,10 @@ public abstract class SkyRenderingMixin {
    @Inject(method = "renderMoon", at = @At("HEAD"), cancellable = true)
    //? if >=1.21.11 {
    private void venti$noMoon(MoonPhase phase, float alpha, MatrixStack matrices, CallbackInfo ci) {
-   //?} else {
+   //?} elif >=1.21.9 {
    /*private void venti$noMoon(int phase, float alpha, MatrixStack matrices, CallbackInfo ci) {
+   *///?} else {
+   /*private void venti$noMoon(int phase, float alpha, VertexConsumerProvider buffers, MatrixStack matrices, CallbackInfo ci) {
    *///?}
       CustomSkyModule sky = CustomSkyModule.active();
       if (sky != null && sky.hideSunMoon()) {
@@ -75,8 +87,10 @@ public abstract class SkyRenderingMixin {
    private void venti$afterCelestials(
       //? if >=1.21.11 {
       MatrixStack matrices, float sunAngle, float moonAngle, float starAngle, MoonPhase moonPhase, float rainBrightness, float starBrightness, CallbackInfo ci
-      //?} else {
+      //?} elif >=1.21.9 {
       /*MatrixStack matrices, float skyAngle, int moonPhase, float rainBrightness, float starBrightness, CallbackInfo ci
+      *///?} else {
+      /*MatrixStack matrices, VertexConsumerProvider.Immediate buffers, float skyAngle, int moonPhase, float rainBrightness, float starBrightness, CallbackInfo ci
       *///?}
    ) {
       SkyLyrics.render();

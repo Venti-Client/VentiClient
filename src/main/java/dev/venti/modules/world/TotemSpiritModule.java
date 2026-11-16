@@ -134,7 +134,11 @@ public final class TotemSpiritModule extends Module {
 
    private void capture(LivingEntity entity) {
       MinecraftClient mc = MinecraftClient.getInstance();
+      //? if >=1.21.9 {
       if (entity instanceof PlayerEntity player && this.bind(mc.world) && player.getEntityWorld() == mc.world) {
+      //?} else {
+      /*if (entity instanceof PlayerEntity player && this.bind(mc.world) && player.getWorld() == mc.world) {
+      *///?}
          if (!player.isSpectator()) {
             boolean mine = player == mc.player;
             if (!mine || this.own.get()) {

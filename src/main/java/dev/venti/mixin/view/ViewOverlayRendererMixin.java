@@ -16,7 +16,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(InGameOverlayRenderer.class)
 public abstract class ViewOverlayRendererMixin {
    @ModifyExpressionValue(
+      //? if >=1.21.9 {
       method = "renderOverlays(ZFLnet/minecraft/client/render/command/OrderedRenderCommandQueue;)V",
+      //?} else {
+      /*method = "renderOverlays(ZF)V",
+      *///?}
       at = @At(value = "NEW", target = "()Lnet/minecraft/client/util/math/MatrixStack;")
    )
    private MatrixStack venti$undoCustomFov(MatrixStack matrices) {
@@ -29,11 +33,19 @@ public abstract class ViewOverlayRendererMixin {
    }
 
    @Inject(
+      //? if >=1.21.9 {
       method = "renderFireOverlay(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/texture/Sprite;)V",
       at = @At("HEAD"),
       cancellable = true
    )
    private static void venti$hideFireOverlay(MatrixStack matrices, VertexConsumerProvider vertexConsumers, Sprite sprite, CallbackInfo ci) {
+      //?} else {
+      /*method = "renderFireOverlay(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V",
+      at = @At("HEAD"),
+      cancellable = true
+   )
+   private static void venti$hideFireOverlay(MatrixStack matrices, VertexConsumerProvider vertexConsumers, CallbackInfo ci) {
+      *///?}
       if (NoRenderModule.hideFireOverlay()) {
          ci.cancel();
       }

@@ -30,14 +30,22 @@ public abstract class MixinWorldVisualsRenderer {
       WorldHooks.render3D(mc.getRenderTickCounter().getTickProgress(false));
       return frustum;
    }
-   //?} else {
+   //?} elif >=1.21.9 {
    /*// Before 1.21.11 the debug renderer runs inside the frame graph, so hook the same spot (end of extraction,
    // right before the frame graph is set up) by its profiler section.
    @Inject(
       method = "render",
       at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V", args = "ldc=setupFrameGraph")
    )
-   private void venti$worldVisuals(
+   *///?} else {
+   /*// Before 1.21.9 there is no extraction step: hook right before the frame graph is created (after section compiling).
+   @Inject(
+      method = "render",
+      at = @At(value = "NEW", target = "()Lnet/minecraft/client/render/FrameGraphBuilder;")
+   )
+   *///?}
+   //? if <1.21.11 {
+   /*private void venti$worldVisuals(
       CallbackInfo ci, @Local(argsOnly = true) Camera camera, @Local(argsOnly = true, ordinal = 1) Matrix4f projection
    ) {
       MinecraftClient mc = MinecraftClient.getInstance();

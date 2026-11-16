@@ -3,7 +3,11 @@ package dev.venti.mixin.world;
 import dev.venti.modules.world.JumpCirclesModule;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+//? if >=1.21.9 {
 import net.minecraft.client.render.state.WorldRenderState;
+//?} else {
+/*import net.minecraft.client.render.Camera;
+*///?}
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.VertexConsumerProvider.Immediate;
@@ -19,9 +23,16 @@ public abstract class MixinJumpCirclesLevelRenderer {
       method = {"renderBlockDamage"},
       at = {@At("HEAD")}
    )
+   //? if >=1.21.9 {
    private void venti$jumpCircles(MatrixStack poseStack, Immediate crumblingBuffers, WorldRenderState levelRenderState, CallbackInfo ci) {
       if (JumpCirclesModule.active != null) {
          JumpCirclesModule.renderLevel(levelRenderState.cameraRenderState);
       }
+   //?} else {
+   /*private void venti$jumpCircles(MatrixStack poseStack, Camera camera, Immediate crumblingBuffers, CallbackInfo ci) {
+      if (JumpCirclesModule.active != null) {
+         JumpCirclesModule.renderLevel(camera);
+      }
+   *///?}
    }
 }

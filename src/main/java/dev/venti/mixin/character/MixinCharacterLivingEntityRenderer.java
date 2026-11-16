@@ -7,7 +7,11 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.client.render.entity.state.LivingEntityRenderState;
+//? if >=1.21.9 {
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
+//?} else {
+/*import net.minecraft.client.render.VertexConsumerProvider;
+*///?}
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.entity.feature.FeatureRenderer;
 import net.minecraft.client.util.math.MatrixStack;
@@ -33,6 +37,7 @@ public abstract class MixinCharacterLivingEntityRenderer {
       }
    }
 
+   //? if >=1.21.9 {
    @WrapOperation(
       method = {"render(Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;Lnet/minecraft/client/render/state/CameraRenderState;)V"},
       at = {@At(
@@ -43,6 +48,18 @@ public abstract class MixinCharacterLivingEntityRenderer {
    private void venti$hideLayersUnderCharacter(
       FeatureRenderer<?, ?> layer, MatrixStack poseStack, OrderedRenderCommandQueue collector, int light, EntityRenderState state, float yRot, float xRot, Operation<Void> original
    ) {
+   //?} else {
+   /*@WrapOperation(
+      method = {"render(Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V"},
+      at = {@At(
+         value = "INVOKE",
+         target = "Lnet/minecraft/client/render/entity/feature/FeatureRenderer;render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/client/render/entity/state/EntityRenderState;FF)V"
+      )}
+   )
+   private void venti$hideLayersUnderCharacter(
+      FeatureRenderer<?, ?> layer, MatrixStack poseStack, VertexConsumerProvider collector, int light, EntityRenderState state, float yRot, float xRot, Operation<Void> original
+   ) {
+   *///?}
       if (!CharacterModule.hidesLayer(layer, state)) {
          original.call(new Object[]{layer, poseStack, collector, light, state, yRot, xRot});
       }

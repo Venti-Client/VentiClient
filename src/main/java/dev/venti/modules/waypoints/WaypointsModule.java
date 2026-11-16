@@ -38,7 +38,11 @@ import org.lwjgl.glfw.GLFW;
  */
 public final class WaypointsModule extends Module implements CustomPage {
    /** Equal to the category VentiClient registered (KeyBinding.Category.create throws on a second call). */
+   //? if >=1.21.9 {
    private static final KeyBinding.Category CATEGORY = new KeyBinding.Category(Identifier.of("venti", "keys"));
+   //?} else {
+   /*private static final String CATEGORY = "key.category.venti.keys"; // categories are translation keys before 1.21.9
+   *///?}
    private static final int DEATH_COLOR = 0xFFFF4444;
    private static final int[] PALETTE = {
       0xFF55FFFF, 0xFFFFAA00, 0xFF55FF55, 0xFFFF55FF, 0xFFFFFF55, 0xFF5599FF, 0xFFFF7777, 0xFFAAFFAA, 0xFFFFFFFF, 0xFFB088FF

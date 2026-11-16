@@ -34,7 +34,11 @@ final class HandAuraPass {
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
    private static final RenderPipeline PIPELINE = RenderPipeline.builder()
       .withLocation(Identifier.of("venti", "pipeline/hand_aura"))
+      //? if >=1.21.9 {
       .withVertexShader("core/screenquad")
+      //?} else {
+      /*.withVertexShader("core/blit_screen") // full-screen quad shader before 1.21.9
+      *///?}
       .withFragmentShader(Identifier.of("venti", "core/hand_aura"))
       .withSampler("CaptureSampler")
       .withSampler("HaloSampler")
@@ -43,7 +47,11 @@ final class HandAuraPass {
       .withColorWrite(true, false)
       .withDepthWrite(false)
       .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+      //? if >=1.21.9 {
       .withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES)
+      //?} else {
+      /*.withVertexFormat(VertexFormats.POSITION, com.mojang.blaze3d.vertex.VertexFormat.DrawMode.QUADS)
+      *///?}
       .build();
    private static final Supplier<String> PASS_LABEL = () -> "Venti hand aura";
    private static final Supplier<String> CONFIG_LABEL = () -> "Venti hand aura config";
@@ -130,7 +138,14 @@ final class HandAuraPass {
          pass.bindSampler("CaptureSampler", hand.getColorAttachmentView());
          pass.bindSampler("HaloSampler", halo);
          *///?}
+         //? if >=1.21.9 {
          pass.draw(0, 3);
+         //?} else {
+         /*pass.setVertexBuffer(0, com.mojang.blaze3d.systems.RenderSystem.getQuadVertexBuffer()); // no vertex-less draws before 1.21.9
+         com.mojang.blaze3d.systems.RenderSystem.ShapeIndexBuffer quads = com.mojang.blaze3d.systems.RenderSystem.getSequentialBuffer(com.mojang.blaze3d.vertex.VertexFormat.DrawMode.QUADS);
+         pass.setIndexBuffer(quads.getIndexBuffer(6), quads.getIndexType());
+         pass.drawIndexed(0, 0, 6, 1);
+         *///?}
       }
    }
 

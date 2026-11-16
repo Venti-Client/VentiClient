@@ -7,16 +7,25 @@ import java.util.function.Supplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
+//? if >=1.21.9 {
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.entity.EntityRenderManager;
+//?} else {
+/*import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+*///?}
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
 import net.minecraft.client.render.item.ItemRenderState;
 import net.minecraft.client.render.model.json.Transformation;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerModelPart;
+//? if >=1.21.9 {
 import net.minecraft.entity.player.PlayerSkinType;
 import net.minecraft.entity.player.SkinTextures;
+//?} else {
+/*import net.minecraft.client.util.SkinTextures;
+*///?}
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemDisplayContext;
 import net.minecraft.item.ItemStack;
@@ -49,6 +58,7 @@ final class FirstPersonArm {
          return null;
       }
 
+      //? if >=1.21.9 {
       EntityRenderManager dispatcher = mc.getEntityRenderDispatcher();
       PlayerEntityRenderer<AbstractClientPlayerEntity> renderer = dispatcher.getPlayerRenderer(player);
       SkinTextures skin = player.getSkin();
@@ -59,10 +69,26 @@ final class FirstPersonArm {
          player.isModelPartVisible(PlayerModelPart.LEFT_SLEEVE),
          skin.model() == PlayerSkinType.SLIM
       );
+      //?} else {
+      /*EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
+      PlayerEntityRenderer renderer = (PlayerEntityRenderer)dispatcher.getRenderer(player);
+      SkinTextures skin = player.getSkinTextures();
+      return new Arm(
+         renderer,
+         skin.texture(),
+         player.isPartVisible(PlayerModelPart.RIGHT_SLEEVE),
+         player.isPartVisible(PlayerModelPart.LEFT_SLEEVE),
+         skin.model() == SkinTextures.Model.SLIM
+      );
+      *///?}
    }
 
    static void hold(
+      //? if >=1.21.9 {
       MatrixStack pose, Arm arm, ItemStack stack, ItemDisplayContext context, LivingEntity holder, OrderedRenderCommandQueue collector, int light, float dx, float dy, float dz
+      //?} else {
+      /*MatrixStack pose, Arm arm, ItemStack stack, ItemDisplayContext context, LivingEntity holder, VertexConsumerProvider collector, int light, float dx, float dy, float dz
+      *///?}
    ) {
       Vector3f grip = grip(stack, context, holder);
       if (grip != null) {
@@ -89,7 +115,11 @@ final class FirstPersonArm {
          return null;
       }
 
+      //? if >=1.21.9 {
       MinecraftClient.getInstance().getItemModelManager().clearAndUpdate(MODEL, stack, context, holder.getEntityWorld(), holder, holder.getId() + context.ordinal());
+      //?} else {
+      /*MinecraftClient.getInstance().getItemModelManager().clearAndUpdate(MODEL, stack, context, holder.getWorld(), holder, holder.getId() + context.ordinal());
+      *///?}
       AccessorHandItemRenderState state = (AccessorHandItemRenderState)MODEL;
       if (state.venti$handLayerCount() <= 0) {
          return null;
@@ -199,8 +229,13 @@ final class FirstPersonArm {
       pose.translate(-pivotX, -pivotY, 0.0F);
    }
 
+   //? if >=1.21.9 {
    record Arm(PlayerEntityRenderer<AbstractClientPlayerEntity> renderer, Identifier texture, boolean rightSleeve, boolean leftSleeve, boolean slim) {
       void draw(MatrixStack pose, boolean left, OrderedRenderCommandQueue collector, int light) {
+   //?} else {
+   /*record Arm(PlayerEntityRenderer renderer, Identifier texture, boolean rightSleeve, boolean leftSleeve, boolean slim) {
+      void draw(MatrixStack pose, boolean left, VertexConsumerProvider collector, int light) {
+   *///?}
          if (left) {
             pose.scale(-1.0F, 1.0F, 1.0F);
             this.renderer.renderLeftArm(pose, collector, light, this.texture, this.leftSleeve);

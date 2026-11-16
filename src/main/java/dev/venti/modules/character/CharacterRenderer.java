@@ -8,7 +8,11 @@ import dev.venti.modules.character.kit.Surface;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
+//? if >=1.21.9 {
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
+//?} else {
+/*import net.minecraft.client.render.VertexConsumerProvider;
+*///?}
 import net.minecraft.util.Arm;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.client.util.math.MatrixStack;
@@ -38,7 +42,11 @@ final class CharacterRenderer {
    private CharacterRenderer() {
    }
 
+   //? if >=1.21.9 {
    static void submit(WornCharacter worn, PlayerEntityModel pm, MatrixStack stack, OrderedRenderCommandQueue collector, int light, PlayerEntityRenderState state) {
+   //?} else {
+   /*static void submit(WornCharacter worn, PlayerEntityModel pm, MatrixStack stack, VertexConsumerProvider collector, int light, PlayerEntityRenderState state) {
+   *///?}
       CharacterModel model = worn.model;
       PartMesh[] parts = model.parts;
       boolean ghost = state.invisible;
@@ -78,7 +86,11 @@ final class CharacterRenderer {
       stack.pop();
    }
 
+   //? if >=1.21.9 {
    static boolean firstPersonHand(PlayerEntityModel pm, MatrixStack stack, OrderedRenderCommandQueue collector, int light, ModelPart arm) {
+   //?} else {
+   /*static boolean firstPersonHand(PlayerEntityModel pm, MatrixStack stack, VertexConsumerProvider collector, int light, ModelPart arm) {
+   *///?}
       WornCharacter worn = CharacterModule.firstPerson();
       if (worn == null) {
          return false;
@@ -112,9 +124,15 @@ final class CharacterRenderer {
       WornCharacter worn,
       PartMesh part,
       MatrixStack stack,
+      //? if >=1.21.9 {
       OrderedRenderCommandQueue collector,
       int light,
       int overlay,
+      //?} else {
+      /*VertexConsumerProvider collector,
+      int light,
+      int overlay,
+      *///?}
       boolean ghost,
       boolean bends,
       float pitch,
@@ -123,6 +141,7 @@ final class CharacterRenderer {
       float bent,
       float turn
    ) {
+      //? if >=1.21.9 {
       if (ghost) {
          if (part.base != null) {
             collector.getBatchingQueue(1)
@@ -146,6 +165,30 @@ final class CharacterRenderer {
                .submitCustom(stack, worn.decal, (pose, out) -> emit(pose, out, part.decals, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn));
          }
       }
+      //?} else {
+      /*// Before 1.21.9 there is no command queue: write straight into the layer buffers.
+      Entry pose = stack.peek();
+      if (ghost) {
+         if (part.base != null) {
+            emit(pose, collector.getBuffer(worn.ghost), part.base, light, overlay, 38, bends, pitch, yaw, roll, part, bent, turn);
+         }
+      } else {
+         if (part.base != null || part.outline != null) {
+            VertexConsumer out = collector.getBuffer(worn.solid);
+            if (part.base != null) {
+               emit(pose, out, part.base, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn);
+            }
+
+            if (part.outline != null) {
+               emit(pose, out, part.outline, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn);
+            }
+         }
+
+         if (part.decals != null) {
+            emit(pose, collector.getBuffer(worn.decal), part.decals, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn);
+         }
+      }
+      *///?}
    }
 
    static boolean translateToHand(PlayerEntityModel pm, PlayerEntityRenderState state, Arm arm, MatrixStack stack) {

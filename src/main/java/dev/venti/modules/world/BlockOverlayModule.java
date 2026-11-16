@@ -213,7 +213,11 @@ public final class BlockOverlayModule extends Module {
       } else if (state.getBlock() instanceof BedBlock) {
          other = at.offset(BedBlock.getOppositePartDirection(state));
       } else if (state.getBlock() instanceof ChestBlock && state.get(ChestBlock.CHEST_TYPE) != ChestType.SINGLE) {
+         //? if >=1.21.9 {
          other = ChestBlock.getPosInFrontOf(at, state);
+         //?} else {
+         /*other = at.offset(ChestBlock.getFacing(state));
+         *///?}
       }
 
       return other != null && world.getBlockState(other).isOf(state.getBlock()) ? other : null;

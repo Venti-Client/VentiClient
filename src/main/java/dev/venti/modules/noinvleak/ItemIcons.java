@@ -26,12 +26,20 @@ import java.util.Iterator;
 import java.util.List;
 import com.mojang.blaze3d.systems.ProjectionType;
 import net.minecraft.client.render.item.ItemRenderState;
+//? if >=1.21.9 {
 import net.minecraft.util.Atlases;
+//?} else {
+/*import net.minecraft.client.texture.SpriteAtlasTexture;
+*///?}
 import net.minecraft.client.texture.GlTexture;
 import net.minecraft.client.render.ProjectionMatrix2;
 import net.minecraft.client.render.BlockRenderLayer;
+//? if >=1.21.9 {
 import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl;
 import net.minecraft.client.render.command.RenderDispatcher;
+//?} else {
+/*
+*///?}
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -79,8 +87,12 @@ public final class ItemIcons {
    private static GpuTexture depth;
    private static GpuTextureView depthView;
    private static ProjectionMatrix2 projection;
+   //? if >=1.21.9 {
    private static OrderedRenderCommandQueueImpl submits;
    private static RenderDispatcher features;
+   //?} else {
+/*
+   *///?}
    private static Immediate buffers;
    private static GpuBuffer readback;
    private static ByteBuffer straightened;
@@ -200,8 +212,10 @@ public final class ItemIcons {
       try {
          //? if >=1.21.11 {
          return MinecraftClient.getInstance().getAtlasManager().getAtlasTexture(Atlases.ITEMS).getGlTexture();
-         //?} else {
+         //?} elif >=1.21.9 {
          /*return MinecraftClient.getInstance().getAtlasManager().getAtlasTexture(Atlases.BLOCKS).getGlTexture(); // items share the block atlas before 1.21.11
+         *///?} else {
+         /*return MinecraftClient.getInstance().getTextureManager().getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlTexture(); // no atlas manager before 1.21.9
          *///?}
       } catch (RuntimeException var1) {
          return null;
@@ -354,6 +368,7 @@ public final class ItemIcons {
       int side = target.getWidth(0);
       int glY = side - y - cell;
       RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(target, 0, targetDepth, 1.0, x, glY, cell, cell);
+      //? if >=1.21.9 {
       if (features == null) {
          buffers = VertexConsumerProvider.immediate(new BufferAllocator(262144));
          submits = new OrderedRenderCommandQueueImpl();
@@ -361,6 +376,11 @@ public final class ItemIcons {
             submits, mc.getBlockRenderManager(), buffers, mc.getAtlasManager(), mc.getBufferBuilders().getOutlineVertexConsumers(), mc.getBufferBuilders().getEffectVertexConsumers(), mc.textRenderer
          );
       }
+      //?} else {
+      /*if (buffers == null) {
+         buffers = VertexConsumerProvider.immediate(new BufferAllocator(262144));
+      }
+      *///?}
 
       GpuTextureView colorBefore = RenderSystem.outputColorTextureOverride;
       GpuTextureView depthBefore = RenderSystem.outputDepthTextureOverride;
@@ -390,6 +410,7 @@ public final class ItemIcons {
          pose.translate(x + cell * 0.5F, y + cell * 0.5F, 0.0F);
          pose.scale(cell, -cell, cell);
 
+         //? if >=1.21.9 {
          try {
             model.render(pose, submits, 15728880, OverlayTexture.DEFAULT_UV, 0);
             features.render();
@@ -397,6 +418,13 @@ public final class ItemIcons {
             submits.clear();
             buffers.draw();
          }
+         //?} else {
+         /*try {
+            model.render(pose, buffers, 15728880, OverlayTexture.DEFAULT_UV);
+         } finally {
+            buffers.draw();
+         }
+         *///?}
       } finally {
          RenderSystem.disableScissorForRenderTypeDraws();
          RenderSystem.outputColorTextureOverride = colorBefore;
@@ -497,7 +525,11 @@ public final class ItemIcons {
                view.close();
             }
 
+            //? if >=1.21.9 {
             encoder.writeToTexture(page, straightened, Format.RGBA, 0, 0, x, y, cell, cell);
+            //?} else {
+            /*encoder.writeToTexture(page, straightened.asIntBuffer(), Format.RGBA, 0, 0, x, y, cell, cell);
+            *///?}
          } catch (RuntimeException var26) {
             straightenFailed = true;
             LOGGER.warn("[Venti] Couldn't read icons back; see-through ones stay darker", var26);

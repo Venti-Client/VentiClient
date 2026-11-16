@@ -27,9 +27,14 @@ public abstract class MixinWaypointsWorldRenderer {
       boolean renderBlockOutline,
       Camera camera,
       Matrix4f positionMatrix,
+      //? if >=1.21.9 {
       Matrix4f projectionMatrix,
       Matrix4f matrix4f,
       GpuBufferSlice fog,
+      //?} else {
+      /*Matrix4f projectionMatrix,
+      GpuBufferSlice fog,
+      *///?}
       Vector4f fogColor,
       boolean renderSky,
       CallbackInfo ci

@@ -24,14 +24,22 @@ import org.lwjgl.BufferUtils;
 final class AuraBlur {
    private static final RenderPipeline PIPELINE = RenderPipeline.builder()
       .withLocation(Identifier.of("venti", "pipeline/aura_spread"))
+      //? if >=1.21.9 {
       .withVertexShader("core/screenquad")
+      //?} else {
+      /*.withVertexShader("core/blit_screen") // full-screen quad shader before 1.21.9
+      *///?}
       .withFragmentShader(Identifier.of("venti", "core/aura_spread"))
       .withSampler("InSampler")
       .withUniform("AuraSpread", UniformType.UNIFORM_BUFFER)
       .withoutBlend()
       .withDepthWrite(false)
       .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+      //? if >=1.21.9 {
       .withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES)
+      //?} else {
+      /*.withVertexFormat(VertexFormats.POSITION, com.mojang.blaze3d.vertex.VertexFormat.DrawMode.QUADS)
+      *///?}
       .build();
    private static final int CONFIG_SIZE = 16;
    private static final float TAPS = 6.0F;
@@ -84,7 +92,14 @@ final class AuraBlur {
          /*from.texture().setTextureFilter(FilterMode.LINEAR, false);
          pass.bindSampler("InSampler", from);
          *///?}
+         //? if >=1.21.9 {
          pass.draw(0, 3);
+         //?} else {
+         /*pass.setVertexBuffer(0, com.mojang.blaze3d.systems.RenderSystem.getQuadVertexBuffer()); // no vertex-less draws before 1.21.9
+         com.mojang.blaze3d.systems.RenderSystem.ShapeIndexBuffer quads = com.mojang.blaze3d.systems.RenderSystem.getSequentialBuffer(com.mojang.blaze3d.vertex.VertexFormat.DrawMode.QUADS);
+         pass.setIndexBuffer(quads.getIndexBuffer(6), quads.getIndexType());
+         pass.drawIndexed(0, 0, 6, 1);
+         *///?}
       }
    }
 

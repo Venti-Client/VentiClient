@@ -23,7 +23,11 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.ResourceTexture;
 import net.minecraft.client.gl.RenderPipelines;
+//? if >=1.21.9 {
 import net.minecraft.client.render.state.CameraRenderState;
+//?} else {
+/*import net.minecraft.client.render.Camera;
+*///?}
 //? if >=1.21.11 {
 import net.minecraft.client.render.LayeringTransform;
 import net.minecraft.client.render.RenderSetup;
@@ -234,11 +238,19 @@ public final class JumpCirclesModule extends Module {
          && !player.isInvisible();
    }
 
+   //? if >=1.21.9 {
    public static void renderLevel(CameraRenderState camera) {
       JumpCirclesModule module = active;
       if (module != null && module.count > 0 && camera.initialized) {
          module.render(camera.pos);
       }
+   //?} else {
+   /*public static void renderLevel(Camera camera) {
+      JumpCirclesModule module = active;
+      if (module != null && module.count > 0 && camera.isReady()) {
+         module.render(camera.getPos());
+      }
+   *///?}
    }
 
    private void render(Vec3d camera) {

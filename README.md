@@ -4,7 +4,7 @@
 
 **A clean, performance-minded visual and quality-of-life client for Minecraft.**
 
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.9%20%E2%80%93%201.21.11-62B47A?style=flat-square)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21.6%20%E2%80%93%201.21.11-62B47A?style=flat-square)
 ![Loader](https://img.shields.io/badge/Loader-Fabric-DBD0B4?style=flat-square)
 ![Java](https://img.shields.io/badge/Java-21%2B-E76F00?style=flat-square)
 ![License](https://img.shields.io/badge/License-GPL--3.0-8B7CF7?style=flat-square)
@@ -38,7 +38,7 @@ Nametags follow vanilla visibility rules: they show name, held item, ping and di
 
 ## Installation
 
-1. Install [Fabric Loader](https://fabricmc.net/use/) for Minecraft **1.21.9, 1.21.10 or 1.21.11**.
+1. Install [Fabric Loader](https://fabricmc.net/use/) for Minecraft **1.21.6 – 1.21.11** (any of 1.21.6, 1.21.7, 1.21.8, 1.21.9, 1.21.10, 1.21.11).
 2. Download [Fabric API](https://modrinth.com/mod/fabric-api) for the same version.
 3. Place the Venti `.jar` built for that Minecraft version (e.g. `venti-1.0.0+mc1.21.10.jar`) and Fabric API in your `.minecraft/mods` folder.
 4. Launch the game and press <kbd>Right Shift</kbd>.
@@ -61,7 +61,8 @@ cd VentiClient
 The project uses [Stonecutter](https://stonecutter.kikugie.dev/) so one codebase builds every version:
 
 - `src/` is shared by all versions. Version-specific code is written as Stonecutter comments, for example
-  `//? if >=1.21.11 { ... } else { ... }`; the inactive branch is kept commented out.
+  `//? if >=1.21.11 { ... } else { ... }` (or `//? if >=1.21.9 { ... } else { ... }` for 1.21.6–1.21.8);
+  the inactive branch is kept commented out.
 - `versions/<minecraft>/gradle.properties` holds what differs per version (Minecraft, Yarn and Fabric API
   versions, and the `minecraft` range written into `fabric.mod.json`). Shared properties are in the root
   `gradle.properties`.

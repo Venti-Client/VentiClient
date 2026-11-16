@@ -15,7 +15,11 @@ public abstract class PlaySoundMixin {
       method = "onPlaySound",
       at = @At(
          value = "INVOKE",
+         //? if >=1.21.9 {
          target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V",
+         //?} else {
+         /*target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/util/thread/ThreadExecutor;)V",
+         *///?}
          shift = At.Shift.AFTER
       ),
       cancellable = true

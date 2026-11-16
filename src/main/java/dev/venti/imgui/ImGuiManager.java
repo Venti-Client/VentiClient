@@ -21,8 +21,12 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+//? if >=1.21.9 {
 import net.minecraft.client.gui.cursor.Cursor;
 import net.minecraft.client.gui.cursor.StandardCursors;
+//?} else {
+/*
+*///?}
 import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallback;
@@ -260,6 +264,7 @@ public final class ImGuiManager {
       return this.initialized && ImGui.getIO().getWantTextInput();
    }
 
+   //? if >=1.21.9 {
    public void requestCursor(DrawContext graphics) {
       if (this.initialized) {
          Cursor cursor = switch (ImGui.getMouseCursor()) {
@@ -276,6 +281,11 @@ public final class ImGuiManager {
          }
       }
    }
+   //?} else {
+   /*public void requestCursor(DrawContext graphics) {
+      // Minecraft has no cursor shapes before 1.21.9; keep the default arrow.
+   }
+   *///?}
 
    private boolean feedsKeyPress(int keycode, int mods) {
       return this.activeRenderer != null && (keycode != 258 || (mods & 2) == 0);

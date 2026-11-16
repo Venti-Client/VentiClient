@@ -225,7 +225,11 @@ public final class HudRenderer {
       ImGui.popStyleVar();
       if (open) {
          ImDrawList dl = ImGui.getBackgroundDrawList();
+         //? if >=1.21.9 {
          boolean gameHidden = client.options.hudHidden || client.debugHudEntryList.isF3Enabled();
+         //?} else {
+         /*boolean gameHidden = client.options.hudHidden || client.getDebugHud().shouldShowDebugHud();
+         *///?}
          boolean infoBarShown = hudOn && infoBar.visible && (this.hudModule.fps() || this.hudModule.clock() || this.hudModule.ping());
          boolean coordsShown = hudOn && coordinates.visible;
          boolean listShown = hudOn && moduleList.visible && this.hudModule.moduleList();
@@ -1539,6 +1543,7 @@ public final class HudRenderer {
    }
 
    private static int readTabLatency(MinecraftClient client, ClientPlayNetworkHandler connection) {
+      //? if >=1.21.9 {
       PlayerListEntry info = connection.getPlayerListEntry(connection.getProfile().id());
       if (info == null) {
          info = connection.getPlayerListEntry(client.player.getUuid());
@@ -1551,9 +1556,35 @@ public final class HudRenderer {
       if (info == null) {
          info = connection.getCaseInsensitivePlayerInfo(client.player.getName().getString());
       }
+      //?} else {
+      /*PlayerListEntry info = connection.getPlayerListEntry(connection.getProfile().getId());
+      if (info == null) {
+         info = connection.getPlayerListEntry(client.player.getUuid());
+      }
+
+      if (info == null) {
+         info = caseInsensitivePlayerInfo(connection, connection.getProfile().getName());
+      }
+
+      if (info == null) {
+         info = caseInsensitivePlayerInfo(connection, client.player.getName().getString());
+      }
+      *///?}
 
       return info == null ? 0 : Math.max(0, info.getLatency());
    }
+   //? if <1.21.9 {
+   /*// ClientPlayNetworkHandler.getCaseInsensitivePlayerInfo only exists from 1.21.9.
+   private static PlayerListEntry caseInsensitivePlayerInfo(ClientPlayNetworkHandler connection, String name) {
+      for (PlayerListEntry entry : connection.getPlayerList()) {
+         if (entry.getProfile().getName().equalsIgnoreCase(name)) {
+            return entry;
+         }
+      }
+
+      return null;
+   }
+   *///?}
 
    private static int readServerPing(ClientPlayNetworkHandler connection) {
       ServerInfo serverData = connection.getServerInfo();

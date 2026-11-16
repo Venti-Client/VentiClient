@@ -20,7 +20,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import net.minecraft.client.util.Window;
+//? if >=1.21.9 {
 import net.minecraft.util.Atlases;
+//?} else {
+/*import net.minecraft.client.texture.SpriteAtlasTexture;
+*///?}
 import net.minecraft.item.ItemStack;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
@@ -570,8 +574,10 @@ public final class StreamOverlay {
       try {
          //? if >=1.21.11 {
          return mc.getAtlasManager().getAtlasTexture(Atlases.ITEMS).getGlTexture();
-         //?} else {
+         //?} elif >=1.21.9 {
          /*return mc.getAtlasManager().getAtlasTexture(Atlases.BLOCKS).getGlTexture(); // items share the block atlas before 1.21.11
+         *///?} else {
+         /*return mc.getTextureManager().getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlTexture(); // no atlas manager before 1.21.9
          *///?}
       } catch (RuntimeException var2) {
          return null;

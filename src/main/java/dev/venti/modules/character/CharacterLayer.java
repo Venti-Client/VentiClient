@@ -3,7 +3,11 @@ package dev.venti.modules.character;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
+//? if >=1.21.9 {
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
+//?} else {
+/*import net.minecraft.client.render.VertexConsumerProvider;
+*///?}
 import net.minecraft.util.Arm;
 import net.minecraft.client.render.entity.feature.FeatureRendererContext;
 import net.minecraft.client.render.entity.feature.FeatureRenderer;
@@ -18,14 +22,22 @@ public final class CharacterLayer extends FeatureRenderer<PlayerEntityRenderStat
    }
 
    @Override
+   //? if >=1.21.9 {
    public void render(MatrixStack poseStack, OrderedRenderCommandQueue collector, int light, PlayerEntityRenderState state, float yRot, float xRot) {
+   //?} else {
+   /*public void render(MatrixStack poseStack, VertexConsumerProvider collector, int light, PlayerEntityRenderState state, float yRot, float xRot) {
+   *///?}
       WornCharacter worn = CharacterModule.worn(state);
       if (worn != null && (!state.invisible || !state.invisibleToPlayer)) {
          CharacterRenderer.submit(worn, (PlayerEntityModel)this.getContextModel(), poseStack, collector, light, state);
       }
    }
 
+   //? if >=1.21.9 {
    public static boolean firstPersonHand(PlayerEntityModel model, MatrixStack poseStack, OrderedRenderCommandQueue collector, int light, ModelPart arm) {
+   //?} else {
+   /*public static boolean firstPersonHand(PlayerEntityModel model, MatrixStack poseStack, VertexConsumerProvider collector, int light, ModelPart arm) {
+   *///?}
       return CharacterRenderer.firstPersonHand(model, poseStack, collector, light, arm);
    }
 

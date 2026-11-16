@@ -490,7 +490,11 @@ final class PanelsGui {
 
    private static String menuKeyName() {
       for (KeyBinding binding : MinecraftClient.getInstance().options.allKeys) {
+         //? if >=1.21.9 {
          if ("key.venti.gui".equals(binding.getId())) {
+         //?} else {
+         /*if ("key.venti.gui".equals(binding.getTranslationKey())) {
+         *///?}
             return binding.getBoundKeyLocalizedText().getString();
          }
       }
