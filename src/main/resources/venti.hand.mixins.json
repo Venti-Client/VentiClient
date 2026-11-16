@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "dev.venti.mixin.hand",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "AccessorHandItemLayer",
+    "AccessorHandItemRenderState",
+    "AccessorHandPlayerModel",
+    "MixinCustomGlintTextureTransform",
+    "MixinHandHeldItemRenderer",
+    "MixinHandLivingEntity"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}

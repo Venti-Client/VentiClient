@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "package": "dev.venti.mixin.world",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "AccessorAtmosphereClientLevel",
+    "AccessorBlockOverlayMultiPlayerGameMode",
+    "AccessorWorldGameRenderer",
+    "MixinAtmosphereCloudRenderer",
+    "MixinAtmosphereFogRenderer",
+    "MixinAtmosphereRainFog",
+    "MixinAtmosphereSkyRenderer",
+    "MixinBlockOverlayLevelRenderer",
+    "MixinColorGradingGameRenderer",
+    "MixinJumpCirclesLevelRenderer",
+    "MixinJumpCirclesLivingEntity",
+    "MixinMotionBlurGameRenderer",
+    "MixinTimeChangerClientLevel",
+    "MixinWorldTotemPops",
+    "MixinWorldVisualsRenderer"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}

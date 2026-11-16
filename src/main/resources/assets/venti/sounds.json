@@ -1,0 +1,80 @@
+{
+  "hitfx.bonk": {
+    "sounds": ["venti:hitfx/bonk"]
+  },
+  "hitfx.boykisser-1": {
+    "sounds": ["venti:hitfx/boykisser/boykisser-1"]
+  },
+  "hitfx.boykisser-2": {
+    "sounds": ["venti:hitfx/boykisser/boykisser-2"]
+  },
+  "hitfx.boykisser-3": {
+    "sounds": ["venti:hitfx/boykisser/boykisser-3"]
+  },
+  "hitfx.boykisser-4": {
+    "sounds": ["venti:hitfx/boykisser/boykisser-4"]
+  },
+  "hitfx.boykisser-5": {
+    "sounds": ["venti:hitfx/boykisser/boykisser-5"]
+  },
+  "hitfx.boykisser-6": {
+    "sounds": ["venti:hitfx/boykisser/boykisser-6"]
+  },
+  "hitfx.bring": {
+    "sounds": ["venti:hitfx/bring"]
+  },
+  "hitfx.click-1": {
+    "sounds": ["venti:hitfx/click/click-1"]
+  },
+  "hitfx.click-2": {
+    "sounds": ["venti:hitfx/click/click-2"]
+  },
+  "hitfx.click-3": {
+    "sounds": ["venti:hitfx/click/click-3"]
+  },
+  "hitfx.glass-1": {
+    "sounds": ["venti:hitfx/glass/glass-1"]
+  },
+  "hitfx.glass-2": {
+    "sounds": ["venti:hitfx/glass/glass-2"]
+  },
+  "hitfx.glass-3": {
+    "sounds": ["venti:hitfx/glass/glass-3"]
+  },
+  "hitfx.magic_squash": {
+    "sounds": ["venti:hitfx/magic_squash"]
+  },
+  "hitfx.meow": {
+    "sounds": ["venti:hitfx/meow"]
+  },
+  "hitfx.moan-1": {
+    "sounds": ["venti:hitfx/moan/moan-1"]
+  },
+  "hitfx.moan-2": {
+    "sounds": ["venti:hitfx/moan/moan-2"]
+  },
+  "hitfx.moan-3": {
+    "sounds": ["venti:hitfx/moan/moan-3"]
+  },
+  "hitfx.moan-4": {
+    "sounds": ["venti:hitfx/moan/moan-4"]
+  },
+  "hitfx.nya": {
+    "sounds": ["venti:hitfx/nya"]
+  },
+  "hitfx.pop": {
+    "sounds": ["venti:hitfx/pop"]
+  },
+  "hitfx.soft": {
+    "sounds": ["venti:hitfx/soft"]
+  },
+  "hitfx.squash": {
+    "sounds": ["venti:hitfx/squash"]
+  },
+  "hitfx.tung": {
+    "sounds": ["venti:hitfx/tung"]
+  },
+  "hitfx.uwu": {
+    "sounds": ["venti:hitfx/uwu"]
+  }
+}

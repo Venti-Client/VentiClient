@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "dev.venti.mixin.noinvleak",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "BorderlessWindowMixin",
+    "CreativeSlotAccessor",
+    "GameRendererAccessor",
+    "HandledScreenMixin",
+    "InGameHudMixin",
+    "InventoryScreenModelMixin",
+    "LivingEntityEquipmentMixin"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}

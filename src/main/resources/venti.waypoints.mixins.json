@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "dev.venti.mixin.waypoints",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MixinWaypointsDeath",
+    "MixinWaypointsWorldRenderer"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

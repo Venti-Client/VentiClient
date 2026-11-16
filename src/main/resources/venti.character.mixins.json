@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "dev.venti.mixin.character",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MixinCharacterAvatarRenderState",
+    "MixinCharacterAvatarRenderer",
+    "MixinCharacterLighting",
+    "MixinCharacterLivingEntityRenderer",
+    "MixinCharacterPlayerModel"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}

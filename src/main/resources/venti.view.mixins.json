@@ -1,0 +1,33 @@
+{
+  "required": true,
+  "package": "dev.venti.mixin.view",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ViewCameraMixin",
+    "ViewEntityRenderManagerAccessor",
+    "ViewGameRendererMixin",
+    "ViewHeldItemRendererMixin",
+    "ViewInGameHudMixin",
+    "ViewKeyboardInputMixin",
+    "ViewLightmapMixin",
+    "ViewMouseMixin",
+    "ViewNameProtectBossBarMixin",
+    "ViewNameProtectChatMixin",
+    "ViewNameProtectEntityRendererMixin",
+    "ViewNameProtectNetworkMixin",
+    "ViewNameProtectTabMixin",
+    "ViewNameProtectTextDisplayMixin",
+    "ViewNoRenderFallingBlockMixin",
+    "ViewNoRenderFogMixin",
+    "ViewNoRenderLavaFogMixin",
+    "ViewNoRenderTrialSpawnerMixin",
+    "ViewNoRenderWeatherMixin",
+    "ViewOverlayRendererMixin",
+    "ViewPlayerRenderStateMixin",
+    "ViewPlayerRendererMixin",
+    "ViewWorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
