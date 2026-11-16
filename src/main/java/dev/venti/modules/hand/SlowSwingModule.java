@@ -10,7 +10,7 @@ public final class SlowSwingModule extends Module {
    private final NumberSetting speed = this.add("speed", new NumberSetting("Speed", 0.25F, 0.1F, 2.0F).step(0.05F));
 
    public SlowSwingModule() {
-      super("slow-swing", "Slow Swing", "Control hand swing animation speed.", ModuleCategory.VISUALS);
+      super("swing-speed", "Swing Speed", "Controls how fast your hand swing animation plays.", ModuleCategory.VISUALS);
    }
 
    /** The running module, or null. */

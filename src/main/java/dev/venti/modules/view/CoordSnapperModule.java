@@ -35,7 +35,7 @@ public final class CoordSnapperModule extends Module {
    private final KeyBinding key;
 
    public CoordSnapperModule() {
-      super("coord-snapper", "Coord Snapper", "Copies the coordinates you look at or stand on with one key (Controls > Venti).", ModuleCategory.MISC);
+      super("copy-coords", "Copy Coords", "Copies the coordinates you look at or stand on with one key (Controls > Venti).", ModuleCategory.MISC);
       this.range.visibleWhen(() -> this.target.is("Looked At"));
       this.stopAtFluids.visibleWhen(() -> this.target.is("Looked At"));
       this.key = ViewKeys.register("key.venti.coord_snapper", GLFW.GLFW_KEY_UNKNOWN);

@@ -38,7 +38,7 @@ public final class HandPoseModule extends Module {
    private final HandState offState = new HandState();
 
    public HandPoseModule() {
-      super("hand-pose", "Hand Pose", "Moves, rotates and resizes your first-person hands.", ModuleCategory.VISUALS);
+      super("viewmodel", "Viewmodel", "Moves, rotates and resizes your first-person hands.", ModuleCategory.VISUALS);
       this.editing.visibleWhen(() -> !this.link.get());
       this.add("reset-hand", new ActionSetting("Reset Hand", this::resetEdited));
    }

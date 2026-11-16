@@ -24,7 +24,7 @@ public final class HandModelModule extends Module {
    private final BooleanSetting offHand = this.add("off-hand", new BooleanSetting("Off Hand", true));
 
    public HandModelModule() {
-      super("3d-hand", "3D Hand", "Shows your own arm holding the item in first person: swords, tools, items and blocks.", ModuleCategory.VISUALS);
+      super("viewmodel-arm", "Viewmodel Arm", "Shows your own arm holding the item in first person: swords, tools, items and blocks.", ModuleCategory.VISUALS);
    }
 
    @Override

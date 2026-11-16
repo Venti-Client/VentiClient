@@ -29,7 +29,7 @@ public final class HandAuraModule extends Module {
    private final BooleanSetting breathe = this.add("breathe", new BooleanSetting("Breathe", true));
 
    public HandAuraModule() {
-      super("hand-aura", "Hand Aura", "Adds a glowing outline to your hand and held item.", ModuleCategory.VISUALS);
+      super("hand-glow", "Hand Glow", "Adds a glowing outline to your hand and held item.", ModuleCategory.VISUALS);
       this.glowColor.visibleWhen(this::manual);
       this.reach.visibleWhen(() -> this.aura.get() > 0.0F);
       this.sheenColor.visibleWhen(() -> this.sheen.get() > 0.0F && this.manual());

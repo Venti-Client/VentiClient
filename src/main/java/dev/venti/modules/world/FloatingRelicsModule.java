@@ -74,7 +74,7 @@ public final class FloatingRelicsModule extends Module {
    private ClientWorld boundLevel;
 
    public FloatingRelicsModule() {
-      super("floating-relics", "Floating Relics", "Glowing orbs float around you and leave a trail as they move.", ModuleCategory.VISUALS);
+      super("orbit-orbs", "Orbit Orbs", "Glowing orbs float around you and leave a trail as they move.", ModuleCategory.VISUALS);
 
       for (int i = 0; i < 32; i++) {
          this.relics[i] = new FloatingRelicsModule.Relic();

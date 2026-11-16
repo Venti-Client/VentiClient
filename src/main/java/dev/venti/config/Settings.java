@@ -28,8 +28,33 @@ public final class Settings {
    public boolean hudRight = true;
    public float hudScale = 1.0F;
 
+   /** Modules that were renamed: new id to old id, so saved settings carry over. */
+   private static final java.util.Map<String, String> RENAMED = java.util.Map.ofEntries(
+      java.util.Map.entry("viewmodel-arm", "3d-hand"),
+      java.util.Map.entry("avatar", "character-3d"),
+      java.util.Map.entry("viewmodel", "hand-pose"),
+      java.util.Map.entry("hand-glow", "hand-aura"),
+      java.util.Map.entry("swing-speed", "slow-swing"),
+      java.util.Map.entry("aurora-sky", "atmosphere"),
+      java.util.Map.entry("orbit-orbs", "floating-relics"),
+      java.util.Map.entry("effect-particles", "particles"),
+      java.util.Map.entry("totem-ghost", "totem-spirit"),
+      java.util.Map.entry("copy-coords", "coord-snapper"),
+      java.util.Map.entry("stream-hider", "no-inv-leak")
+   );
+
    public Settings(String id, boolean enabledByDefault) {
-      this.file = FabricLoader.getInstance().getConfigDir().resolve("venti").resolve("modules").resolve(id + ".json");
+      Path dir = FabricLoader.getInstance().getConfigDir().resolve("venti").resolve("modules");
+      this.file = dir.resolve(id + ".json");
+      String old = RENAMED.get(id);
+      if (old != null && !Files.exists(this.file) && Files.exists(dir.resolve(old + ".json"))) {
+         try {
+            Files.copy(dir.resolve(old + ".json"), this.file);
+         } catch (IOException e) {
+            LOGGER.warn("[Venti] Could not carry over settings from {}: {}", old, e.toString());
+         }
+      }
+
       this.enabled = enabledByDefault;
    }
 

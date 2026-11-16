@@ -21,18 +21,18 @@ Venti is a client-side Fabric mod that adds visual polish, a customizable HUD an
 
 - **Modern interface.** Open it with <kbd>Right Shift</kbd> or `/venti`. Choose between a sidebar layout with search and list/grid views, or classic floating panels. Fully themeable, including custom header and background images (PNG, JPG and animated GIF).
 - **Now-playing HUD.** Shows the current Spotify track with album art and time-synced lyrics, with optional lyrics on screen or across the sky. Supports Korean, Japanese, Chinese and Cyrillic text.
-- **Make it yours.** Replace the sky or the Totem of Undying with any picture or GIF, wear a 3D character model, and fine-tune hands, swing animations, crosshair and enchantment glint.
-- **Stream-safe.** No Inv Leak swaps your items for decoys on screen so viewers can't see your gear, with a capture-proof overlay option on Windows.
+- **Make it yours.** Replace the sky or the Totem of Undying with any picture or GIF, wear a 3D avatar, and fine-tune hands, swing animations, crosshair and enchantment glint.
+- **Stream-safe.** Stream Hider swaps your items for decoys on screen so viewers can't see your gear, with a capture-proof overlay option on Windows.
 - **Waypoints.** Saved per world and dimension, with labels, beams and automatic death points.
 
 ## Modules
 
 | Category | Modules |
 | --- | --- |
-| **Visuals** | 3D Hand, Hand Aura, Hand Pose, Swing Animation, Slow Swing, Custom Glint, Atmosphere, Color Grading, Motion Blur, Block Overlay, Jump Circles, Floating Relics, Particles, Totem Spirit, Time Changer, Low Health Warning, Zoom, Custom FOV, Freelook, Fullbright, No Render, Custom Crosshair, Nametags |
-| **Render** | 3D Character, Hit FX, Custom Sky, Custom Totem |
+| **Visuals** | Viewmodel Arm, Hand Glow, Viewmodel, Swing Animation, Swing Speed, Custom Glint, Aurora Sky, Color Grading, Motion Blur, Block Overlay, Jump Circles, Orbit Orbs, Effect Particles, Totem Ghost, Time Changer, Low Health Warning, Zoom, Custom FOV, Freelook, Fullbright, No Render, Custom Crosshair, Nametags |
+| **Render** | Avatar, Hit FX, Custom Sky, Custom Totem |
 | **HUD** | HUD (info bar, coordinates, module list, potions, armor, cooldowns), Hotkeys, Spotify HUD |
-| **Misc** | Discord Presence, No Inv Leak, Waypoints, Weather Notifier, Sprint, Coord Snapper, Name Protect, Skin Change |
+| **Misc** | Discord Presence, Stream Hider, Waypoints, Weather Notifier, Sprint, Copy Coords, Name Protect, Skin Change |
 
 Nametags follow vanilla visibility rules: they show name, held item, ping and distance, and are never drawn through walls.
 

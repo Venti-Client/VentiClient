@@ -45,7 +45,7 @@ public final class NoInvLeakModule extends Module {
    private final FakeItems items = new FakeItems();
 
    public NoInvLeakModule() {
-      super("no-inv-leak", "No Inv Leak", "Hides your items on screen for screen shares. Stream Only keeps them visible to you alone.", ModuleCategory.MISC);
+      super("stream-hider", "Stream Hider", "Hides your items on screen for screen shares. Stream Only keeps them visible to you alone.", ModuleCategory.MISC);
       this.customItem.visibleWhen(() -> this.style.is(FakeItems.CUSTOM));
       this.shuffleSeconds.visibleWhen(() -> this.style.is(FakeItems.SHUFFLE));
       this.fakeCounts.visibleWhen(() -> !this.style.is(FakeItems.EMPTY));

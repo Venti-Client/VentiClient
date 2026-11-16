@@ -24,8 +24,8 @@ import net.minecraft.client.network.ClientPlayerEntity;
 
 @Environment(EnvType.CLIENT)
 public final class RelicParticlesModule extends Module {
-   private static final String GLYPH_ANKH = "Ankh";
-   private static final String GLYPH_SCARAB = "Scarab";
+   private static final String GLYPH_ANKH = "Charm";
+   private static final String GLYPH_SCARAB = "Beetle";
    private static final String GLYPH_SAND = "Sand";
    private static final String GLYPH_SPARK = "Spark";
    private static final String GLYPH_MIXED = "Mixed";
@@ -40,17 +40,17 @@ public final class RelicParticlesModule extends Module {
    private static final int NONE = -1;
    private static final byte[] MIXED_ORDER = new byte[]{0, 3, 1, 3, 2, 3};
    private final BooleanSetting pops = this.add("pops", new BooleanSetting("Totem Pops", true));
-   private final ModeSetting popGlyph = this.add("pop-glyph", new ModeSetting("Pop Glyph", "Mixed", "Mixed", "Ankh", "Scarab", "Sand", "Spark"));
+   private final ModeSetting popGlyph = this.add("pop-shape", new ModeSetting("Pop Shape", "Mixed", "Mixed", "Charm", "Beetle", "Sand", "Spark"));
    private final NumberSetting popBurst = this.add("pop-burst", new NumberSetting("Pop Burst", 26.0F, 4.0F, 80.0F).step(1.0F));
    private final BooleanSetting ownPops = this.add("own-pops", new BooleanSetting("Own Pops", true));
    private final BooleanSetting projectiles = this.add("projectiles", new BooleanSetting("Projectiles", true));
    private final BooleanSetting pearls = this.add("pearls", new BooleanSetting("Pearls", true));
    private final BooleanSetting arrows = this.add("arrows", new BooleanSetting("Arrows", true));
    private final BooleanSetting tridents = this.add("tridents", new BooleanSetting("Tridents", true));
-   private final ModeSetting trailGlyph = this.add("trail-glyph", new ModeSetting("Trail Glyph", "Spark", "Spark", "Sand", "Ankh", "Scarab", "Mixed"));
+   private final ModeSetting trailGlyph = this.add("trail-shape", new ModeSetting("Trail Shape", "Spark", "Spark", "Sand", "Charm", "Beetle", "Mixed"));
    private final NumberSetting trailDensity = this.add("trail-density", new NumberSetting("Trail Density", 2.0F, 1.0F, 6.0F).step(1.0F));
    private final BooleanSetting footsteps = this.add("footsteps", new BooleanSetting("Footsteps", false));
-   private final ModeSetting stepGlyph = this.add("step-glyph", new ModeSetting("Step Glyph", "Sand", "Sand", "Spark", "Ankh", "Scarab", "Mixed"));
+   private final ModeSetting stepGlyph = this.add("step-shape", new ModeSetting("Step Shape", "Sand", "Sand", "Spark", "Charm", "Beetle", "Mixed"));
    private final NumberSetting stepDensity = this.add("step-density", new NumberSetting("Step Density", 2.0F, 1.0F, 6.0F).step(1.0F));
    private final NumberSetting size = this.add("size", new NumberSetting("Size", 1.0F, 0.3F, 2.5F).step(0.05F));
    private final NumberSetting lifetime = this.add("lifetime", new NumberSetting("Lifetime", 1.4F, 0.3F, 4.0F).step(0.1F));
@@ -68,7 +68,7 @@ public final class RelicParticlesModule extends Module {
    private long lastFrame;
 
    public RelicParticlesModule() {
-      super("particles", "Particles", "Egyptian particles for totem pops, projectiles and footsteps.", ModuleCategory.VISUALS);
+      super("effect-particles", "Effect Particles", "Stylized particles for totem pops, projectiles and footsteps.", ModuleCategory.VISUALS);
       this.popGlyph.visibleWhen(this.pops::get);
       this.popBurst.visibleWhen(this.pops::get);
       this.ownPops.visibleWhen(this.pops::get);
@@ -278,8 +278,8 @@ public final class RelicParticlesModule extends Module {
 
    private static byte pick(String mode, int index) {
       return switch (mode) {
-         case "Ankh" -> 0;
-         case "Scarab" -> 1;
+         case "Charm" -> 0;
+         case "Beetle" -> 1;
          case "Sand" -> 2;
          case "Spark" -> 3;
          default -> MIXED_ORDER[Math.floorMod(index, MIXED_ORDER.length)];

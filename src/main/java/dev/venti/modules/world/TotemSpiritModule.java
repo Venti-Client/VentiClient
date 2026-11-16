@@ -42,13 +42,13 @@ public final class TotemSpiritModule extends Module {
    private static final int FIRST_TORSO_PART = 2;
    private static final int[] FACES = new int[]{1, 3, 7, 5, 0, 4, 6, 2, 2, 6, 7, 3, 0, 1, 5, 4, 4, 5, 7, 6, 0, 2, 3, 1};
    private static final int[] EDGES = new int[]{0, 1, 2, 3, 4, 5, 6, 7, 0, 2, 1, 3, 4, 6, 5, 7, 0, 4, 1, 5, 2, 6, 3, 7};
-   private final NumberSetting kaTime = this.add("ka-time", new NumberSetting("Ka Time", 2.4F, 0.6F, 6.0F).step(0.1F));
+   private final NumberSetting kaTime = this.add("linger-time", new NumberSetting("Linger Time", 2.4F, 0.6F, 6.0F).step(0.1F));
    private final NumberSetting ascent = this.add("ascent", new NumberSetting("Ascent", 1.6F, 0.0F, 4.0F).step(0.1F));
    private final ModeSetting look = this.add("look", new ModeSetting("Look", "Glass", "Glass", "Wire"));
    private final NumberSetting opacity = this.add("opacity", new NumberSetting("Opacity", 0.65F, 0.15F, 1.0F).step(0.05F));
-   private final BooleanSetting kaPose = this.add("ka-pose", new BooleanSetting("Ka Pose", true));
-   private final BooleanSetting crest = this.add("crest", new BooleanSetting("Ankh Crest", true));
-   private final BooleanSetting seal = this.add("seal", new BooleanSetting("Ground Seal", true));
+   private final BooleanSetting kaPose = this.add("ghost-pose", new BooleanSetting("Ghost Pose", true));
+   private final BooleanSetting crest = this.add("crest", new BooleanSetting("Crest", true));
+   private final BooleanSetting seal = this.add("ground-ring", new BooleanSetting("Ground Ring", true));
    private final BooleanSetting own = this.add("own", new BooleanSetting("Own Pops", false));
    private final ModeSetting colorMode = this.add("color-mode", new ModeSetting("Color", "Theme", "Theme", "Manual"));
    private final ColorSetting bodyColor = this.add("body-color", new ColorSetting("Body Color", -11891723));
@@ -77,7 +77,7 @@ public final class TotemSpiritModule extends Module {
    private float drop;
 
    public TotemSpiritModule() {
-      super("totem-spirit", "Totem Spirit", "A glowing ghost rises when a player pops a totem.", ModuleCategory.VISUALS);
+      super("totem-ghost", "Totem Ghost", "A glowing ghost rises when a player pops a totem.", ModuleCategory.VISUALS);
 
       for (int i = 0; i < 12; i++) {
          this.spirits[i] = new TotemSpiritModule.Spirit();

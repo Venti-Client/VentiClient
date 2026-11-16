@@ -85,7 +85,7 @@ public final class AtmosphereModule extends Module {
    private boolean shaderRendered;
 
    public AtmosphereModule() {
-      super("atmosphere", "Atmosphere", "A custom sky with stars and an aurora.", ModuleCategory.VISUALS);
+      super("aurora-sky", "Aurora Sky", "A custom sky with stars and an aurora.", ModuleCategory.VISUALS);
       this.nightColor.visibleWhen(() -> this.theme.is("Custom"));
       this.sunsetColor.visibleWhen(() -> this.theme.is("Custom"));
       this.auroraColor.visibleWhen(() -> this.theme.is("Custom"));

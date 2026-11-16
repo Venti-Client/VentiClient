@@ -49,7 +49,7 @@ public final class CharacterModule extends Module {
    private WeakReference<ClientWorld> level = new WeakReference<>(null);
 
    public CharacterModule() {
-      super("character-3d", "3D Character", "Replaces your player model with a 3D character.", ModuleCategory.RENDER);
+      super("avatar", "Avatar", "Replaces your player model with a 3D character.", ModuleCategory.RENDER);
       this.add("characters-folder", new ActionSetting("Open Characters Folder", this::openFolder));
       this.character.onChange(this::prepare);
       this.detail.onChange(this::prepare);
