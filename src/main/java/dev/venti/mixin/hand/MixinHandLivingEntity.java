@@ -1,7 +1,7 @@
 package dev.venti.mixin.hand;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import dev.venti.modules.hand.SlowSwingModule;
+import dev.venti.modules.hand.SwingSpeedModule;
 import dev.venti.modules.hand.SwingAnimationModule;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.LivingEntity;
@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinHandLivingEntity {
    @Inject(method = "getHandSwingDuration()I", at = @At("RETURN"), cancellable = true)
    private void venti$slowSwing(CallbackInfoReturnable<Integer> cir) {
-      SlowSwingModule module = SlowSwingModule.active();
+      SwingSpeedModule module = SwingSpeedModule.active();
       if (module != null && (Object)this == MinecraftClient.getInstance().player) {
          cir.setReturnValue(module.getModifiedSwingDuration(cir.getReturnValue()));
       }

@@ -36,7 +36,7 @@ final class CharacterJoints {
 
    private static float knee(PlayerEntityRenderState state, Bone bone) {
       if (state.hasVehicle) {
-         return CharacterModule.seat(state);
+         return AvatarModule.seat(state);
       } else {
          float speed = Math.min(1.0F, state.limbSwingAmplitude / state.limbAmplitudeInverse);
          float phase = state.limbSwingAnimationProgress * 0.6662F + (bone == Bone.LEFT_LEG ? (float) Math.PI : 0.0F);

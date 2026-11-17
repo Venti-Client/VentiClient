@@ -3,9 +3,9 @@ package dev.venti.mixin.hand;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import dev.venti.modules.hand.HandAuraModule;
-import dev.venti.modules.hand.HandModelModule;
-import dev.venti.modules.hand.HandPoseModule;
+import dev.venti.modules.hand.HandGlowModule;
+import dev.venti.modules.hand.ViewmodelArmModule;
+import dev.venti.modules.hand.ViewmodelModule;
 import dev.venti.modules.hand.SwingAnimationModule;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -59,14 +59,14 @@ public abstract class MixinHandHeldItemRenderer {
       at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/command/RenderDispatcher;render()V")
    )
    private void venti$handAura(RenderDispatcher features, Operation<Void> original) {
-      if (HandAuraModule.active != null && HandAuraModule.beginCapture()) {
+      if (HandGlowModule.active != null && HandGlowModule.beginCapture()) {
          boolean drawn = false;
          try {
             original.call(features);
             MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers().draw();
             drawn = true;
          } finally {
-            HandAuraModule.endCapture(drawn);
+            HandGlowModule.endCapture(drawn);
          }
       } else {
          original.call(features);
@@ -81,7 +81,7 @@ public abstract class MixinHandHeldItemRenderer {
    private void venti$handAura(
       float tickProgress, MatrixStack matrices, VertexConsumerProvider.Immediate buffers, ClientPlayerEntity player, int light, Operation<Void> original
    ) {
-      if (HandAuraModule.active != null && HandAuraModule.beginCapture()) {
+      if (HandGlowModule.active != null && HandGlowModule.beginCapture()) {
          boolean drawn = false;
          try {
             buffers.draw();
@@ -89,7 +89,7 @@ public abstract class MixinHandHeldItemRenderer {
             buffers.draw();
             drawn = true;
          } finally {
-            HandAuraModule.endCapture(drawn);
+            HandGlowModule.endCapture(drawn);
          }
       } else {
          original.call(tickProgress, matrices, buffers, player, light);
@@ -118,9 +118,9 @@ public abstract class MixinHandHeldItemRenderer {
    ) {
          *///?}
       original.call(renderer, pose, collector, light, skin, sleeve);
-      if (HandModelModule.active != null) {
+      if (ViewmodelArmModule.active != null) {
          pose.push();
-         HandModelModule.shoulder(pose, true, renderer);
+         ViewmodelArmModule.shoulder(pose, true, renderer);
          original.call(renderer, pose, collector, light, skin, sleeve);
          pose.pop();
       }
@@ -146,9 +146,9 @@ public abstract class MixinHandHeldItemRenderer {
    ) {
          *///?}
       original.call(renderer, pose, collector, light, skin, sleeve);
-      if (HandModelModule.active != null) {
+      if (ViewmodelArmModule.active != null) {
          pose.push();
-         HandModelModule.shoulder(pose, false, renderer);
+         ViewmodelArmModule.shoulder(pose, false, renderer);
          original.call(renderer, pose, collector, light, skin, sleeve);
          pose.pop();
       }
@@ -184,8 +184,8 @@ public abstract class MixinHandHeldItemRenderer {
       *///?}
       @Local(argsOnly = true) Hand hand
    ) {
-      if (HandModelModule.active != null) {
-         HandModelModule.renderArm(poseStack, entity, stack, context, collector, light, hand == Hand.MAIN_HAND);
+      if (ViewmodelArmModule.active != null) {
+         ViewmodelArmModule.renderArm(poseStack, entity, stack, context, collector, light, hand == Hand.MAIN_HAND);
       }
 
       original.call(renderer, entity, stack, context, poseStack, collector, light);
@@ -216,10 +216,10 @@ public abstract class MixinHandHeldItemRenderer {
       CallbackInfo ci
       *///?}
    ) {
-      if (HandPoseModule.live != null) {
+      if (ViewmodelModule.live != null) {
          boolean mainHand = hand == Hand.MAIN_HAND;
          Arm arm = mainHand ? player.getMainArm() : player.getMainArm().getOpposite();
-         HandPoseModule.shape(poseStack, mainHand, arm == Arm.RIGHT ? 1 : -1);
+         ViewmodelModule.shape(poseStack, mainHand, arm == Arm.RIGHT ? 1 : -1);
       }
    }
 

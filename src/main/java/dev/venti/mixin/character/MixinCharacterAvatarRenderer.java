@@ -1,7 +1,7 @@
 package dev.venti.mixin.character;
 
 import dev.venti.modules.character.CharacterLayer;
-import dev.venti.modules.character.CharacterModule;
+import dev.venti.modules.character.AvatarModule;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
@@ -57,7 +57,7 @@ public abstract class MixinCharacterAvatarRenderer<T extends PlayerLikeEntity & 
    )
    private void venti$extractCharacter(AbstractClientPlayerEntity entity, PlayerEntityRenderState state, float partialTick, CallbackInfo ci) {
    *///?}
-      CharacterModule.extract(entity, state);
+      AvatarModule.extract(entity, state);
    }
 
    @Inject(

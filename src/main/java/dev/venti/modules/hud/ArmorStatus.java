@@ -3,7 +3,7 @@ package dev.venti.modules.hud;
 import imgui.ImDrawList;
 import imgui.ImFont;
 import dev.venti.imgui.ImGuiManager;
-import dev.venti.modules.noinvleak.NoInvLeakModule;
+import dev.venti.modules.streamhider.StreamHiderModule;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -64,7 +64,7 @@ final class ArmorStatus {
       EquipmentSlot[] order = this.order();
 
       for (int i = 0; i < order.length; i++) {
-         ItemStack stack = player == null ? ItemStack.EMPTY : NoInvLeakModule.shownInHud(player.getEquippedStack(order[i]), order[i]);
+         ItemStack stack = player == null ? ItemStack.EMPTY : StreamHiderModule.shownInHud(player.getEquippedStack(order[i]), order[i]);
          if (!stack.isEmpty()) {
             worn = true;
          }
@@ -161,7 +161,7 @@ final class ArmorStatus {
                }
             }
 
-            ItemStack worn = NoInvLeakModule.shownInHud(mc.player.getEquippedStack(order[i]), order[i]);
+            ItemStack worn = StreamHiderModule.shownInHud(mc.player.getEquippedStack(order[i]), order[i]);
             ItemStack stack = worn;
             float left = stack == worn ? this.wear[i] : -1.0F;
             if (this.column) {

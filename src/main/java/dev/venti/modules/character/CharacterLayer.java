@@ -27,7 +27,7 @@ public final class CharacterLayer extends FeatureRenderer<PlayerEntityRenderStat
    //?} else {
    /*public void render(MatrixStack poseStack, VertexConsumerProvider collector, int light, PlayerEntityRenderState state, float yRot, float xRot) {
    *///?}
-      WornCharacter worn = CharacterModule.worn(state);
+      WornCharacter worn = AvatarModule.worn(state);
       if (worn != null && (!state.invisible || !state.invisibleToPlayer)) {
          CharacterRenderer.submit(worn, (PlayerEntityModel)this.getContextModel(), poseStack, collector, light, state);
       }

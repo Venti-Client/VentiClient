@@ -91,7 +91,7 @@ final class CharacterRenderer {
    //?} else {
    /*static boolean firstPersonHand(PlayerEntityModel pm, MatrixStack stack, VertexConsumerProvider collector, int light, ModelPart arm) {
    *///?}
-      WornCharacter worn = CharacterModule.firstPerson();
+      WornCharacter worn = AvatarModule.firstPerson();
       if (worn == null) {
          return false;
       } else {
@@ -192,7 +192,7 @@ final class CharacterRenderer {
    }
 
    static boolean translateToHand(PlayerEntityModel pm, PlayerEntityRenderState state, Arm arm, MatrixStack stack) {
-      WornCharacter worn = CharacterModule.worn(state);
+      WornCharacter worn = AvatarModule.worn(state);
       if (worn == null) {
          return false;
       } else {

@@ -20,7 +20,7 @@
     "venti.character.mixins.json",
     "venti.hand.mixins.json",
     "venti.world.mixins.json",
-    "venti.noinvleak.mixins.json",
+    "venti.streamhider.mixins.json",
     "venti.hud.mixins.json",
     "venti.view.mixins.json",
     "venti.waypoints.mixins.json"

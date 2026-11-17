@@ -65,7 +65,7 @@ final class ClickGui {
 
    /** HUD layout editing: the Spotify, HUD or Hotkeys page is open. */
    boolean editingHud() {
-      return this.open instanceof SpotifyHud || this.open instanceof HudModule || this.open instanceof HotkeysModule;
+      return this.open instanceof SpotifyHud || this.open instanceof HudModule || this.open instanceof HotkeysModule || this.open instanceof dev.venti.modules.hud.FpsCounterModule;
    }
 
    void saveAll() {

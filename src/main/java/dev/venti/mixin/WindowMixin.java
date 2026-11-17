@@ -1,7 +1,7 @@
 package dev.venti.mixin;
 
 import dev.venti.imgui.ImGuiManager;
-import dev.venti.modules.noinvleak.StreamOverlay;
+import dev.venti.modules.streamhider.StreamOverlay;
 import net.minecraft.client.util.Window;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

@@ -31,7 +31,7 @@ Venti is a client-side Fabric mod that adds visual polish, a customizable HUD an
 | --- | --- |
 | **Visuals** | Viewmodel Arm, Hand Glow, Viewmodel, Swing Animation, Swing Speed, Custom Glint, Aurora Sky, Color Grading, Motion Blur, Block Overlay, Jump Circles, Orbit Orbs, Effect Particles, Totem Ghost, Time Changer, Low Health Warning, Zoom, Custom FOV, Freelook, Fullbright, No Render, Custom Crosshair, Nametags |
 | **Render** | Avatar, Hit FX, Custom Sky, Custom Totem |
-| **HUD** | HUD (info bar, coordinates, module list, potions, armor, cooldowns), Hotkeys, Spotify HUD |
+| **HUD** | HUD (info bar, coordinates, module list, potions, armor, cooldowns), Hotkeys, FPS Counter, Spotify HUD |
 | **Misc** | Discord Presence, Stream Hider, Waypoints, Weather Notifier, Sprint, Copy Coords, Name Protect, Skin Change |
 
 Nametags follow vanilla visibility rules: they show name, held item, ping and distance, and are never drawn through walls.

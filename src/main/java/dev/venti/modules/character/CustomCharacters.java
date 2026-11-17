@@ -103,12 +103,12 @@ final class CustomCharacters {
          throw new IOException("the file is larger than 256 MB");
       } else {
          String name = file.getFileName().toString();
-         CharacterModule.baking(name);
+         AvatarModule.baking(name);
          long start = System.nanoTime();
          CharacterBake.Result result = CharacterBake.bake(Files.readAllBytes(file), new CharacterBake.Options(), CustomCharacters::decode);
          LOGGER.info("[Venti] Baked custom character {} in {} ms, moving {}", new Object[]{name, (System.nanoTime() - start) / 1000000L, result.limbs()});
          if (result.limbs().size() < 3) {
-            CharacterModule.notice(name, result.limbs());
+            AvatarModule.notice(name, result.limbs());
          }
 
          Files.createDirectories(cache());

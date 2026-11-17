@@ -3,7 +3,7 @@
 uniform sampler2D CaptureSampler;
 uniform sampler2D HaloSampler;
 
-layout(std140) uniform HandAuraConfig {
+layout(std140) uniform HandGlowConfig {
     vec4 Tint;
     vec4 Sheen;
     vec4 Shape;

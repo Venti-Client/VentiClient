@@ -44,6 +44,7 @@ final class PanelsGui {
    private final ClickGui owner;
    private final Set<String> expanded = new HashSet<>();
    private final java.util.Map<Integer, Float> heights = new java.util.HashMap<>();
+   private boolean menuColorOpen;
    private final float[] number = new float[1];
    private final float[] color = new float[4];
    private final ImString text = new ImString(512);
@@ -97,14 +98,7 @@ final class PanelsGui {
          ImGui.setCursorPosX(pad);
          this.setting(theme, theme.descriptions, width, s, accent);
          ImGui.setCursorPosX(pad);
-         ImGui.textColored(abgrF(TEXT_DIM), "Menu Color");
-         ImGui.setCursorPosX(pad);
-         int argb = theme.accent.argb();
-         this.toFloats(argb);
-         ImGui.setNextItemWidth(width);
-         if (ImGui.colorPicker4("##menu_color", this.color, ImGuiColorEditFlags.NoSidePreview | ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel | ImGuiColorEditFlags.AlphaBar)) {
-            theme.accent.set(this.fromFloats());
-         }
+         this.menuColor(theme, pad, width, s, accent);
 
          ImGui.dummy(0.0F, 6.0F * s);
          this.moduleRow(theme, theme, s, accent);
@@ -112,6 +106,60 @@ final class PanelsGui {
       }
 
       this.end();
+   }
+
+   /** "Menu Color" row with a swatch and arrow; the big picker slides open beneath it and can be folded away. */
+   private void menuColor(Theme theme, float pad, float width, float s, int accent) {
+      float x = ImGui.getWindowPosX() + pad;
+      float y = ImGui.getCursorScreenPosY();
+      float h = 24.0F * s;
+      ImGui.setCursorPosX(pad);
+      boolean clicked = ImGui.invisibleButton("##menu_color_row", width, h);
+      boolean hovered = ImGui.isItemHovered();
+      if (clicked) {
+         this.menuColorOpen = !this.menuColorOpen;
+      }
+
+      ImDrawList dl = ImGui.getWindowDrawList();
+      float hover = GuiAnim.approach("##menu_color_row#hover", hovered ? 1.0F : 0.0F, 16.0F);
+      if (hover > 0.01F) {
+         dl.addRectFilled(x - 4.0F * s, y, x + width + 4.0F * s, y + h, GuiAnim.mix(ClickGui.abgr(ROW_HOVER) & 0x00FFFFFF, ClickGui.abgr(ROW_HOVER), hover), 4.0F * s);
+      }
+
+      dl.addText(x, y + (h - ImGui.getTextLineHeight()) * 0.5F, abgrF(TEXT_DIM), "Menu Color");
+      float sw = 14.0F * s;
+      float sx = x + width - 30.0F * s - sw;
+      float sy = y + (h - sw) * 0.5F;
+      dl.addRectFilled(sx, sy, sx + sw, sy + sw, accent, 3.0F * s);
+      dl.addRect(sx, sy, sx + sw, sy + sw, 0x40FFFFFF, 3.0F * s, 0, 1.0F);
+      float openT = GuiAnim.ease(GuiAnim.approach("##menu_color#open", this.menuColorOpen ? 1.0F : 0.0F, 11.0F));
+      float cx = x + width - 10.0F * s;
+      float cy = y + h * 0.5F;
+      float a = 3.5F * s;
+      float tip = a * 0.5F * (1.0F - 2.0F * openT);
+      int arrow = GuiAnim.mix(ClickGui.abgr(TEXT_DIM), ClickGui.abgr(TEXT), hover);
+      dl.addLine(cx - a, cy - tip, cx, cy + tip, arrow, 1.5F * s);
+      dl.addLine(cx, cy + tip, cx + a, cy - tip, arrow, 1.5F * s);
+      if (openT > 0.001F) {
+         int key = ImGui.getID("##menu_color_picker");
+         float full = this.heights.getOrDefault(key, 0.0F);
+         float shown = full <= 0.0F ? 1.0F : full * openT;
+         ImGui.setCursorPosX(0.0F);
+         ImGui.pushStyleVar(ImGuiStyleVar.Alpha, Math.max(0.02F, openT));
+         ImGui.beginChild("##menu_color_picker", ImGui.getWindowWidth(), Math.max(1.0F, shown), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+         ImGui.dummy(0.0F, 4.0F * s);
+         ImGui.setCursorPosX(pad);
+         this.toFloats(theme.accent.argb());
+         ImGui.setNextItemWidth(width);
+         if (ImGui.colorPicker4("##menu_color", this.color, ImGuiColorEditFlags.NoSidePreview | ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel | ImGuiColorEditFlags.AlphaBar)) {
+            theme.accent.set(this.fromFloats());
+         }
+
+         ImGui.dummy(0.0F, 4.0F * s);
+         this.heights.put(key, ImGui.getCursorPosY());
+         ImGui.endChild();
+         ImGui.popStyleVar();
+      }
    }
 
    private void configsPanel(float x, float y, float s, int accent) {

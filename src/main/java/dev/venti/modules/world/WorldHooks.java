@@ -28,11 +28,11 @@ public final class WorldHooks {
                try {
                   if (module instanceof BlockOverlayModule m) {
                      m.render3D(partialTick);
-                  } else if (module instanceof FloatingRelicsModule m) {
+                  } else if (module instanceof OrbitOrbsModule m) {
                      m.render3D(partialTick);
-                  } else if (module instanceof RelicParticlesModule m) {
+                  } else if (module instanceof EffectParticlesModule m) {
                      m.render3D(partialTick);
-                  } else if (module instanceof TotemSpiritModule m) {
+                  } else if (module instanceof TotemGhostModule m) {
                      m.render3D(partialTick);
                   } else if (module instanceof dev.venti.modules.waypoints.WaypointsModule m) {
                      m.render3D(partialTick);
@@ -53,12 +53,12 @@ public final class WorldHooks {
          return;
       }
 
-      RelicParticlesModule particles = Modules.get(RelicParticlesModule.class);
+      EffectParticlesModule particles = Modules.get(EffectParticlesModule.class);
       if (particles != null && particles.isEnabled()) {
          particles.onTotemPop(entity);
       }
 
-      TotemSpiritModule spirit = Modules.get(TotemSpiritModule.class);
+      TotemGhostModule spirit = Modules.get(TotemGhostModule.class);
       if (spirit != null && spirit.isEnabled()) {
          spirit.onTotemPop(entity);
       }

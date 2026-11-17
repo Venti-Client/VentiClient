@@ -115,14 +115,14 @@ final class CharacterCache {
       try {
          CharacterModel model = CharacterBuilder.build(entry.design, entry.detail);
          LOGGER.info(
-            "[Venti] 3D Character '{}' ({}) built: {} triangles in {} ms",
+            "[Venti] Avatar '{}' ({}) built: {} triangles in {} ms",
             new Object[]{entry.design.name(), entry.detail.label, model.triangles(), model.buildMillis}
          );
          entry.model = model;
       } catch (Throwable var2) {
          entry.failed = true;
-         LOGGER.error("[Venti] 3D Character '{}' ({}) failed to build", new Object[]{entry.design.name(), entry.detail.label, var2});
-         CharacterModule.failed(entry.design, var2);
+         LOGGER.error("[Venti] Avatar '{}' ({}) failed to build", new Object[]{entry.design.name(), entry.detail.label, var2});
+         AvatarModule.failed(entry.design, var2);
       }
    }
 

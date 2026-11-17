@@ -2,7 +2,7 @@ package dev.venti.mixin.character;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import dev.venti.modules.character.CharacterModule;
+import dev.venti.modules.character.AvatarModule;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.entity.state.EntityRenderState;
@@ -32,7 +32,7 @@ public abstract class MixinCharacterLivingEntityRenderer {
    private void venti$hideModelUnderCharacter(
       LivingEntityRenderState state, boolean bodyVisible, boolean translucent, boolean glowing, CallbackInfoReturnable<RenderLayer> cir
    ) {
-      if (CharacterModule.hidesModel(state)) {
+      if (AvatarModule.hidesModel(state)) {
          cir.setReturnValue(null);
       }
    }
@@ -60,7 +60,7 @@ public abstract class MixinCharacterLivingEntityRenderer {
       FeatureRenderer<?, ?> layer, MatrixStack poseStack, VertexConsumerProvider collector, int light, EntityRenderState state, float yRot, float xRot, Operation<Void> original
    ) {
    *///?}
-      if (!CharacterModule.hidesLayer(layer, state)) {
+      if (!AvatarModule.hidesLayer(layer, state)) {
          original.call(new Object[]{layer, poseStack, collector, light, state, yRot, xRot});
       }
    }
