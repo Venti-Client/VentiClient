@@ -1,5 +1,6 @@
 package dev.venti.modules.discord;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.ActionSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
@@ -32,11 +33,14 @@ import net.minecraft.client.gui.screens.options.VideoSettingsScreen;
 import net.minecraft.client.gui.screens.options.controls.ControlsScreen;
 import net.minecraft.client.gui.screens.packs.PackSelectionScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
-import net.minecraft.client.gui.screens.worldselection.EditGameRulesScreen;
+//? if >=26.2 {
+import net.minecraft.client.gui.screens.worldselection.AbstractGameRulesScreen;
+//?} else {
+/*import net.minecraft.client.gui.screens.worldselection.EditGameRulesScreen;
+*///?}
 import net.minecraft.client.gui.screens.worldselection.EditWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.realms.RealmsScreen;
-import net.minecraft.util.Tuple;
 
 /**
  * Shows Venti as your Discord Rich Presence.
@@ -57,7 +61,7 @@ public final class DiscordPresenceModule extends Module {
    private static final int RECONNECT_TICKS = 600;
    /** Ticks to wait after the application ID was edited before reconnecting, so typing does not reconnect per key. */
    private static final int APP_ID_SETTLE_TICKS = 40;
-   private static final List<Tuple<String, String>> CUSTOM_STATES = new ArrayList<>();
+   private static final List<StatePair> CUSTOM_STATES = new ArrayList<>();
 
    private final StringSetting applicationId;
    private final StringSetting largeImageKey;
@@ -131,14 +135,14 @@ public final class DiscordPresenceModule extends Module {
 
    /** Lets other mods name their screens, like Meteor's {@code DiscordPresence.registerCustomState}. */
    public static void registerCustomState(String packageName, String state) {
-      for (Tuple<String, String> pair : CUSTOM_STATES) {
+      for (StatePair pair : CUSTOM_STATES) {
          if (pair.getA().equals(packageName)) {
             pair.setB(state);
             return;
          }
       }
 
-      CUSTOM_STATES.add(new Tuple<>(packageName, state));
+      CUSTOM_STATES.add(new StatePair(packageName, state));
    }
 
    public static void unregisterCustomState(String packageName) {
@@ -228,8 +232,8 @@ public final class DiscordPresenceModule extends Module {
       }
 
       // Meteor resets this from its OpenScreenEvent so main menu screen changes refresh the state line.
-      if (mc.screen != this.lastScreen) {
-         this.lastScreen = mc.screen;
+      if (Mc.screen() != this.lastScreen) {
+         this.lastScreen = Mc.screen();
          if (!canUpdate(mc)) {
             this.lastWasInMainMenu = false;
          }
@@ -281,7 +285,7 @@ public final class DiscordPresenceModule extends Module {
          }
       } else if (!this.lastWasInMainMenu) {
          this.rpc.setDetails(Placeholders.apply("Venti Client {version}"));
-         this.rpc.setState(menuState(mc.screen));
+         this.rpc.setState(menuState(Mc.screen()));
          update = true;
       }
 
@@ -302,7 +306,11 @@ public final class DiscordPresenceModule extends Module {
          return "Looking at title screen";
       } else if (screen instanceof SelectWorldScreen) {
          return "Selecting world";
-      } else if (screen instanceof CreateWorldScreen || screen instanceof EditGameRulesScreen) {
+      //? if >=26.2 {
+      } else if (screen instanceof CreateWorldScreen || screen instanceof AbstractGameRulesScreen) {
+      //?} else {
+      /*} else if (screen instanceof CreateWorldScreen || screen instanceof EditGameRulesScreen) {
+      *///?}
          return "Creating world";
       } else if (screen instanceof EditWorldScreen) {
          return "Editing world";
@@ -334,7 +342,7 @@ public final class DiscordPresenceModule extends Module {
 
       if (screen != null) {
          String className = screen.getClass().getName();
-         for (Tuple<String, String> pair : CUSTOM_STATES) {
+         for (StatePair pair : CUSTOM_STATES) {
             if (className.startsWith(pair.getA())) {
                return pair.getB();
             }
@@ -342,5 +350,29 @@ public final class DiscordPresenceModule extends Module {
       }
 
       return "In main menu";
+   }
+
+   /** A mod package and the presence state it asked for (mutable, like the old {@code Tuple}). */
+
+   private static final class StatePair {
+      private final String a;
+      private String b;
+
+      StatePair(String a, String b) {
+         this.a = a;
+         this.b = b;
+      }
+
+      String getA() {
+         return this.a;
+      }
+
+      String getB() {
+         return this.b;
+      }
+
+      void setB(String b) {
+         this.b = b;
+      }
    }
 }

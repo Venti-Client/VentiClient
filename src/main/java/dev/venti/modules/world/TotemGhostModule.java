@@ -1,5 +1,6 @@
 package dev.venti.modules.world;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -173,7 +174,7 @@ public final class TotemGhostModule extends Module {
 
          if (this.count != 0) {
             this.palette.resolve(this.colorMode.get(), WorldAccent.argb(), this.bodyColor.argb(), this.auraColor.argb());
-            this.canvas.begin(mc.gameRenderer.getMainCamera());
+            this.canvas.begin(Mc.camera());
 
             for (int n = 0; n < this.count; n++) {
                TotemGhostModule.Spirit spirit = this.spirits[(this.head + n) % 12];

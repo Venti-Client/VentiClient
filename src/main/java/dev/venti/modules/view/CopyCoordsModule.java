@@ -1,5 +1,6 @@
 package dev.venti.modules.view;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
@@ -55,7 +56,7 @@ public final class CopyCoordsModule extends Module {
          pressed = true;
       }
 
-      if (pressed && mc.screen == null && mc.player != null && mc.level != null) {
+      if (pressed && Mc.screen() == null && mc.player != null && mc.level != null) {
          this.snap(mc, mc.player, mc.level);
       }
    }

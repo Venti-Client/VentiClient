@@ -42,8 +42,13 @@ final class CharacterCache {
    static void listen() {
       if (!listening) {
          listening = true;
+         //? if >=26.2 {
          ResourceLoader.get(PackType.CLIENT_RESOURCES)
+            .registerReloadListener(Identifier.fromNamespaceAndPath("venti", "character_textures"), (ResourceManagerReloadListener)manager -> releaseTextures());
+         //?} else {
+         /*ResourceLoader.get(PackType.CLIENT_RESOURCES)
             .registerReloader(Identifier.fromNamespaceAndPath("venti", "character_textures"), (ResourceManagerReloadListener)manager -> releaseTextures());
+         *///?}
       }
    }
 

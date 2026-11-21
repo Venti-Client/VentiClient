@@ -7,7 +7,11 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.SkyRenderer;
-import net.minecraft.client.renderer.state.SkyRenderState;
+//? if >=26.2 {
+import net.minecraft.client.renderer.state.level.SkyRenderState;
+//?} else {
+/*import net.minecraft.client.renderer.state.SkyRenderState;
+*///?}
 import net.minecraft.world.level.MoonPhase;
 import net.minecraft.world.level.dimension.DimensionType.Skybox;
 import org.spongepowered.asm.mixin.Mixin;

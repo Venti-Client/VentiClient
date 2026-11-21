@@ -1,6 +1,7 @@
 package dev.venti.modules.streamhider;
 
 import com.sun.jna.Platform;
+import dev.venti.compat.Gfx;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
@@ -13,7 +14,6 @@ import dev.venti.module.Modules;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -138,7 +138,7 @@ public final class StreamHiderModule extends Module {
       return bareModel && stack != null && !stack.isEmpty() && entity == Minecraft.getInstance().player ? ItemStack.EMPTY : stack;
    }
 
-   public static int screenX(GuiGraphics context, int localX, int localY, int fallback) {
+   public static int screenX(Gfx context, int localX, int localY, int fallback) {
       if (context != null && active != null) {
          context.pose().transformPosition(localX, localY, POINT);
          return Math.round(POINT.x);
@@ -147,7 +147,7 @@ public final class StreamHiderModule extends Module {
       }
    }
 
-   public static int screenY(GuiGraphics context, int localX, int localY, int fallback) {
+   public static int screenY(Gfx context, int localX, int localY, int fallback) {
       if (context != null && active != null) {
          context.pose().transformPosition(localX, localY, POINT);
          return Math.round(POINT.y);

@@ -1,5 +1,6 @@
 package dev.venti.modules.world;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -150,7 +151,7 @@ public final class EffectParticlesModule extends Module {
          this.swarm.trim(this.particleLimit());
          this.swarm.step(dt);
          if (this.swarm.count() != 0) {
-            this.canvas.begin(mc.gameRenderer.getMainCamera());
+            this.canvas.begin(Mc.camera());
             this.swarm.draw(this.canvas, 1.0F, this.halo.get());
             this.canvas.submit(false);
          }

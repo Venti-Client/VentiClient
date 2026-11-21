@@ -1,4 +1,6 @@
-package dev.venti.mixin.waypoints;
+// 26.x renders the level through Fabric's LevelRenderEvents instead: see dev.venti.compat.LevelHooks.
+//? if <26.2 {
+/*package dev.venti.mixin.waypoints;
 
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
@@ -13,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Keeps this frame's camera position, view rotation and projection so waypoint labels can be projected onto the HUD. */
+// Keeps this frame's camera position, view rotation and projection so waypoint labels can be projected onto the HUD.
 @Mixin(LevelRenderer.class)
 public abstract class MixinWaypointsWorldRenderer {
    @Inject(method = "renderLevel", at = @At("HEAD"))
@@ -33,3 +35,4 @@ public abstract class MixinWaypointsWorldRenderer {
       WaypointRenderer.capture(positionMatrix, projectionMatrix, camera.position());
    }
 }
+*///?}

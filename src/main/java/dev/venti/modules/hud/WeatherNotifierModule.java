@@ -1,5 +1,6 @@
 package dev.venti.modules.hud;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
@@ -46,7 +47,7 @@ public final class WeatherNotifierModule extends Module {
          this.changedTicks = 0;
       }
 
-      if (current != null && !(mc.screen instanceof LevelLoadingScreen)) {
+      if (current != null && !(Mc.screen() instanceof LevelLoadingScreen)) {
          // The rain state must hold for a second before it counts, so a brief flicker does not toast.
          if (current.isRaining() == this.raining) {
             this.changedTicks = 0;
@@ -54,7 +55,7 @@ public final class WeatherNotifierModule extends Module {
             this.raining = !this.raining;
             this.changedTicks = 0;
             if (this.raining) {
-               mc.getToastManager().addToast(new WeatherToast(new ItemStack(Items.TRIDENT), TITLE, MESSAGE, this.sound.get()));
+               Mc.toasts().addToast(new WeatherToast(new ItemStack(Items.TRIDENT), TITLE, MESSAGE, this.sound.get()));
             }
          }
       } else {

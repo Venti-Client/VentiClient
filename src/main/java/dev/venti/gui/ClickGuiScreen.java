@@ -1,8 +1,13 @@
 package dev.venti.gui;
 
+import dev.venti.compat.Mc;
 import dev.venti.imgui.ImGuiManager;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+//? if >=26.2 {
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//?} else {
+/*import net.minecraft.client.gui.GuiGraphics;
+*///?}
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -15,12 +20,12 @@ public final class ClickGuiScreen extends Screen {
    }
 
    public static boolean isOpen() {
-      return Minecraft.getInstance().screen instanceof ClickGuiScreen;
+      return Mc.screen() instanceof ClickGuiScreen;
    }
 
    /** HUD elements (Spotify card, Venti HUD, Hotkeys) show samples and can be dragged while the Spotify, HUD or Hotkeys page is open. */
    public static boolean editingHud() {
-      return Minecraft.getInstance().screen instanceof ClickGuiScreen screen && screen.gui.editingHud();
+      return Mc.screen() instanceof ClickGuiScreen screen && screen.gui.editingHud();
    }
 
    @Override
@@ -41,9 +46,15 @@ public final class ClickGuiScreen extends Screen {
       this.gui.saveAll();
    }
 
+   //? if >=26.2 {
    @Override
+   public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
+   }
+   //?} else {
+   /*@Override
    public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
    }
+   *///?}
 
    @Override
    public boolean isPauseScreen() {

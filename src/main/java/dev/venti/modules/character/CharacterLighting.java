@@ -6,7 +6,11 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.world.level.dimension.DimensionType.CardinalLightType;
+//? if >=26.2 {
+import net.minecraft.world.level.CardinalLighting;
+//?} else {
+/*import net.minecraft.world.level.dimension.DimensionType.CardinalLightType;
+*///?}
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -41,7 +45,11 @@ public final class CharacterLighting {
 
    private static boolean nether() {
       ClientLevel level = Minecraft.getInstance().level;
-      return level != null && level.dimensionType().cardinalLightType() == CardinalLightType.NETHER;
+      //? if >=26.2 {
+      return level != null && level.dimensionType().cardinalLightType() == CardinalLighting.Type.NETHER;
+      //?} else {
+      /*return level != null && level.dimensionType().cardinalLightType() == CardinalLightType.NETHER;
+      *///?}
    }
 
    private static Lights transformed(Matrix4f matrix) {

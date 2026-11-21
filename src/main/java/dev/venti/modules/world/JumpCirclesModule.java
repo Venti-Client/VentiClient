@@ -1,17 +1,19 @@
 package dev.venti.modules.world;
 
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.NativeImage;
+//? if >=26.2 {
+import com.mojang.blaze3d.platform.Transparency;
+//?}
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Immediate;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -25,12 +27,15 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.LayeringTransform;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.state.CameraRenderState;
+//? if >=26.2 {
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+//?} else {
+/*import net.minecraft.client.renderer.state.CameraRenderState;
+*///?}
 import net.minecraft.client.renderer.texture.MipmapGenerator;
 import net.minecraft.client.renderer.texture.MipmapStrategy;
 import net.minecraft.client.renderer.texture.SimpleTexture;
@@ -246,10 +251,9 @@ public final class JumpCirclesModule extends Module {
          float life = (float)this.durationNanos();
          float core = 0.025F + 0.02F * radiusMax;
          int coreRgb = towardsWhite(rgb, 0.45F);
-         BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
          if (this.logo.get()) {
             float alpha = (argb >>> 24) / 255.0F;
-            VertexConsumer out = buffers.getBuffer(JumpCirclesModule.Logo.GLOW_TYPE);
+            VertexConsumer out = Immediate.begin(JumpCirclesModule.Logo.GLOW_TYPE);
 
             for (int n = 0; n < this.count; n++) {
                int slot = (this.head + n) % 24;
@@ -258,8 +262,8 @@ public final class JumpCirclesModule extends Module {
                }
             }
 
-            buffers.endBatch(JumpCirclesModule.Logo.GLOW_TYPE);
-            out = buffers.getBuffer(JumpCirclesModule.Logo.TYPE);
+            Immediate.end(JumpCirclesModule.Logo.GLOW_TYPE);
+            out = Immediate.begin(JumpCirclesModule.Logo.TYPE);
 
             for (int nx = 0; nx < this.count; nx++) {
                int slot = (this.head + nx) % 24;
@@ -268,10 +272,10 @@ public final class JumpCirclesModule extends Module {
                }
             }
 
-            buffers.endBatch(JumpCirclesModule.Logo.TYPE);
+            Immediate.end(JumpCirclesModule.Logo.TYPE);
          }
 
-         VertexConsumer out = buffers.getBuffer(JumpCirclesModule.Ring.TYPE);
+         VertexConsumer out = Immediate.begin(JumpCirclesModule.Ring.TYPE);
 
          for (int nxx = 0; nxx < this.count; nxx++) {
             int slot = (this.head + nxx) % 24;
@@ -292,7 +296,7 @@ public final class JumpCirclesModule extends Module {
             }
          }
 
-         buffers.endBatch(JumpCirclesModule.Ring.TYPE);
+         Immediate.end(JumpCirclesModule.Ring.TYPE);
       }
    }
 
@@ -395,15 +399,14 @@ public final class JumpCirclesModule extends Module {
 
    @Environment(EnvType.CLIENT)
    private static final class Logo {
-      static final RenderPipeline PIPELINE = RenderPipeline.builder(new Snippet[]{RenderPipelines.MATRICES_PROJECTION_SNIPPET})
-         .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/jump_circle_logo"))
-         .withVertexShader("core/position_tex_color")
-         .withFragmentShader("core/position_tex_color")
-         .withSampler("Sampler0")
-         .withBlend(BlendFunction.TRANSLUCENT)
-         .withDepthWrite(false)
-         .withCull(false)
-         .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, Mode.QUADS)
+      static final RenderPipeline PIPELINE = Gpu.pipeline("jump_circle_logo")
+         .shaders("core/position_tex_color", "core/position_tex_color")
+         .matrices()
+         .sampler("Sampler0")
+         .blend(BlendFunction.TRANSLUCENT)
+         .depth(true, false)
+         .cull(false)
+         .vertices(DefaultVertexFormat.POSITION_TEX_COLOR, Gpu.Topology.QUADS)
          .build();
       static final RenderType TYPE = RenderType.create(
          "venti_jump_circle_logo",
@@ -432,20 +435,24 @@ public final class JumpCirclesModule extends Module {
       // Please report this to the Vineflower issue tracker, at https://github.com/Vineflower/vineflower/issues with a copy of the class file (if you have the rights to distribute it!)
       protected void doLoad(NativeImage image) {
          int levels = 32 - Integer.numberOfLeadingZeros(Math.min(image.getWidth(), image.getHeight()));
-         NativeImage[] mips = MipmapGenerator.generateMipLevels(this.resourceId(), new NativeImage[]{image}, levels - 1, MipmapStrategy.MEAN, 0.0F);
+         //? if >=26.2 {
+         NativeImage[] mips = MipmapGenerator.generateMipLevels(this.resourceId(), new NativeImage[]{image}, levels - 1, MipmapStrategy.MEAN, 0.0F, Transparency.TRANSLUCENT);
+         //?} else {
+         /*NativeImage[] mips = MipmapGenerator.generateMipLevels(this.resourceId(), new NativeImage[]{image}, levels - 1, MipmapStrategy.MEAN, 0.0F);
+         *///?}
          boolean var11 = false /* VF: Semaphore variable */;
 
          try {
             var11 = true;
             GpuDevice level = RenderSystem.getDevice();
             this.close();
-            this.texture = level.createTexture(this.resourceId()::toString, 5, TextureFormat.RGBA8, image.getWidth(), image.getHeight(), 1, levels);
+            this.texture = Gpu.texture(this.resourceId()::toString, 5, false, image.getWidth(), image.getHeight(), levels);
             this.textureView = level.createTextureView(this.texture);
             CommandEncoder encoder = level.createCommandEncoder();
 
             for (int levelx = 0; levelx < levels; levelx++) {
                NativeImage mip = mips[levelx];
-               encoder.writeToTexture(this.texture, mip, levelx, 0, 0, 0, mip.getWidth(), mip.getHeight(), 0, 0);
+               Gpu.write(encoder, this.texture, mip, levelx, 0, 0);
             }
 
             var11 = false;

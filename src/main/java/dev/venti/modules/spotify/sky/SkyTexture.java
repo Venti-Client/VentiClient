@@ -7,7 +7,7 @@ import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
+import dev.venti.compat.Gpu;
 import java.nio.IntBuffer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -41,7 +41,7 @@ public final class SkyTexture implements SkyImage {
 
          String label = "venti:sky/" + name;
          GpuDevice device = RenderSystem.getDevice();
-         GpuTexture texture = device.createTexture(() -> label, 5, TextureFormat.RGBA8, width, height, 1, levels.length);
+         GpuTexture texture = Gpu.texture(() -> label, 5, false, width, height, levels.length);
 
          try {
             for (int levelx = 0; levelx < levels.length; levelx++) {
@@ -57,7 +57,7 @@ public final class SkyTexture implements SkyImage {
                      pixels.put(i, ARGB.toABGR(argb[i]));
                   }
 
-                  device.createCommandEncoder().writeToTexture(texture, image, levelx, 0, 0, 0, w, h, 0, 0);
+                  Gpu.write(device.createCommandEncoder(), texture, image, levelx, 0, 0);
                } catch (Throwable var15) {
                   try {
                      image.close();
@@ -97,7 +97,7 @@ public final class SkyTexture implements SkyImage {
                pixels.put(i, ARGB.toABGR(argb[i]));
             }
 
-            GpuTexture texture = device.createTexture(() -> label, 5, TextureFormat.RGBA8, width, height, 1, 1);
+            GpuTexture texture = Gpu.texture(() -> label, 5, false, width, height, 1);
 
             try {
                device.createCommandEncoder().writeToTexture(texture, image);

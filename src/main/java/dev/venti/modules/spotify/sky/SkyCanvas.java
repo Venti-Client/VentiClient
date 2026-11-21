@@ -1,28 +1,20 @@
 package dev.venti.modules.spotify.sky;
 
-import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.systems.RenderPass;
-import com.mojang.blaze3d.systems.RenderSystem.AutoStorageIndexBuffer;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.MeshData;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import java.util.Arrays;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
@@ -54,16 +46,14 @@ public final class SkyCanvas implements SkyPaint {
    private float upZ;
 
    private static RenderPipeline pipeline(String name, BlendFunction blend) {
-      return RenderPipeline.builder(new Snippet[]{RenderPipelines.MATRICES_PROJECTION_SNIPPET})
-         .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/" + name))
-         .withVertexShader("core/position_tex_color")
-         .withFragmentShader("core/position_tex_color")
-         .withSampler("Sampler0")
-         .withBlend(blend)
-         .withDepthWrite(false)
-         .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-         .withCull(false)
-         .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, Mode.QUADS)
+      return Gpu.pipeline(name)
+         .shaders("core/position_tex_color", "core/position_tex_color")
+         .matrices()
+         .sampler("Sampler0")
+         .blend(blend)
+         .depth(false, false)
+         .cull(false)
+         .vertices(DefaultVertexFormat.POSITION_TEX_COLOR, Gpu.Topology.QUADS)
          .build();
    }
 
@@ -176,78 +166,31 @@ public final class SkyCanvas implements SkyPaint {
          BufferBuilder done = this.builder;
          this.builder = null;
 
-         try {
-            MeshData mesh = done.build();
+         try (MeshData mesh = done.build()) {
+            if (mesh != null && this.runCount != 0) {
+               Gpu.Mesh vertices = Gpu.upload(mesh);
+               GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
+                  .writeTransform(RenderSystem.getModelViewStack(), new Vector4f(1.0F, 1.0F, 1.0F, alpha), new Vector3f(), new Matrix4f());
+               RenderTarget target = Mc.mainTarget();
 
-            label169: {
-               try {
-                  if (mesh != null && this.runCount != 0) {
-                     GpuBuffer vertices = DefaultVertexFormat.POSITION_TEX_COLOR.uploadImmediateVertexBuffer(mesh.vertexBuffer());
-                     AutoStorageIndexBuffer indices = RenderSystem.getSequentialBuffer(Mode.QUADS);
-                     GpuBuffer indexBuffer = indices.getBuffer(this.quads * 6);
-                     GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
-                        .writeTransform(RenderSystem.getModelViewStack(), new Vector4f(1.0F, 1.0F, 1.0F, alpha), new Vector3f(), new Matrix4f());
-                     RenderTarget target = Minecraft.getInstance().getMainRenderTarget();
-                     RenderPass pass = RenderSystem.getDevice()
-                        .createCommandEncoder()
-                        .createRenderPass(() -> "Venti sky canvas", target.getColorTextureView(), OptionalInt.empty(), target.getDepthTextureView(), OptionalDouble.empty());
+               try (RenderPass pass = Gpu.pass(() -> "Venti sky canvas", target.getColorTextureView(), target.getDepthTextureView())) {
+                  RenderPipeline active = null;
 
-                     try {
-                        RenderPipeline active = null;
-
-                        for (int i = 0; i < this.runCount; i++) {
-                           SkyCanvas.Run run = this.runs[i];
-                           RenderPipeline wanted = run.additive ? ADD : BLEND;
-                           if (wanted != active) {
-                              active = wanted;
-                              pass.setPipeline(wanted);
-                              RenderSystem.bindDefaultUniforms(pass);
-                              pass.setUniform("DynamicTransforms", transforms);
-                              pass.setVertexBuffer(0, vertices);
-                              pass.setIndexBuffer(indexBuffer, indices.type());
-                           }
-
-                           pass.bindTexture("Sampler0", run.texture.view(), run.texture.sampler());
-                           pass.drawIndexed(0, run.first * 6, run.count * 6, 1);
-                        }
-                     } catch (Throwable var22) {
-                        if (pass != null) {
-                           try {
-                              pass.close();
-                           } catch (Throwable var21) {
-                              var22.addSuppressed(var21);
-                           }
-                        }
-
-                        throw var22;
+                  for (int i = 0; i < this.runCount; i++) {
+                     SkyCanvas.Run run = this.runs[i];
+                     RenderPipeline wanted = run.additive ? ADD : BLEND;
+                     if (wanted != active) {
+                        active = wanted;
+                        pass.setPipeline(wanted);
+                        RenderSystem.bindDefaultUniforms(pass);
+                        pass.setUniform("DynamicTransforms", transforms);
+                        vertices.bind(pass);
                      }
 
-                     if (pass != null) {
-                        pass.close();
-                     }
-                     break label169;
+                     pass.bindTexture("Sampler0", run.texture.view(), run.texture.sampler());
+                     vertices.draw(pass, run.first * 6, run.count * 6);
                   }
-               } catch (Throwable var23) {
-                  if (mesh != null) {
-                     try {
-                        mesh.close();
-                     } catch (Throwable var20) {
-                        var23.addSuppressed(var20);
-                     }
-                  }
-
-                  throw var23;
                }
-
-               if (mesh != null) {
-                  mesh.close();
-               }
-
-               return;
-            }
-
-            if (mesh != null) {
-               mesh.close();
             }
          } finally {
             this.runCount = 0;
@@ -275,7 +218,7 @@ public final class SkyCanvas implements SkyPaint {
             this.bytes = new ByteBufferBuilder(START_BYTES);
          }
 
-         this.builder = new BufferBuilder(this.bytes, Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+         this.builder = Gpu.builder(this.bytes, DefaultVertexFormat.POSITION_TEX_COLOR, Gpu.Topology.QUADS);
       }
 
       SkyCanvas.Run last = this.runCount == 0 ? null : this.runs[this.runCount - 1];

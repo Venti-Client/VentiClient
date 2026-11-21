@@ -1,5 +1,6 @@
 package dev.venti.modules.sky;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
@@ -161,7 +162,7 @@ public final class CustomSkyModule extends Module {
       if (world == null) {
          return 1.0F;
       } else {
-         double day = ((world.getDayTime() % 24000L) + tickDelta) / 24000.0;
+         double day = ((Mc.dayTime(world) % 24000L) + tickDelta) / 24000.0;
          float sun = (float)Math.cos((day - 0.25) * Math.PI * 2.0);
          return Math.max(0.25F, Math.min(1.0F, 0.6F + sun * 0.6F));
       }

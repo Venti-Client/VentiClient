@@ -1,5 +1,6 @@
 package dev.venti.module;
 
+import dev.venti.compat.Mc;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -45,7 +46,7 @@ public final class Modules {
    }
 
    public static void tick(Minecraft client) {
-      boolean acceptBinds = client.screen == null && client.isWindowActive();
+      boolean acceptBinds = Mc.screen() == null && client.isWindowActive();
       long window = client.getWindow().handle();
 
       for (int i = 0; i < ALL.size(); i++) {

@@ -1,6 +1,7 @@
 package dev.venti.modules.view;
 
 import com.mojang.authlib.GameProfile;
+import dev.venti.compat.Mc;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.StringSetting;
 import dev.venti.module.Module;
@@ -257,7 +258,7 @@ public final class NameProtectModule extends Module {
             clearDisplayCache();
             Arrays.fill(recentChat, null);
             if (mc.gui != null) {
-               mc.gui.getChat().rescaleChat();
+               Mc.chat().rescaleChat();
             }
          });
       }
@@ -292,7 +293,7 @@ public final class NameProtectModule extends Module {
       if (this.chatRefreshPending && this.chatRefreshCooldown == 0 && !chatOpen(mc) && mc.gui != null) {
          this.chatRefreshPending = false;
          this.chatRefreshCooldown = 20;
-         mc.gui.getChat().rescaleChat();
+         Mc.chat().rescaleChat();
       }
    }
 
@@ -521,6 +522,6 @@ public final class NameProtectModule extends Module {
    }
 
    private static boolean chatOpen(Minecraft mc) {
-      return mc.gui != null && mc.gui.getChat().isChatFocused();
+      return mc.gui != null && Mc.chat().isChatFocused();
    }
 }

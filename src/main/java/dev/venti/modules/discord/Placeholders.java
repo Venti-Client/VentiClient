@@ -65,7 +65,7 @@ final class Placeholders {
             .orElse("");
          case "mc_version" -> SharedConstants.getCurrentVersion().name();
          case "time" -> LocalTime.now().format(TIME);
-         case "server.difficulty" -> mc.level != null ? mc.level.getDifficulty().getKey() : "";
+         case "server.difficulty" -> mc.level != null ? mc.level.getDifficulty().getSerializedName() : "";
          case "server.player_count" -> mc.getConnection() != null ? Integer.toString(mc.getConnection().getOnlinePlayers().size()) : "0";
          default -> null;
       };

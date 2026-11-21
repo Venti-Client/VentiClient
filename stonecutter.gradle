@@ -8,7 +8,7 @@ plugins {
 
 // The version whose state the shared src/ is in. Keep it on the newest version when committing
 // (switch with `./gradlew "Set active project to 26.2"`, then switch back).
-stonecutter.active '1.21.11'
+stonecutter.active '26.2'
 
 // One command for every version: builds each versions/<mc> project and collects the jars in build/libs/.
 def versionProjects = stonecutter.versions.collect { it.project }

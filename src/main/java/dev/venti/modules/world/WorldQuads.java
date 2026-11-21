@@ -1,30 +1,26 @@
 package dev.venti.modules.world;
 
 import com.mojang.blaze3d.ProjectionType;
-import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.systems.RenderPass;
-import com.mojang.blaze3d.systems.RenderSystem.AutoStorageIndexBuffer;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.MeshData;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import java.util.Arrays;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.PerspectiveProjectionMatrixBuffer;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
+//? if >=26.2 {
+import net.minecraft.client.renderer.ProjectionMatrixBuffer;
+//?} else {
+/*import net.minecraft.client.renderer.PerspectiveProjectionMatrixBuffer;
+*///?}
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -34,15 +30,19 @@ import org.joml.Vector4f;
 public final class WorldQuads {
    private static final int MAX_QUADS = 64000;
    private static final int MIN_ALPHA = 3;
-   private static final RenderPipeline DEPTH_TESTED = pipeline("world_quads", DepthTestFunction.LEQUAL_DEPTH_TEST);
-   private static final RenderPipeline ON_TOP = pipeline("world_quads_on_top", DepthTestFunction.NO_DEPTH_TEST);
+   private static final RenderPipeline DEPTH_TESTED = pipeline("world_quads", true);
+   private static final RenderPipeline ON_TOP = pipeline("world_quads_on_top", false);
    private static final WorldQuads TESTED = new WorldQuads(DEPTH_TESTED);
    private static final WorldQuads TOP = new WorldQuads(ON_TOP);
    private static double originX;
    private static double originY;
    private static double originZ;
    private static ByteBufferBuilder bytes;
-   private static PerspectiveProjectionMatrixBuffer projectionBuffer;
+   //? if >=26.2 {
+   private static ProjectionMatrixBuffer projectionBuffer;
+   //?} else {
+   /*private static PerspectiveProjectionMatrixBuffer projectionBuffer;
+   *///?}
    private final RenderPipeline pipeline;
    private float[] corners = new float[3072];
    private int[] colors = new int[256];
@@ -52,16 +52,14 @@ public final class WorldQuads {
       this.pipeline = pipeline;
    }
 
-   private static RenderPipeline pipeline(String name, DepthTestFunction depth) {
-      return RenderPipeline.builder(new Snippet[]{RenderPipelines.MATRICES_PROJECTION_SNIPPET})
-         .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/world_visuals_" + name))
-         .withVertexShader("core/position_color")
-         .withFragmentShader("core/position_color")
-         .withBlend(BlendFunction.TRANSLUCENT)
-         .withDepthWrite(false)
-         .withDepthTestFunction(depth)
-         .withCull(false)
-         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, Mode.QUADS)
+   private static RenderPipeline pipeline(String name, boolean depthTest) {
+      return Gpu.pipeline("world_visuals_" + name)
+         .shaders("core/position_color", "core/position_color")
+         .matrices()
+         .blend(BlendFunction.TRANSLUCENT)
+         .depth(depthTest, false)
+         .cull(false)
+         .vertices(DefaultVertexFormat.POSITION_COLOR, Gpu.Topology.QUADS)
          .build();
    }
 
@@ -149,7 +147,11 @@ public final class WorldQuads {
    public static void render(Matrix4f viewRotation, Matrix4f projection) {
       if (TESTED.quads != 0 || TOP.quads != 0) {
          if (projectionBuffer == null) {
-            projectionBuffer = new PerspectiveProjectionMatrixBuffer("venti world quads");
+            //? if >=26.2 {
+            projectionBuffer = new ProjectionMatrixBuffer("venti world quads");
+            //?} else {
+            /*projectionBuffer = new PerspectiveProjectionMatrixBuffer("venti world quads");
+            *///?}
          }
 
          RenderSystem.backupProjectionMatrix();
@@ -172,7 +174,7 @@ public final class WorldQuads {
             bytes = new ByteBufferBuilder(this.quads * 4 * DefaultVertexFormat.POSITION_COLOR.getVertexSize());
          }
 
-         BufferBuilder builder = new BufferBuilder(bytes, Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+         BufferBuilder builder = Gpu.builder(bytes, DefaultVertexFormat.POSITION_COLOR, Gpu.Topology.QUADS);
          float[] in = this.corners;
          int i = 0;
 
@@ -185,67 +187,19 @@ public final class WorldQuads {
             i++;
          }
 
-         MeshData mesh = builder.build();
-
-         label78: {
-            try {
-               if (mesh == null) {
-                  break label78;
-               }
-
-               GpuBuffer vertices = DefaultVertexFormat.POSITION_COLOR.uploadImmediateVertexBuffer(mesh.vertexBuffer());
-               AutoStorageIndexBuffer indices = RenderSystem.getSequentialBuffer(Mode.QUADS);
-               int indexCount = mesh.drawState().indexCount();
+         try (MeshData mesh = builder.build()) {
+            if (mesh != null) {
                GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
                   .writeTransform(viewRotation, new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
-               RenderTarget target = Minecraft.getInstance().getMainRenderTarget();
-               RenderPass pass = RenderSystem.getDevice()
-                  .createCommandEncoder()
-                  .createRenderPass(() -> "Venti world quads", target.getColorTextureView(), OptionalInt.empty(), target.getDepthTextureView(), OptionalDouble.empty());
-
-               try {
+               Gpu.Mesh vertices = Gpu.upload(mesh);
+               RenderTarget target = Mc.mainTarget();
+               try (RenderPass pass = Gpu.pass(() -> "Venti world quads", target.getColorTextureView(), target.getDepthTextureView())) {
                   pass.setPipeline(this.pipeline);
                   RenderSystem.bindDefaultUniforms(pass);
                   pass.setUniform("DynamicTransforms", transforms);
-                  pass.setVertexBuffer(0, vertices);
-                  pass.setIndexBuffer(indices.getBuffer(indexCount), indices.type());
-                  pass.drawIndexed(0, 0, indexCount, 1);
-               } catch (Throwable var15) {
-                  if (pass != null) {
-                     try {
-                        pass.close();
-                     } catch (Throwable var14) {
-                        var15.addSuppressed(var14);
-                     }
-                  }
-
-                  throw var15;
+                  vertices.drawAll(pass);
                }
-
-               if (pass != null) {
-                  pass.close();
-               }
-            } catch (Throwable var16) {
-               if (mesh != null) {
-                  try {
-                     mesh.close();
-                  } catch (Throwable var13) {
-                     var16.addSuppressed(var13);
-                  }
-               }
-
-               throw var16;
             }
-
-            if (mesh != null) {
-               mesh.close();
-            }
-
-            return;
-         }
-
-         if (mesh != null) {
-            mesh.close();
          }
       }
    }

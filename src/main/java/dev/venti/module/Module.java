@@ -1,5 +1,6 @@
 package dev.venti.module;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.Setting;
 import dev.venti.config.Settings;
@@ -125,7 +126,7 @@ public abstract class Module {
    protected final void chat(Component message) {
       Minecraft mc = Minecraft.getInstance();
       if (this.notifications.get() && mc.gui != null) {
-         mc.gui.getChat().addMessage(
+         Mc.chatMessage(
             Component.literal("[Venti] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(Component.literal(this.name + " ").withStyle(ChatFormatting.WHITE)).append(message)
          );
       }

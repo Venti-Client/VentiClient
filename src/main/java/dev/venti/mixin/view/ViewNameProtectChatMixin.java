@@ -1,7 +1,11 @@
 package dev.venti.mixin.view;
 
 import dev.venti.modules.view.NameProtectModule;
-import net.minecraft.client.GuiMessage;
+//? if >=26.2 {
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+//?} else {
+/*import net.minecraft.client.GuiMessage;
+*///?}
 import net.minecraft.network.chat.FormattedText;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

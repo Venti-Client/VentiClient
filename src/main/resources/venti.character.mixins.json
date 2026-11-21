@@ -1,6 +1,7 @@
 {
   "required": true,
   "package": "dev.venti.mixin.character",
+  "plugin": "dev.venti.compat.VentiMixinPlugin",
   "compatibilityLevel": "JAVA_${java}",
   "client": [
     "MixinCharacterAvatarRenderState",

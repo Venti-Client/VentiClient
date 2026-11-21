@@ -1,5 +1,6 @@
 package dev.venti.modules.waypoints;
 
+import dev.venti.compat.Mc;
 import dev.venti.imgui.ImGuiManager;
 import dev.venti.modules.world.WorldQuads;
 import imgui.ImDrawList;
@@ -109,7 +110,7 @@ public final class WaypointRenderer {
          return;
       }
 
-      Vec3 cam = mc.gameRenderer.getMainCamera().position();
+      Vec3 cam = Mc.camera().position();
       double bottom = world.getMinY();
       double top = world.getMaxY() + 1.0;
       // Keep the beam inside the far plane: anything farther is pulled in along the same direction.
@@ -163,8 +164,8 @@ public final class WaypointRenderer {
          && captured
          && mc.level != null
          && mc.player != null
-         && !mc.options.hideGui
-         && (mc.screen == null || mc.screen instanceof ChatScreen)
+         && !Mc.hudHidden()
+         && (Mc.screen() == null || Mc.screen() instanceof ChatScreen)
          && !module.store().all().isEmpty();
    }
 

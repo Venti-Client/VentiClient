@@ -1,7 +1,22 @@
 package dev.venti.modules.streamhider;
 
 import com.mojang.blaze3d.ProjectionType;
-import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
+import dev.venti.compat.Gpu;
+//? if >=26.2 {
+import net.minecraft.client.renderer.Projection;
+import net.minecraft.client.renderer.ProjectionMatrixBuffer;
+import net.minecraft.world.level.block.BeaconBeamBlock;
+import net.minecraft.world.level.block.HalfTransparentBlock;
+import net.minecraft.world.level.block.NetherPortalBlock;
+//?} else {
+/*import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+*///?}
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.buffers.GpuFence;
@@ -9,14 +24,11 @@ import com.mojang.blaze3d.opengl.GlConst;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.platform.Lighting.Entry;
-import com.mojang.blaze3d.platform.NativeImage.Format;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.imgui.ImGuiManager;
 import imgui.ImDrawList;
@@ -31,13 +43,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
-import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeStorage;
-import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
-import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 import net.minecraft.client.renderer.fog.FogRenderer.FogMode;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -72,10 +78,15 @@ public final class ItemIcons {
    private static final int[] VIEWPORT = new int[4];
    private static GpuTexture depth;
    private static GpuTextureView depthView;
-   private static CachedOrthoProjectionMatrixBuffer projection;
    private static SubmitNodeStorage submits;
+   //? if >=26.2 {
+   private static ProjectionMatrixBuffer projection;
+   private static final Projection ORTHO = new Projection();
+   //?} else {
+   /*private static CachedOrthoProjectionMatrixBuffer projection;
    private static FeatureRenderDispatcher features;
    private static BufferSource buffers;
+   *///?}
    private static GpuBuffer readback;
    private static ByteBuffer straightened;
    private static boolean straightenFailed;
@@ -283,7 +294,14 @@ public final class ItemIcons {
    }
 
    private static boolean seeThrough(Item item) {
-      return item instanceof BlockItem block ? ItemBlockRenderTypes.getChunkRenderType(block.getBlock().defaultBlockState()) == ChunkSectionLayer.TRANSLUCENT : false;
+      //? if >=26.2 {
+      // 26.x picks render layers per model quad; translucent block items are the glass-like blocks
+      // (straightening an icon that is opaque after all changes nothing).
+      return item instanceof BlockItem block
+         && (block.getBlock() instanceof BeaconBeamBlock || block.getBlock() instanceof HalfTransparentBlock || block.getBlock() instanceof NetherPortalBlock);
+      //?} else {
+      /*return item instanceof BlockItem block ? ItemBlockRenderTypes.getChunkRenderType(block.getBlock().defaultBlockState()) == ChunkSectionLayer.TRANSLUCENT : false;
+      *///?}
    }
 
    private static ItemIcons.Cell paint(ItemIcons.Sheet sheet, boolean seeThrough) {
@@ -324,13 +342,13 @@ public final class ItemIcons {
    private static void allocate(ItemIcons.Sheet sheet) {
       GpuDevice device = RenderSystem.getDevice();
       if (depth == null) {
-         depth = create("Venti HUD icon depth", 8, TextureFormat.DEPTH32, 512);
+         depth = create("Venti HUD icon depth", 8, true, 512);
          depthView = device.createTextureView(depth);
       }
 
-      sheet.color = create("Venti HUD icons " + sheet.px, 15, TextureFormat.RGBA8, 512);
+      sheet.color = create("Venti HUD icons " + sheet.px, 15, false, 512);
       sheet.colorView = device.createTextureView(sheet.color);
-      device.createCommandEncoder().clearColorAndDepthTextures(sheet.color, 0, depth, 1.0);
+      Gpu.clearColorAndDepth(device.createCommandEncoder(), sheet.color, depth);
    }
 
    public static void render(
@@ -339,14 +357,20 @@ public final class ItemIcons {
       Minecraft mc = Minecraft.getInstance();
       int side = target.getWidth(0);
       int glY = side - y - cell;
-      RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(target, 0, targetDepth, 1.0, x, glY, cell, cell);
-      if (features == null) {
+      Gpu.clearColorAndDepth(RenderSystem.getDevice().createCommandEncoder(), target, targetDepth, x, glY, cell, cell);
+      //? if >=26.2 {
+      if (submits == null) {
+         submits = new SubmitNodeStorage();
+      }
+      //?} else {
+      /*if (features == null) {
          buffers = MultiBufferSource.immediate(new ByteBufferBuilder(262144));
          submits = new SubmitNodeStorage();
          features = new FeatureRenderDispatcher(
             submits, mc.getBlockRenderer(), buffers, mc.getAtlasManager(), mc.renderBuffers().outlineBufferSource(), mc.renderBuffers().crumblingBufferSource(), mc.font
          );
       }
+      *///?}
 
       GpuTextureView colorBefore = RenderSystem.outputColorTextureOverride;
       GpuTextureView depthBefore = RenderSystem.outputDepthTextureOverride;
@@ -363,13 +387,24 @@ public final class ItemIcons {
       try {
          RenderSystem.outputColorTextureOverride = targetView;
          RenderSystem.outputDepthTextureOverride = targetDepthView;
+         //? if >=26.2 {
          if (projection == null) {
+            projection = new ProjectionMatrixBuffer("Venti icons");
+         }
+
+         ORTHO.setupOrtho(-1000.0F, 1000.0F, side, side, true);
+         RenderSystem.setProjectionMatrix(projection.getBuffer(ORTHO), ProjectionType.ORTHOGRAPHIC);
+         Entry light = model.usesBlockLight() ? Entry.ITEMS_3D : Entry.ITEMS_FLAT;
+         mc.gameRenderer.lighting().setupFor(light);
+         //?} else {
+         /*if (projection == null) {
             projection = new CachedOrthoProjectionMatrixBuffer("Venti icons", -1000.0F, 1000.0F, true);
          }
 
          RenderSystem.setProjectionMatrix(projection.getBuffer(side, side), ProjectionType.ORTHOGRAPHIC);
          Entry light = model.usesBlockLight() ? Entry.ITEMS_3D : Entry.ITEMS_FLAT;
          mc.gameRenderer.getLighting().setupFor(light);
+         *///?}
          RenderSystem.setShaderFog(((dev.venti.mixin.streamhider.GameRendererAccessor)mc.gameRenderer).venti$noInvLeakFogRenderer().getBuffer(FogMode.NONE));
          RenderSystem.enableScissorForRenderTypeDraws(x, glY, cell, cell);
          PoseStack pose = new PoseStack();
@@ -378,10 +413,16 @@ public final class ItemIcons {
 
          try {
             model.submit(pose, submits, 15728880, OverlayTexture.NO_OVERLAY, 0);
-            features.renderAllFeatures();
+            //? if >=26.2 {
+            mc.gameRenderer.featureRenderDispatcher().renderAllFeatures(submits);
+            //?} else {
+            /*features.renderAllFeatures();
+            *///?}
          } finally {
-            submits.clear();
+            //? if <26.2 {
+            /*submits.clear();
             buffers.endBatch();
+            *///?}
          }
       } finally {
          RenderSystem.disableScissorForRenderTypeDraws();
@@ -440,7 +481,7 @@ public final class ItemIcons {
             }
 
             straightened.clear().limit(bytes);
-            MappedView view = encoder.mapBuffer(readback.slice(0L, bytes), true, false);
+            Gpu.Mapped view = Gpu.map(encoder, readback.slice(0L, bytes), true, false);
 
             try {
                ByteBuffer read = view.data();
@@ -471,7 +512,7 @@ public final class ItemIcons {
                view.close();
             }
 
-            encoder.writeToTexture(page, straightened, Format.RGBA, 0, 0, x, y, cell, cell);
+            Gpu.writeRgba(encoder, page, straightened, x, y, cell, cell);
          } catch (RuntimeException var26) {
             straightenFailed = true;
             LOGGER.warn("[Venti] Couldn't read icons back; see-through ones stay darker", var26);
@@ -481,10 +522,10 @@ public final class ItemIcons {
       }
    }
 
-   static GpuTexture create(String label, int usage, TextureFormat format, int side) {
+   static GpuTexture create(String label, int usage, boolean depthFormat, int side) {
       GlStateManager._activeTexture(GL11.glGetInteger(34016));
       GlStateManager._bindTexture(GL11.glGetInteger(32873));
-      GpuTexture texture = RenderSystem.getDevice().createTexture(label, usage, format, side, side, 1, 1);
+      GpuTexture texture = Gpu.texture(() -> label, usage, depthFormat, side, side, 1);
       if (texture instanceof GlTexture gl && !prepare(gl)) {
          texture.close();
          throw new IllegalStateException(label + " got no storage");
@@ -502,7 +543,7 @@ public final class ItemIcons {
          if (!holds(gl)) {
             int unpack = GL11.glGetInteger(35055);
             GL15.glBindBuffer(35052, 0);
-            TextureFormat format = gl.getFormat();
+            var format = gl.getFormat();
             GL11.glTexImage2D(
                3553,
                0,

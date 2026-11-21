@@ -18,7 +18,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Custom Fov and Zoom (FOV); No Render (totem animation, nausea/portal wobble). */
 @Mixin(GameRenderer.class)
 public abstract class ViewGameRendererMixin {
-   @Shadow
+   // Custom Fov and Zoom: 26.x moved the FOV into Camera (ViewCameraMixin).
+   //? if <26.2 {
+   /*@Shadow
    public abstract boolean isPanoramicMode();
 
    @ModifyReturnValue(method = "getFov(Lnet/minecraft/client/Camera;FZ)F", at = @At("RETURN"))
@@ -35,6 +37,7 @@ public abstract class ViewGameRendererMixin {
 
       return changingFov ? ZoomModule.fov(fov) : fov;
    }
+   *///?}
 
    @Inject(method = "displayItemActivation(Lnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), cancellable = true)
    private void venti$hideTotemAnimation(ItemStack stack, CallbackInfo ci) {

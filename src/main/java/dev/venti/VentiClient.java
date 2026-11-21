@@ -2,6 +2,8 @@ package dev.venti;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.Command;
+import dev.venti.compat.Fapi;
+import dev.venti.compat.Mc;
 import dev.venti.gui.ClickGuiScreen;
 import dev.venti.gui.Theme;
 import dev.venti.imgui.ImGuiManager;
@@ -50,11 +52,9 @@ import dev.venti.modules.world.OrbitOrbsModule;
 import dev.venti.modules.world.TimeChangerModule;
 import dev.venti.modules.world.TotemGhostModule;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -124,12 +124,15 @@ public final class VentiClient implements ClientModInitializer {
       FpsCounterModule fps = FpsCounterModule.get();
       ImGuiManager.getInstance().addHudRenderer(() -> fps.render(ClickGuiScreen.editingHud()), () -> fps.hasWork(ClickGuiScreen.editingHud()));
       ImGuiManager.getInstance().addHudRenderer(() -> spotify.render(ClickGuiScreen.editingHud()), () -> spotify.hasWork(ClickGuiScreen.editingHud()));
+      //? if >=26.2 {
+      dev.venti.compat.LevelHooks.register();
+      //?}
       ClientLifecycleEvents.CLIENT_STARTED.register(client -> Modules.startAll());
       ClientLifecycleEvents.CLIENT_STOPPING.register(client -> Modules.stopAll());
       ClientTickEvents.END_CLIENT_TICK.register(this::tick);
       // Opening a screen from inside a chat command gets undone when chat closes, so the command only asks for it.
       ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
-         ClientCommandManager.literal("venti").executes(context -> {
+         Fapi.literal("venti").executes(context -> {
             this.openRequested = true;
             return Command.SINGLE_SUCCESS;
          })
@@ -137,7 +140,7 @@ public final class VentiClient implements ClientModInitializer {
    }
 
    private static KeyMapping register(String name, int key) {
-      return KeyBindingHelper.registerKeyBinding(new KeyMapping(name, InputConstants.Type.KEYSYM, key, CATEGORY));
+      return Fapi.registerKey(new KeyMapping(name, InputConstants.Type.KEYSYM, key, CATEGORY));
    }
 
    private void tick(Minecraft client) {
@@ -145,15 +148,20 @@ public final class VentiClient implements ClientModInitializer {
          this.openRequested = true;
       }
 
-      if (this.devOpenPending && client.screen instanceof net.minecraft.client.gui.screens.TitleScreen) {
+      if (this.devOpenPending && Mc.screen() instanceof net.minecraft.client.gui.screens.TitleScreen) {
          this.devOpenPending = false;
          ImGuiManager.getInstance().requestGlyphs("가나다 あいう 漢字");
-         client.setScreen(new ClickGuiScreen());
+         Mc.setScreen(new ClickGuiScreen());
       }
 
-      if (this.openRequested && client.screen == null) {
+      if (this.openRequested && Mc.screen() == null) {
          this.openRequested = false;
-         client.setScreen(new ClickGuiScreen());
+         if (Mc.openGl()) {
+            Mc.setScreen(new ClickGuiScreen());
+         } else if (client.player != null) {
+            // 26.x on the Vulkan renderer: the ImGui menu needs OpenGL.
+            Mc.chatMessage(net.minecraft.network.chat.Component.literal("[Venti] The menu needs the OpenGL renderer (Video Settings > Graphics API)."));
+         }
       }
 
       press(this.playPause, SpotifyWindow.MediaKey.PLAY_PAUSE);

@@ -2,6 +2,7 @@ package dev.venti.modules.world;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -16,7 +17,11 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.state.SkyRenderState;
+//? if >=26.2 {
+import net.minecraft.client.renderer.state.level.SkyRenderState;
+//?} else {
+/*import net.minecraft.client.renderer.state.SkyRenderState;
+*///?}
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
@@ -286,7 +291,7 @@ public final class AuroraSkyModule extends Module {
          if (mc.level == null) {
             return 0.0F;
          } else {
-            BlockPos at = BlockPos.containing(mc.gameRenderer.getMainCamera().position());
+            BlockPos at = BlockPos.containing(Mc.camera().position());
             return ((Biome)mc.level.getBiome(at).value()).coldEnoughToSnow(at, mc.level.getSeaLevel()) ? 1.0F : 0.0F;
          }
       }

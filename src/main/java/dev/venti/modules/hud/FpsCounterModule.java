@@ -1,5 +1,6 @@
 package dev.venti.modules.hud;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.NumberSetting;
@@ -42,7 +43,7 @@ public final class FpsCounterModule extends Module {
 
    public boolean hasWork(boolean editing) {
       Minecraft mc = Minecraft.getInstance();
-      return this.isEnabled() && (editing || mc.level != null && !mc.options.hideGui);
+      return this.isEnabled() && (editing || mc.level != null && !Mc.hudHidden());
    }
 
    public void render(boolean editing) {

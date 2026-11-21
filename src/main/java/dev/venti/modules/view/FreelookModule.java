@@ -1,6 +1,7 @@
 package dev.venti.modules.view;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
@@ -60,7 +61,7 @@ public final class FreelookModule extends Module {
          while (this.key.consumeClick()) {
          }
 
-         boolean held = this.key.isDown() && mc.screen == null;
+         boolean held = this.key.isDown() && Mc.screen() == null;
          if (held && !this.looking) {
             this.start(mc, player);
          } else if (!held && this.looking) {
@@ -77,7 +78,7 @@ public final class FreelookModule extends Module {
       }
 
       if (this.looking) {
-         if (this.arrows.get() && mc.screen == null) {
+         if (this.arrows.get() && Mc.screen() == null) {
             float turn = this.arrowSpeed.get();
             float yawTurn = (held(mc, GLFW.GLFW_KEY_RIGHT) ? turn : 0.0F) - (held(mc, GLFW.GLFW_KEY_LEFT) ? turn : 0.0F);
             float pitchTurn = (held(mc, GLFW.GLFW_KEY_DOWN) ? turn : 0.0F) - (held(mc, GLFW.GLFW_KEY_UP) ? turn : 0.0F);

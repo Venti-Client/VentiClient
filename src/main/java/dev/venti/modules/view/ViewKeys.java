@@ -1,7 +1,7 @@
 package dev.venti.modules.view;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import dev.venti.compat.Fapi;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
 
@@ -17,6 +17,6 @@ public final class ViewKeys {
    }
 
    public static KeyMapping register(String translationKey, int glfwKey) {
-      return KeyBindingHelper.registerKeyBinding(new KeyMapping(translationKey, InputConstants.Type.KEYSYM, glfwKey, CATEGORY));
+      return Fapi.registerKey(new KeyMapping(translationKey, InputConstants.Type.KEYSYM, glfwKey, CATEGORY));
    }
 }

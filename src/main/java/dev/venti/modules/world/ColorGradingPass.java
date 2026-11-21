@@ -2,12 +2,9 @@ package dev.venti.modules.world;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderPass;
@@ -15,9 +12,9 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import java.nio.ByteBuffer;
-import java.util.OptionalInt;
 import java.util.function.Supplier;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -30,18 +27,15 @@ import org.slf4j.LoggerFactory;
 @Environment(EnvType.CLIENT)
 final class ColorGradingPass {
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
-   private static final RenderPipeline PIPELINE = RenderPipeline.builder(new Snippet[0])
-      .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/color_grading"))
-      .withVertexShader("core/screenquad")
-      .withFragmentShader(Identifier.fromNamespaceAndPath("venti", "core/color_grading"))
-      .withSampler("InSampler")
-      .withUniform("ColorGradingConfig", UniformType.UNIFORM_BUFFER)
-      .withoutBlend()
-      .withColorWrite(true, false)
-      .withDepthWrite(false)
-      .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-      .withVertexFormat(DefaultVertexFormat.EMPTY, Mode.TRIANGLES)
-      .build();
+   private static final RenderPipeline PIPELINE = Gpu.pipeline("color_grading")
+         .shaders(Identifier.withDefaultNamespace("core/screenquad"), Identifier.fromNamespaceAndPath("venti", "core/color_grading"))
+         .sampler("InSampler")
+         .uniform("ColorGradingConfig")
+         .blend(null)
+         .colorOnly()
+         .depth(false, false)
+         .fullScreen()
+         .build();
    private static final Supplier<String> PASS_LABEL = () -> "Venti color grading";
    private static final Supplier<String> CONFIG_LABEL = () -> "Venti color grading config";
    private static final int CONFIG_SIZE = 32;
@@ -56,12 +50,12 @@ final class ColorGradingPass {
 
    static void apply(boolean worldRendered, float vibrance, float contrast, float exposure, float warmth, float vignette) {
       Minecraft mc = Minecraft.getInstance();
-      RenderTarget main = mc.getMainRenderTarget();
+      RenderTarget main = Mc.mainTarget();
       GpuTexture mainColor = main.getColorTexture();
       if (worldRendered
          && mc.level != null
          && mc.isGameLoadFinished()
-         && !mc.gameRenderer.isPanoramicMode()
+         && !Mc.panoramic()
          && mainColor != null
          && main.width > 0
          && main.height > 0) {
@@ -81,13 +75,13 @@ final class ColorGradingPass {
             configData.putFloat(12, warmth);
             configData.putFloat(16, vignette);
             encoder.writeToBuffer(configSlice, configData);
-            RenderPass pass = encoder.createRenderPass(PASS_LABEL, main.getColorTextureView(), OptionalInt.empty());
+            RenderPass pass = Gpu.pass(encoder, PASS_LABEL, main.getColorTextureView(), null);
 
             try {
                pass.setPipeline(PIPELINE);
                pass.setUniform("ColorGradingConfig", configSlice);
                pass.bindTexture("InSampler", copy.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
-               pass.draw(0, 3);
+               Gpu.drawFullScreen(pass);
             } catch (Throwable var15) {
                if (pass != null) {
                   try {
@@ -122,7 +116,7 @@ final class ColorGradingPass {
    }
 
    private static void allocate(int width, int height) {
-      copy = new TextureTarget("Venti color grading copy", width, height, false);
+      copy = Gpu.target("Venti color grading copy", width, height, false);
       config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, 32L);
       configSlice = config.slice();
       configData = BufferUtils.createByteBuffer(32);

@@ -1,5 +1,6 @@
 package dev.venti.modules.world;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -142,7 +143,7 @@ public final class BlockOverlayModule extends Module {
 
          if (this.box != null) {
             this.updateProgress(mc, dt, hit != null);
-            this.eye = mc.gameRenderer.getMainCamera().position();
+            this.eye = Mc.camera().position();
             this.time = now % 3600000000000L / 1.0E9;
             this.draw();
          }

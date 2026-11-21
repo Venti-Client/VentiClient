@@ -1,4 +1,6 @@
-package dev.venti.mixin.world;
+// 26.x renders the level through Fabric's LevelRenderEvents instead: see dev.venti.compat.LevelHooks.
+//? if <26.2 {
+/*package dev.venti.mixin.world;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import dev.venti.modules.world.WorldHooks;
@@ -13,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Gives the world visual modules a per-frame 3D hook (where Anubis fired Render3DEvent) and flushes their quads at the end of the world pass. */
+// Gives the world visual modules a per-frame 3D hook (where Anubis fired Render3DEvent) and flushes their quads at the end of the world pass.
 @Mixin(LevelRenderer.class)
 public abstract class MixinWorldVisualsRenderer {
    @ModifyArg(
@@ -35,3 +37,4 @@ public abstract class MixinWorldVisualsRenderer {
       WorldQuads.render(viewRotation, projection);
    }
 }
+*///?}

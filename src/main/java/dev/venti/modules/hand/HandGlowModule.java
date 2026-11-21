@@ -1,6 +1,7 @@
 package dev.venti.modules.hand;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -64,7 +65,7 @@ public final class HandGlowModule extends Module {
    public static void endCapture(boolean drawn) {
       if (HandGlowPass.end() && drawn) {
          HandGlowModule module = active;
-         float scale = Math.max(1.0F, Minecraft.getInstance().getMainRenderTarget().height / 1080.0F);
+         float scale = Math.max(1.0F, Mc.mainTarget().height / 1080.0F);
          if (module == null) {
             HandGlowPass.compose(WHITE, 0.0F, 2.0F, 0.0F, 2.0F * scale, WHITE, 0.0F, 0.0F);
          } else {

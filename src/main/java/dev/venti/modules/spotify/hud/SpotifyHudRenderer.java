@@ -1,5 +1,6 @@
 package dev.venti.modules.spotify.hud;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.Settings;
 import dev.venti.imgui.ImGuiManager;
 import dev.venti.modules.spotify.SpotifyHud;
@@ -60,7 +61,7 @@ public final class SpotifyHudRenderer {
       Minecraft client = Minecraft.getInstance();
       if (editMode) {
          return true;
-      } else if (client.level == null || client.options.hideGui) {
+      } else if (client.level == null || Mc.hudHidden()) {
          if (this.spotifyArtTexture != null) {
             this.releaseSpotifyArt();
          }
@@ -76,7 +77,7 @@ public final class SpotifyHudRenderer {
       Minecraft client = Minecraft.getInstance();
       SpotifyHud module = SpotifyHud.get();
       Settings settings = module.settings();
-      this.chatInput = client.screen instanceof ChatScreen;
+      this.chatInput = Mc.screen() instanceof ChatScreen;
       this.spotifyButtonsShown = this.spotifyButtonsDrawn;
       this.spotifyButtonsDrawn = false;
       float dt = Math.max(ImGui.getIO().getDeltaTime(), 0.001F);

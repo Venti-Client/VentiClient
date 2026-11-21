@@ -8,7 +8,19 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 /** Name Protect: boss bar titles. */
+//? if >=26.2 {
 @Mixin(BossHealthOverlay.class)
+public abstract class ViewNameProtectBossBarMixin {
+   @ModifyExpressionValue(
+      method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;)V",
+      at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/LerpingBossEvent;getName()Lnet/minecraft/network/chat/Component;")
+   )
+   private Component venti$protectBossName(Component original) {
+      return NameProtectModule.protect(original);
+   }
+}
+//?} else {
+/*@Mixin(BossHealthOverlay.class)
 public abstract class ViewNameProtectBossBarMixin {
    @ModifyExpressionValue(
       method = "render(Lnet/minecraft/client/gui/GuiGraphics;)V",
@@ -18,3 +30,4 @@ public abstract class ViewNameProtectBossBarMixin {
       return NameProtectModule.protect(original);
    }
 }
+*///?}

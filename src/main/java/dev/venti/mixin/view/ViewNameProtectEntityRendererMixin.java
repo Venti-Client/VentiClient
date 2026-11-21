@@ -11,7 +11,11 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(EntityRenderer.class)
 public abstract class ViewNameProtectEntityRendererMixin {
    @ModifyExpressionValue(
-      method = "extractRenderState(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;F)V",
+      //? if >=26.2 {
+      method = "extractNameTags(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;FDD)V",
+      //?} else {
+      /*method = "extractRenderState(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;F)V",
+      *///?}
       at = @At(
          value = "INVOKE",
          target = "Lnet/minecraft/client/renderer/entity/EntityRenderer;getNameTag(Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/network/chat/Component;"

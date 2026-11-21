@@ -4,6 +4,8 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import dev.venti.compat.Fapi;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.gui.CustomPage;
@@ -18,11 +20,9 @@ import imgui.type.ImString;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
@@ -66,19 +66,19 @@ public final class WaypointsModule extends Module implements CustomPage {
       this.coneAngle.visibleWhen(this.viewCone::get);
       this.keepDeaths.onChange(this::trimDeaths);
       this.nameBuffer.inputData.isResizable = true;
-      this.addKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.venti.add_waypoint", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY));
+      this.addKey = Fapi.registerKey(new KeyMapping("key.venti.add_waypoint", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY));
 
       ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> this.store.load(client, handler.getServerData())));
       ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(this.store::unload));
       ClientTickEvents.END_CLIENT_TICK.register(client -> this.store.tick());
       ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
-         ClientCommandManager.literal("waypoint")
-            .then(ClientCommandManager.literal("add")
+         Fapi.literal("waypoint")
+            .then(Fapi.literal("add")
                .executes(ctx -> this.commandAdd(ctx, null))
-               .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+               .then(Fapi.argument("name", StringArgumentType.greedyString())
                   .executes(ctx -> this.commandAdd(ctx, StringArgumentType.getString(ctx, "name")))))
-            .then(ClientCommandManager.literal("remove")
-               .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+            .then(Fapi.literal("remove")
+               .then(Fapi.argument("name", StringArgumentType.greedyString())
                   .suggests((ctx, builder) -> {
                      String typed = builder.getRemaining().toLowerCase(Locale.ROOT);
                      for (Waypoint w : this.store.all()) {
@@ -90,7 +90,7 @@ public final class WaypointsModule extends Module implements CustomPage {
                      return builder.buildFuture();
                   })
                   .executes(ctx -> this.commandRemove(ctx, StringArgumentType.getString(ctx, "name")))))
-            .then(ClientCommandManager.literal("list").executes(this::commandList))
+            .then(Fapi.literal("list").executes(this::commandList))
       ));
       ImGuiManager.getInstance().addHudRenderer(() -> WaypointRenderer.renderLabels(this), () -> WaypointRenderer.hasLabelWork(this));
    }
@@ -141,7 +141,7 @@ public final class WaypointsModule extends Module implements CustomPage {
          pressed = true;
       }
 
-      if (pressed && mc.screen == null && mc.player != null && this.store.loaded()) {
+      if (pressed && Mc.screen() == null && mc.player != null && this.store.loaded()) {
          Waypoint w = this.addAtPlayer(null);
          if (w != null) {
             this.chat(Component.literal("added ").withStyle(ChatFormatting.GRAY).append(Component.literal(w.name).withColor(w.color & 0xFFFFFF))

@@ -5,7 +5,7 @@ import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.TextureFormat;
+import dev.venti.compat.Gpu;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.renderer.texture.AbstractTexture;
@@ -14,7 +14,7 @@ import net.minecraft.client.renderer.texture.AbstractTexture;
 final class CharacterTexture extends AbstractTexture {
    CharacterTexture(String label, int width, int height, int[][] mips) {
       GpuDevice device = RenderSystem.getDevice();
-      this.texture = device.createTexture(() -> label, 5, TextureFormat.RGBA8, width, height, 1, mips.length);
+      this.texture = Gpu.texture(() -> label, 5, false, width, height, mips.length);
       this.textureView = device.createTextureView(this.texture);
       CommandEncoder encoder = device.createCommandEncoder();
       int w = width;
@@ -31,7 +31,7 @@ final class CharacterTexture extends AbstractTexture {
                }
             }
 
-            encoder.writeToTexture(this.texture, image, level, 0, 0, 0, w, h, 0, 0);
+            Gpu.write(encoder, this.texture, image, level, 0, 0);
          } catch (Throwable var15) {
             try {
                image.close();

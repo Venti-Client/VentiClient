@@ -6,8 +6,6 @@ import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderPass;
@@ -15,12 +13,12 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.nio.ByteBuffer;
-import java.util.OptionalInt;
 import java.util.function.Supplier;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
@@ -32,19 +30,16 @@ import org.slf4j.LoggerFactory;
 /** Captures the first-person hand into its own target, then composites it back with a glow (ported from Anubis). */
 final class HandGlowPass {
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
-   private static final RenderPipeline PIPELINE = RenderPipeline.builder()
-      .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/hand_aura"))
-      .withVertexShader("core/screenquad")
-      .withFragmentShader(Identifier.fromNamespaceAndPath("venti", "core/hand_aura"))
-      .withSampler("CaptureSampler")
-      .withSampler("HaloSampler")
-      .withUniform("HandGlowConfig", UniformType.UNIFORM_BUFFER)
-      .withBlend(BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA)
-      .withColorWrite(true, false)
-      .withDepthWrite(false)
-      .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-      .withVertexFormat(DefaultVertexFormat.EMPTY, VertexFormat.Mode.TRIANGLES)
-      .build();
+   private static final RenderPipeline PIPELINE = Gpu.pipeline("hand_aura")
+         .shaders(Identifier.withDefaultNamespace("core/screenquad"), Identifier.fromNamespaceAndPath("venti", "core/hand_aura"))
+         .sampler("CaptureSampler")
+         .sampler("HaloSampler")
+         .uniform("HandGlowConfig")
+         .blend(BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA)
+         .colorOnly()
+         .depth(false, false)
+         .fullScreen()
+         .build();
    private static final Supplier<String> PASS_LABEL = () -> "Venti hand aura";
    private static final Supplier<String> CONFIG_LABEL = () -> "Venti hand aura config";
    private static final int CONFIG_SIZE = 48;
@@ -66,9 +61,9 @@ final class HandGlowPass {
       }
 
       Minecraft mc = Minecraft.getInstance();
-      RenderTarget main = mc.getMainRenderTarget();
+      RenderTarget main = Mc.mainTarget();
       if (mc.level == null
-         || mc.gameRenderer.isPanoramicMode()
+         || Mc.panoramic()
          || main.getColorTexture() == null
          || main.width <= 0
          || main.height <= 0
@@ -87,7 +82,7 @@ final class HandGlowPass {
          hand.resize(main.width, main.height);
       }
 
-      device.createCommandEncoder().clearColorAndDepthTextures(hand.getColorTexture(), 0, hand.getDepthTexture(), 1.0);
+      Gpu.clearColorAndDepth(device.createCommandEncoder(), hand.getColorTexture(), hand.getDepthTexture());
       RenderSystem.outputColorTextureOverride = hand.getColorTextureView();
       RenderSystem.outputDepthTextureOverride = hand.getDepthTextureView();
       capturing = true;
@@ -106,7 +101,7 @@ final class HandGlowPass {
    }
 
    static void compose(int tintArgb, float aura, float reachPx, float rim, float rimPx, int sheenArgb, float sheen, float phase) {
-      RenderTarget main = Minecraft.getInstance().getMainRenderTarget();
+      RenderTarget main = Mc.mainTarget();
       CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
       GpuTextureView halo = aura > 0.0F
          ? blur.spread(encoder, hand.getColorTextureView(), hand.width, hand.height, reachPx)
@@ -118,12 +113,12 @@ final class HandGlowPass {
       configData.putFloat(40, phase);
       configData.putFloat(44, 0.0F);
       encoder.writeToBuffer(configSlice, configData);
-      try (RenderPass pass = encoder.createRenderPass(PASS_LABEL, main.getColorTextureView(), OptionalInt.empty())) {
+      try (RenderPass pass = Gpu.pass(encoder, PASS_LABEL, main.getColorTextureView(), null)) {
          pass.setPipeline(PIPELINE);
          pass.setUniform("HandGlowConfig", configSlice);
          pass.bindTexture("CaptureSampler", hand.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
          pass.bindTexture("HaloSampler", halo, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
-         pass.draw(0, 3);
+         Gpu.drawFullScreen(pass);
       }
    }
 
@@ -149,7 +144,7 @@ final class HandGlowPass {
    }
 
    private static void allocate(int width, int height) {
-      hand = new TextureTarget("Venti hand aura", width, height, true);
+      hand = Gpu.target("Venti hand aura", width, height, true);
       blur = new AuraBlur("Venti hand aura");
       config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, CONFIG_SIZE);
       configSlice = config.slice();

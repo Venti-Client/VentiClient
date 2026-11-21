@@ -28,15 +28,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** First-person hand hooks shared by 3D Hand, Hand Aura, Hand Pose and Swing Animation. */
 @Mixin(ItemInHandRenderer.class)
 public abstract class MixinHandHeldItemRenderer {
+   //? if >=26.2 {
    private static final String RENDER_ARM_WITH_ITEM =
+      "submitArmWithItem(Lnet/minecraft/client/player/AbstractClientPlayer;FFLnet/minecraft/world/InteractionHand;FLnet/minecraft/world/item/ItemStack;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V";
+   //?} else {
+   /*private static final String RENDER_ARM_WITH_ITEM =
       "renderArmWithItem(Lnet/minecraft/client/player/AbstractClientPlayer;FFLnet/minecraft/world/InteractionHand;FLnet/minecraft/world/item/ItemStack;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V";
+   *///?}
    private static final String RENDER_PLAYER_ARM =
       "renderPlayerArm(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;IFFLnet/minecraft/world/entity/HumanoidArm;)V";
    private static final String RENDER_MAP_HAND =
       "renderMapHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;ILnet/minecraft/world/entity/HumanoidArm;)V";
 
    // ---- Hand Aura: capture the hand pass into its own target, then composite it back with a glow.
-   @WrapOperation(
+   // (26.x draws the hand pass in GameRenderer: MixinHandAuraGameRenderer.)
+   //? if <26.2 {
+   /*@WrapOperation(
       method = "renderHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V",
       at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher;renderAllFeatures()V")
    )
@@ -54,6 +61,7 @@ public abstract class MixinHandHeldItemRenderer {
          original.call(features);
       }
    }
+   *///?}
 
    // ---- 3D Hand: stretch the bare arm up to the shoulder.
    @WrapOperation(

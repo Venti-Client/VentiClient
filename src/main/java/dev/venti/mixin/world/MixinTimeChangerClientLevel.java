@@ -1,17 +1,34 @@
 package dev.venti.mixin.world;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.venti.modules.world.TimeChangerModule;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.multiplayer.ClientLevel.ClientLevelData;
-import net.minecraft.client.multiplayer.ClientLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+//? if >=26.2 {
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.minecraft.client.ClientClockManager;
+//?} else {
+/*import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.multiplayer.ClientLevel.ClientLevelData;
+import net.minecraft.client.multiplayer.ClientLevel;
+*///?}
 
+/** Time Changer: shows the chosen time of day instead of the server's. */
 @Environment(EnvType.CLIENT)
-@Mixin({ClientLevel.class})
+//? if >=26.2 {
+@Mixin({ClientClockManager.class})
+public abstract class MixinTimeChangerClientLevel {
+   // 26.x: every client reader of a world clock (sky, light, moon) goes through getTotalTicks.
+   @ModifyReturnValue(method = "getTotalTicks", at = @At("RETURN"))
+   private long venti$timeChangerClock(long ticks) {
+      TimeChangerModule timeChanger = TimeChangerModule.active;
+      return timeChanger == null ? ticks : timeChanger.shownDayTime();
+   }
+}
+//?} else {
+/*@Mixin({ClientLevel.class})
 public abstract class MixinTimeChangerClientLevel {
    @WrapOperation(
       method = {"setTimeFromServer(JJZ)V"},
@@ -35,3 +52,4 @@ public abstract class MixinTimeChangerClientLevel {
       }
    }
 }
+*///?}

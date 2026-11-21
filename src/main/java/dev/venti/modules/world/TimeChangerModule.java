@@ -50,7 +50,32 @@ public final class TimeChangerModule extends Module {
       }
    }
 
+   //? if >=26.2 {
+   // 26.x keeps time in world clocks: MixinTimeChangerClientLevel makes the client clock report the forced
+   // time while the module is on, so here we only track the level and drop cached sky/light attributes.
    private void applyForcedTime(ClientLevel level) {
+      this.trackedLevel = level;
+      long forced = this.forcedDayTime();
+      if (forced != this.appliedDayTime) {
+         this.appliedDayTime = forced;
+         level.environmentAttributes().invalidateTickCache();
+      }
+   }
+
+   private static void writeDayTime(ClientLevel level, long dayTime) {
+      level.environmentAttributes().invalidateTickCache();
+   }
+
+   private long currentServerDayTime(ClientLevel level) {
+      return level.getOverworldClockTime();
+   }
+
+   /** The time shown instead of the clock's own while active. */
+   public long shownDayTime() {
+      return this.forcedDayTime();
+   }
+   //?} else {
+   /*private void applyForcedTime(ClientLevel level) {
       this.serverDayTime = level == this.trackedLevel ? this.currentServerDayTime(level) : level.getDayTime();
       this.trackedLevel = level;
       this.appliedDayTime = this.forcedDayTime();
@@ -74,6 +99,7 @@ public final class TimeChangerModule extends Module {
       this.appliedDayTime = this.forcedDayTime();
       return this.appliedDayTime;
    }
+   *///?}
 
    private long forcedDayTime() {
       return (long)this.time.get().floatValue();

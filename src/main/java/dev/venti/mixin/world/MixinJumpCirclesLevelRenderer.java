@@ -1,4 +1,6 @@
-package dev.venti.mixin.world;
+// 26.x renders the level through Fabric's LevelRenderEvents instead: see dev.venti.compat.LevelHooks.
+//? if <26.2 {
+/*package dev.venti.mixin.world;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.modules.world.JumpCirclesModule;
@@ -25,3 +27,4 @@ public abstract class MixinJumpCirclesLevelRenderer {
       }
    }
 }
+*///?}

@@ -3,12 +3,9 @@ package dev.venti.modules.world;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderPass;
@@ -16,9 +13,9 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import java.nio.ByteBuffer;
-import java.util.OptionalInt;
 import java.util.function.Supplier;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -31,18 +28,15 @@ import org.slf4j.LoggerFactory;
 @Environment(EnvType.CLIENT)
 final class MotionBlurPass {
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
-   private static final RenderPipeline PIPELINE = RenderPipeline.builder(new Snippet[0])
-      .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/motion_blur"))
-      .withVertexShader("core/screenquad")
-      .withFragmentShader(Identifier.fromNamespaceAndPath("venti", "core/motion_blur"))
-      .withSampler("InSampler")
-      .withUniform("MotionBlurConfig", UniformType.UNIFORM_BUFFER)
-      .withBlend(BlendFunction.TRANSLUCENT)
-      .withColorWrite(true, false)
-      .withDepthWrite(false)
-      .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-      .withVertexFormat(DefaultVertexFormat.EMPTY, Mode.TRIANGLES)
-      .build();
+   private static final RenderPipeline PIPELINE = Gpu.pipeline("motion_blur")
+         .shaders(Identifier.withDefaultNamespace("core/screenquad"), Identifier.fromNamespaceAndPath("venti", "core/motion_blur"))
+         .sampler("InSampler")
+         .uniform("MotionBlurConfig")
+         .blend(BlendFunction.TRANSLUCENT)
+         .colorOnly()
+         .depth(false, false)
+         .fullScreen()
+         .build();
    private static final Supplier<String> PASS_LABEL = () -> "Venti motion blur";
    private static final Supplier<String> CONFIG_LABEL = () -> "Venti motion blur config";
    private static final int CONFIG_SIZE = 16;
@@ -63,12 +57,12 @@ final class MotionBlurPass {
 
    static void apply(boolean worldRendered, float retention60) {
       Minecraft mc = Minecraft.getInstance();
-      RenderTarget main = mc.getMainRenderTarget();
+      RenderTarget main = Mc.mainTarget();
       GpuTexture mainColor = main.getColorTexture();
       if (worldRendered
          && mc.level != null
          && mc.isGameLoadFinished()
-         && !mc.gameRenderer.isPanoramicMode()
+         && !Mc.panoramic()
          && mainColor != null
          && main.width > 0
          && main.height > 0) {
@@ -110,13 +104,13 @@ final class MotionBlurPass {
       configData.putFloat(0, retention);
       configData.putFloat(4, seed * 7.0F);
       encoder.writeToBuffer(configSlice, configData);
-      RenderPass pass = encoder.createRenderPass(PASS_LABEL, main.getColorTextureView(), OptionalInt.empty());
+      RenderPass pass = Gpu.pass(encoder, PASS_LABEL, main.getColorTextureView(), null);
 
       try {
          pass.setPipeline(PIPELINE);
          pass.setUniform("MotionBlurConfig", configSlice);
          pass.bindTexture("InSampler", history.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
-         pass.draw(0, 3);
+         Gpu.drawFullScreen(pass);
       } catch (Throwable var7) {
          if (pass != null) {
             try {
@@ -149,7 +143,7 @@ final class MotionBlurPass {
    }
 
    private static void allocate(int width, int height) {
-      history = new TextureTarget("Venti motion blur history", width, height, false);
+      history = Gpu.target("Venti motion blur history", width, height, false);
       config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, 16L);
       configSlice = config.slice();
       configData = BufferUtils.createByteBuffer(16);

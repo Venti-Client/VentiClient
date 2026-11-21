@@ -1,5 +1,6 @@
 package dev.venti.modules.world;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
@@ -315,7 +316,7 @@ public final class OrbitOrbsModule extends Module {
       if (this.live != 0) {
          Minecraft mc = Minecraft.getInstance();
          if (mc.level != null && mc.player != null) {
-            this.canvas.begin(mc.gameRenderer.getMainCamera());
+            this.canvas.begin(Mc.camera());
             float pt = partialTick;
             float time = (float)(System.nanoTime() - EPOCH) / 1.0E9F;
             int samples = Math.max(2, Math.min(60, Math.round(this.trailLength.get() * 20.0F)));

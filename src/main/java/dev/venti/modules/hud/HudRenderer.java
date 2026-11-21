@@ -2,6 +2,7 @@ package dev.venti.modules.hud;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.Window;
+import dev.venti.compat.Mc;
 import dev.venti.gui.ClickGuiScreen;
 import dev.venti.gui.image.ThemeImages;
 import dev.venti.imgui.ImGuiManager;
@@ -143,10 +144,10 @@ public final class HudRenderer {
          this.clearSlots();
       }
 
-      boolean guiOpen = client.screen instanceof ClickGuiScreen;
+      boolean guiOpen = Mc.screen() instanceof ClickGuiScreen;
       boolean hudOn = this.hudModule.isEnabled();
       boolean hotkeysOn = HotkeysModule.shouldShowHud();
-      if (!editMode && (guiOpen || client.options.hideGui || !hudOn && !hotkeysOn)) {
+      if (!editMode && (guiOpen || Mc.hudHidden() || !hudOn && !hotkeysOn)) {
          if (this.draggingId != null || this.layoutDirty) {
             this.saveLayout();
          }
@@ -163,7 +164,7 @@ public final class HudRenderer {
          return;
       }
 
-      boolean chatEditMode = client.screen instanceof ChatScreen;
+      boolean chatEditMode = Mc.screen() instanceof ChatScreen;
       boolean acceptInput = editMode || chatEditMode;
       this.flushLayoutIfIdle();
       boolean showPing = editMode || this.hudModule.ping();
@@ -193,7 +194,7 @@ public final class HudRenderer {
       this.layout.updateBounds(potionTracker.id, potionPlan.width(), potionPlan.height(), screenW, screenH);
       HudRenderer.HotkeyPlan hotkeyPlan = this.planHotkeys(hotkeys, editMode, dt);
       this.layout.updateBounds(hotkeys.id, hotkeyPlan.width(), hotkeyPlan.height(), screenW, screenH);
-      boolean combatHud = hudOn && !client.options.hideGui;
+      boolean combatHud = hudOn && !Mc.hudHidden();
       boolean armorWanted = combatHud && armor.visible && this.hudModule.armorStatus();
       boolean cooldownWanted = combatHud && cooldowns.visible && this.hudModule.itemCooldowns();
       float armorScale = scaleOf(armor);
@@ -225,7 +226,7 @@ public final class HudRenderer {
       ImGui.popStyleVar();
       if (open) {
          ImDrawList dl = ImGui.getBackgroundDrawList();
-         boolean gameHidden = client.options.hideGui || client.debugEntries.isOverlayVisible();
+         boolean gameHidden = Mc.hudHidden() || client.debugEntries.isOverlayVisible();
          boolean infoBarShown = hudOn && infoBar.visible && (this.hudModule.fps() || this.hudModule.clock() || this.hudModule.ping());
          boolean coordsShown = hudOn && coordinates.visible;
          boolean listShown = hudOn && moduleList.visible && this.hudModule.moduleList();
@@ -904,13 +905,13 @@ public final class HudRenderer {
    }
 
    private static float toastClearance(Minecraft client, HudLayoutStore.HudElementState state) {
-      if (state.anchorX == 2 && !state.anchorBottom && !client.options.hideGui) {
+      if (state.anchorX == 2 && !state.anchorBottom && !Mc.hudHidden()) {
          Window window = client.getWindow();
          int gui = window.getGuiScale();
          int guiW = window.getGuiScaledWidth();
          float bottom = 0.0F;
 
-         for (Object entry : ((ToastManagerAccessor)client.getToastManager()).venti$VisibleToasts()) {
+         for (Object entry : ((ToastManagerAccessor)Mc.toasts()).venti$VisibleToasts()) {
             ToastEntryAccessor instance = (ToastEntryAccessor)entry;
             Toast toast = instance.venti$Toast();
             float shown = instance.venti$Visibility() == Visibility.HIDE ? instance.venti$VisiblePortion() : 1.0F;

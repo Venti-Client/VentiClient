@@ -1,5 +1,6 @@
 package dev.venti.modules.character;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.ActionSetting;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
@@ -240,7 +241,7 @@ public final class AvatarModule extends Module {
          if (state.id != self.getId()) {
             return false;
          } else {
-            return mc.options.getCameraType().isFirstPerson() ? mc.screen != null && !self.isSleeping() : true;
+            return mc.options.getCameraType().isFirstPerson() ? Mc.screen() != null && !self.isSleeping() : true;
          }
       } else {
          return false;

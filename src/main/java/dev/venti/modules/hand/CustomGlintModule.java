@@ -3,6 +3,7 @@ package dev.venti.modules.hand;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -13,7 +14,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.entity.ItemRenderer;
+//? if >=26.2 {
+import net.minecraft.client.renderer.feature.ItemFeatureRenderer;
+//?} else {
+/*import net.minecraft.client.renderer.entity.ItemRenderer;
+*///?}
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
@@ -34,8 +39,13 @@ public final class CustomGlintModule extends Module {
    private final NumberSetting intensity = this.add("intensity", new NumberSetting("Intensity", 1.0F, 0.05F, 1.0F).step(0.05F));
    private final NumberSetting speed = this.add("speed", new NumberSetting("Speed", 1.0F, 0.1F, 4.0F).step(0.1F));
    private final NumberSetting patternSize = this.add("pattern-size", new NumberSetting("Pattern Size", 1.0F, 0.25F, 4.0F).step(0.25F));
-   private final GlintTexture items = new GlintTexture(ItemRenderer.ENCHANTED_GLINT_ITEM);
+   //? if >=26.2 {
+   private final GlintTexture items = new GlintTexture(ItemFeatureRenderer.ENCHANTED_GLINT_ITEM);
+   private final GlintTexture armor = new GlintTexture(ItemFeatureRenderer.ENCHANTED_GLINT_ARMOR);
+   //?} else {
+   /*private final GlintTexture items = new GlintTexture(ItemRenderer.ENCHANTED_GLINT_ITEM);
    private final GlintTexture armor = new GlintTexture(ItemRenderer.ENCHANTED_GLINT_ARMOR);
+   *///?}
    private double glintClock = Double.NaN;
    private long glintClockReal;
 
@@ -89,7 +99,7 @@ public final class CustomGlintModule extends Module {
 
    private void refresh() {
       Minecraft mc = Minecraft.getInstance();
-      if (mc.level != null && mc.getOverlay() == null && RenderSystem.tryGetDevice() != null) {
+      if (mc.level != null && Mc.overlay() == null && RenderSystem.tryGetDevice() != null) {
          int itemRgb = this.colorMode.is(COLOR_ACCENT) ? HandAccent.argb() & 0xFFFFFF : this.itemColor.argb() & 0xFFFFFF;
          int armorRgb = this.colorMode.is(COLOR_CUSTOM) && this.separateArmor.get() ? this.armorColor.argb() & 0xFFFFFF : itemRgb;
          float strength = this.intensity.get();

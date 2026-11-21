@@ -1,10 +1,16 @@
 package dev.venti.modules.hud;
 
 import com.mojang.blaze3d.platform.Window;
+import dev.venti.compat.Gfx;
+import dev.venti.compat.Mc;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+//? if >=26.2 {
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//?} else {
+/*import net.minecraft.client.gui.GuiGraphics;
+*///?}
 import net.minecraft.client.gui.components.toasts.Toast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.network.chat.Component;
@@ -95,28 +101,34 @@ final class WeatherToast implements Toast {
       }
    }
 
+   //? if >=26.2 {
    @Override
-   public void render(GuiGraphics graphics, Font font, long visibleFor) {
+   public void extractRenderState(GuiGraphicsExtractor raw, Font font, long visibleFor) {
+   //?} else {
+   /*@Override
+   public void render(GuiGraphics raw, Font font, long visibleFor) {
+   *///?}
+      Gfx graphics = new Gfx(raw);
       int right = this.width - 3;
       int bottom = this.height - 1;
       rounded(graphics, 0, 1, right, bottom, BACKGROUND);
-      double duration = DISPLAY_MILLIS * Minecraft.getInstance().getToastManager().getNotificationDisplayTimeMultiplier();
+      double duration = DISPLAY_MILLIS * Mc.toasts().getNotificationDisplayTimeMultiplier();
       float left = 1.0F - (float)Mth.clamp(visibleFor / duration, 0.0, 1.0);
       int x0 = 4;
       int x1 = right - 4;
       int y = bottom - 2;
       graphics.fill(x0, y, x1, y + 1, TIMER_TRACK);
       graphics.fill(x0, y, x0 + Math.round((x1 - x0) * left), y + 1, TIMER_FILL);
-      graphics.drawString(font, this.title, TEXT_X, this.lines.isEmpty() ? 12 : 7, TITLE_COLOR, true);
+      graphics.text(font, this.title, TEXT_X, this.lines.isEmpty() ? 12 : 7, TITLE_COLOR, true);
 
       for (int i = 0; i < this.lines.size(); i++) {
-         graphics.drawString(font, this.lines.get(i), TEXT_X, 18 + i * 10, MESSAGE_COLOR, true);
+         graphics.text(font, this.lines.get(i), TEXT_X, 18 + i * 10, MESSAGE_COLOR, true);
       }
 
-      graphics.renderFakeItem(this.icon, 8, 8);
+      graphics.fakeItem(this.icon, 8, 8);
    }
 
-   private static void rounded(GuiGraphics graphics, int x0, int y0, int x1, int y1, int color) {
+   private static void rounded(Gfx graphics, int x0, int y0, int x1, int y1, int color) {
       graphics.fill(x0 + 2, y0, x1 - 2, y0 + 1, color);
       graphics.fill(x0 + 1, y0 + 1, x1 - 1, y0 + 2, color);
       graphics.fill(x0, y0 + 2, x1, y1 - 2, color);

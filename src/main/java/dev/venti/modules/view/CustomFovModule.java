@@ -60,7 +60,12 @@ public final class CustomFovModule extends Module {
          if (!mc.isSameThread()) {
             mc.execute(CustomFovModule::scheduleTerrainUpdate);
          } else if (mc.level != null && mc.levelRenderer != null) {
-            mc.levelRenderer.needsUpdate();
+            //? if >=26.2 {
+            mc.levelRenderer.sectionOcclusionGraph().invalidate();
+            mc.levelRenderer.cloudRenderer().markForRebuild();
+            //?} else {
+            /*mc.levelRenderer.needsUpdate();
+            *///?}
          }
       }
    }

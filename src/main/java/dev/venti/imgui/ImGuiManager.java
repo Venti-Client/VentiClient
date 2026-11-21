@@ -4,6 +4,8 @@ import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.platform.cursor.CursorType;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import dev.venti.compat.Gfx;
+import dev.venti.compat.Mc;
 import dev.venti.gui.Theme;
 import dev.venti.gui.image.ThemeImages;
 import imgui.ImFont;
@@ -23,7 +25,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWMonitorCallback;
@@ -260,7 +261,7 @@ public final class ImGuiManager {
       return this.initialized && ImGui.getIO().getWantTextInput();
    }
 
-   public void requestCursor(GuiGraphics graphics) {
+   public void requestCursor(Gfx graphics) {
       if (this.initialized) {
          CursorType cursor = switch (ImGui.getMouseCursor()) {
             case 1 -> CursorTypes.IBEAM;
@@ -335,6 +336,10 @@ public final class ImGuiManager {
    }
 
    public void renderIfActive() {
+      if (!Mc.openGl()) {
+         return;
+      }
+
       boolean hud = this.hudHasWork();
       boolean toasts = this.toastRenderer != null && this.toastHasWork.getAsBoolean();
       boolean overlay = this.overlayRenderer != null && this.overlayHasWork.getAsBoolean();
@@ -542,6 +547,7 @@ public final class ImGuiManager {
    }
 
    private boolean buildFonts(ImGuiIO io, UiFont ui, UiFont hud) {
+      NativeGlyphRanges.beginAtlas();
       float s = this.uiScale;
       this.moduleFont = this.loadFont(io, ui, false, 16.0F * s);
       this.categoryFont = this.loadFont(io, ui, true, 17.0F * s);
@@ -613,7 +619,7 @@ public final class ImGuiManager {
          config.setPixelSnapH(true);
          config.setMergeMode(true);
          config.setFontBuilderFlags(8);
-         io.getFonts().addFontFromMemoryTTF(data, Math.round(size), config, ranges);
+         NativeGlyphRanges.addFont(io, data, Math.round(size), config, ranges);
       } finally {
          config.destroy();
       }
@@ -696,7 +702,7 @@ public final class ImGuiManager {
                config.setFontBuilderFlags(flags);
                config.setGlyphOffset(0.0F, offsetY);
                config.setMergeMode(merge);
-               var10 = io.getFonts().addFontFromMemoryTTF(data, Math.round(sizePixels), config, ranges);
+               var10 = NativeGlyphRanges.addFont(io, data, Math.round(sizePixels), config, ranges);
             } finally {
                config.destroy();
             }

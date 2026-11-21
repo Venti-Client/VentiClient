@@ -2,6 +2,7 @@ package dev.venti.modules.view;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.module.Module;
@@ -12,12 +13,20 @@ import net.minecraft.client.gui.Font.DisplayMode;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.LightTexture;
+//? if >=26.2 {
+import net.minecraft.util.LightCoordsUtil;
+//?} else {
+/*import net.minecraft.client.renderer.LightTexture;
+*///?}
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.CameraRenderState;
+//? if >=26.2 {
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+//?} else {
+/*import net.minecraft.client.renderer.state.CameraRenderState;
+*///?}
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -91,7 +100,7 @@ public final class NametagsModule extends Module {
       }
 
       Tag tag = new Tag();
-      Camera camera = mc.gameRenderer.getMainCamera();
+      Camera camera = Mc.camera();
       Vec3 eye = camera.position();
       tag.visible = canSee(mc.level, eye, player, tickProgress);
       if (!tag.visible) {
@@ -171,7 +180,11 @@ public final class NametagsModule extends Module {
       float surface = Math.max(0.0F, Math.min(1.0F, module.backgroundAlpha.get())) * fade;
       float chrome = Math.min(1.0F, surface * 2.0F);
       boolean shadow = surface < 0.55F;
-      int light = LightTexture.lightCoordsWithEmission(state.lightCoords, 2);
+      //? if >=26.2 {
+      int light = LightCoordsUtil.lightCoordsWithEmission(state.lightCoords, 2);
+      //?} else {
+      /*int light = LightTexture.lightCoordsWithEmission(state.lightCoords, 2);
+      *///?}
       float s = 0.025F * Math.max(0.5F, Math.min(2.0F, module.scale.get()));
 
       matrices.pushPose();

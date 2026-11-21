@@ -1,5 +1,6 @@
 package dev.venti.modules.view;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.module.Module;
@@ -62,7 +63,7 @@ public final class ZoomModule extends Module {
       ZoomModule module = instance;
       if (module != null) {
          Minecraft mc = Minecraft.getInstance();
-         boolean held = module.isEnabled() && mc.screen == null && module.key.isDown();
+         boolean held = module.isEnabled() && Mc.screen() == null && module.key.isDown();
          if (held && !module.zooming) {
             module.startZoom();
          } else if (!held && module.zooming) {

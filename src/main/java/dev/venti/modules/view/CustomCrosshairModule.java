@@ -1,5 +1,7 @@
 package dev.venti.modules.view;
 
+import dev.venti.compat.Gfx;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -10,7 +12,6 @@ import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
 import net.minecraft.client.AttackIndicatorStatus;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.debug.DebugScreenEntries;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
@@ -72,7 +73,7 @@ public final class CustomCrosshairModule extends Module {
    }
 
    /** Called in place of vanilla's crosshair; returns false to let vanilla draw (e.g. when the debug 3D crosshair is on). */
-   public boolean render(GuiGraphics graphics) {
+   public boolean render(Gfx graphics) {
       Minecraft mc = Minecraft.getInstance();
       LocalPlayer player = mc.player;
       if (mc.debugEntries.isCurrentlyEnabled(DebugScreenEntries.THREE_DIMENSIONAL_CROSSHAIR)) {
@@ -99,7 +100,7 @@ public final class CustomCrosshairModule extends Module {
    }
 
    private static boolean isVisible(Minecraft mc) {
-      if (mc.level == null || mc.gameMode == null || mc.options.hideGui) {
+      if (mc.level == null || mc.gameMode == null || Mc.hudHidden()) {
          return false;
       } else if (!mc.options.getCameraType().isFirstPerson()) {
          return false;
@@ -198,7 +199,7 @@ public final class CustomCrosshairModule extends Module {
       return (this.style.is("Cross") || this.style.is("T")) && g.open() < 1;
    }
 
-   private void drawShape(GuiGraphics dc, Geometry g, int color, int grow) {
+   private void drawShape(Gfx dc, Geometry g, int color, int grow) {
       switch (this.style.get()) {
          case "Dot" -> disc(dc, g.cx(), g.cy(), Math.max(1.0F, g.size() * 0.5F) + grow, color);
          case "Circle" -> ring(dc, g.cx(), g.cy(), g.size() + g.open(), g.thick() * 0.5F + grow, color);
@@ -213,7 +214,7 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static void drawArms(GuiGraphics dc, Geometry g, int color, int grow, boolean top) {
+   private static void drawArms(Gfx dc, Geometry g, int color, int grow, boolean top) {
       int x0 = g.cx() - g.thick() / 2;
       int x1 = x0 + g.thick();
       int y0 = g.cy() - g.thick() / 2;
@@ -236,7 +237,7 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static void drawDiagonals(GuiGraphics dc, Geometry g, int color, int grow) {
+   private static void drawDiagonals(Gfx dc, Geometry g, int color, int grow) {
       float near = Math.max(0.0F, g.open() - grow) * DIAGONAL;
       float far = (g.open() + g.size() + grow) * DIAGONAL;
       int half = g.thick() / 2 + grow;
@@ -265,7 +266,7 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static void disc(GuiGraphics dc, int cx, int cy, float radius, int color) {
+   private static void disc(Gfx dc, int cx, int cy, float radius, int color) {
       int r = (int)Math.ceil(radius);
       for (int y = -r; y < r; y++) {
          int start = Integer.MIN_VALUE;
@@ -281,7 +282,7 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static void ring(GuiGraphics dc, int cx, int cy, float radius, float halfWidth, int color) {
+   private static void ring(Gfx dc, int cx, int cy, float radius, float halfWidth, int color) {
       float inner = Math.max(0.0F, radius - halfWidth);
       float outer = radius + halfWidth;
       int r = (int)Math.ceil(outer);
@@ -304,11 +305,11 @@ public final class CustomCrosshairModule extends Module {
       return d <= outer * outer && d >= inner * inner;
    }
 
-   private static void rect(GuiGraphics dc, int x0, int y0, int x1, int y1, int color, int grow) {
+   private static void rect(Gfx dc, int x0, int y0, int x1, int y1, int color, int grow) {
       dc.fill(x0 - grow, y0 - grow, x1 + grow, y1 + grow, color);
    }
 
-   private void drawCooldown(GuiGraphics dc, Minecraft mc, LocalPlayer player, Geometry g, int fill, int edge, float dt) {
+   private void drawCooldown(Gfx dc, Minecraft mc, LocalPlayer player, Geometry g, int fill, int edge, float dt) {
       boolean wanted = mc.options.attackIndicator().get() == AttackIndicatorStatus.CROSSHAIR;
       float charge = player.getAttackStrengthScale(0.0F);
       boolean ready = wanted && readyOnTarget(mc, player, charge);

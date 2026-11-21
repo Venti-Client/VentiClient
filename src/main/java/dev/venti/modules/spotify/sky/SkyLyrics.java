@@ -1,5 +1,6 @@
 package dev.venti.modules.spotify.sky;
 
+import dev.venti.compat.Mc;
 import dev.venti.modules.spotify.SpotifyHud;
 import dev.venti.modules.spotify.spotify.Lyrics;
 import dev.venti.modules.spotify.spotify.NowPlaying;
@@ -162,7 +163,7 @@ public final class SkyLyrics {
                   this.canvas = new SkyCanvas();
                }
 
-               Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+               Camera camera = Mc.camera();
                float target = Mth.positiveModulo(camera.yRot() / 360.0F + 0.25F, 1.0F);
                this.viewU = Float.isNaN(this.viewU) ? target : wrap(this.viewU + wrapDelta(target - this.viewU) * Math.min(1.0F, dt * 2.2F));
                NowPlaying track = on ? module.nowPlaying() : null;

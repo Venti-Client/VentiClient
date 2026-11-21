@@ -1,5 +1,6 @@
 package dev.venti.modules.hud;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -46,7 +47,7 @@ public final class LowHealthWarningModule extends Module {
    public static boolean hasOverlayWork() {
       LowHealthWarningModule module = get();
       Minecraft mc = Minecraft.getInstance();
-      return module != null && module.isEnabled() && mc.level != null && (mc.screen == null || mc.screen instanceof ChatScreen);
+      return module != null && module.isEnabled() && mc.level != null && (Mc.screen() == null || Mc.screen() instanceof ChatScreen);
    }
 
    /** HUD layer hook, run on every ImGui frame. */
@@ -82,7 +83,7 @@ public final class LowHealthWarningModule extends Module {
       LocalPlayer player = mc.player;
       boolean dead = player == null || player.isDeadOrDying();
       float want = 0.0F;
-      if (!dead && !mc.options.hideGui && !player.isSpectator() && !player.getAbilities().invulnerable) {
+      if (!dead && !Mc.hudHidden() && !player.isSpectator() && !player.getAbilities().invulnerable) {
          float health = player.getHealth() + (this.countAbsorption.get() ? player.getAbsorptionAmount() : 0.0F);
          float limit = this.warnBelow.get();
          if (health < limit) {

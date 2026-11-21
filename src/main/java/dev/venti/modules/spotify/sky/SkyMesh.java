@@ -3,26 +3,19 @@ package dev.venti.modules.spotify.sky;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Builder;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderPass;
-import com.mojang.blaze3d.systems.RenderSystem.AutoStorageIndexBuffer;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Vector3f;
@@ -48,14 +41,14 @@ final class SkyMesh {
    }
 
    private static RenderPipeline pipeline(String name, BlendFunction blend) {
-      Builder builder = RenderPipeline.builder(new Snippet[]{RenderPipelines.MATRICES_PROJECTION_SNIPPET})
-         .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/" + name))
-         .withVertexShader("core/position_color")
-         .withFragmentShader("core/position_color")
-         .withDepthWrite(false)
-         .withCull(false)
-         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, Mode.QUADS);
-      return (blend == null ? builder.withoutBlend() : builder.withBlend(blend)).build();
+      return Gpu.pipeline("" + name)
+         .shaders("core/position_color", "core/position_color")
+         .matrices()
+         .blend(blend)
+         .depth(true, false)
+         .cull(false)
+         .vertices(DefaultVertexFormat.POSITION_COLOR, Gpu.Topology.QUADS)
+         .build();
    }
 
    BufferBuilder begin() {
@@ -63,47 +56,25 @@ final class SkyMesh {
          this.bytes = new ByteBufferBuilder(this.maxQuads * 4 * VERTEX_SIZE);
       }
 
-      return new BufferBuilder(this.bytes, Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+      return Gpu.builder(this.bytes, DefaultVertexFormat.POSITION_COLOR, Gpu.Topology.QUADS);
    }
 
    void upload(BufferBuilder builder) {
       this.built = true;
-      MeshData mesh = builder.build();
 
-      label47: {
-         try {
-            if (mesh == null) {
-               this.indexCount = 0;
-               break label47;
-            }
-
-            if (this.buffer == null) {
-               this.buffer = RenderSystem.getDevice().createBuffer(() -> this.label, 40, this.maxQuads * 4L * VERTEX_SIZE);
-            }
-
-            RenderSystem.getDevice().createCommandEncoder().writeToBuffer(this.buffer.slice(0L, mesh.vertexBuffer().remaining()), mesh.vertexBuffer());
-            this.indexCount = mesh.drawState().indexCount();
-         } catch (Throwable var6) {
-            if (mesh != null) {
-               try {
-                  mesh.close();
-               } catch (Throwable var5) {
-                  var6.addSuppressed(var5);
-               }
-            }
-
-            throw var6;
+      try (MeshData mesh = builder.build()) {
+         if (mesh == null) {
+            this.indexCount = 0;
+            return;
          }
 
-         if (mesh != null) {
-            mesh.close();
+         if (this.buffer == null) {
+            this.buffer = RenderSystem.getDevice()
+               .createBuffer(() -> this.label, GpuBuffer.USAGE_VERTEX | GpuBuffer.USAGE_COPY_DST, this.maxQuads * 4L * VERTEX_SIZE);
          }
 
-         return;
-      }
-
-      if (mesh != null) {
-         mesh.close();
+         Gpu.encoder().writeToBuffer(this.buffer.slice(0L, mesh.vertexBuffer().remaining()), mesh.vertexBuffer());
+         this.indexCount = mesh.drawState().indexCount();
       }
    }
 
@@ -113,7 +84,6 @@ final class SkyMesh {
 
    void draw(PoseStack pose, float alpha) {
       if (this.indexCount != 0 && !(alpha <= 0.002F)) {
-         AutoStorageIndexBuffer indices = RenderSystem.getSequentialBuffer(Mode.QUADS);
          Matrix4fStack modelView = RenderSystem.getModelViewStack();
          modelView.pushMatrix();
 
@@ -121,32 +91,13 @@ final class SkyMesh {
             modelView.mul(pose.last().pose());
             GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
                .writeTransform(modelView, new Vector4f(1.0F, 1.0F, 1.0F, alpha), new Vector3f(), new Matrix4f());
-            RenderTarget target = Minecraft.getInstance().getMainRenderTarget();
-            RenderPass pass = RenderSystem.getDevice()
-               .createCommandEncoder()
-               .createRenderPass(() -> this.label, target.getColorTextureView(), OptionalInt.empty(), target.getDepthTextureView(), OptionalDouble.empty());
+            RenderTarget target = Mc.mainTarget();
 
-            try {
+            try (RenderPass pass = Gpu.pass(() -> this.label, target.getColorTextureView(), target.getDepthTextureView())) {
                pass.setPipeline(this.pipeline);
                RenderSystem.bindDefaultUniforms(pass);
                pass.setUniform("DynamicTransforms", transforms);
-               pass.setVertexBuffer(0, this.buffer);
-               pass.setIndexBuffer(indices.getBuffer(this.indexCount), indices.type());
-               pass.drawIndexed(0, 0, this.indexCount, 1);
-            } catch (Throwable var15) {
-               if (pass != null) {
-                  try {
-                     pass.close();
-                  } catch (Throwable var14) {
-                     var15.addSuppressed(var14);
-                  }
-               }
-
-               throw var15;
-            }
-
-            if (pass != null) {
-               pass.close();
+               Gpu.drawQuads(pass, this.buffer, this.indexCount);
             }
          } finally {
             modelView.popMatrix();

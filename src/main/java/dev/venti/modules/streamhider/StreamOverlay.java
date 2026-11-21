@@ -1,6 +1,5 @@
 package dev.venti.modules.streamhider;
 
-import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuFence;
 import com.mojang.blaze3d.opengl.GlStateManager;
@@ -10,8 +9,9 @@ import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
 import com.sun.jna.Platform;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -173,7 +173,7 @@ public final class StreamOverlay {
    }
 
    private static boolean hotbarVisible() {
-      Screen screen = Minecraft.getInstance().screen;
+      Screen screen = Mc.screen();
       return screen == null || screen instanceof ChatScreen;
    }
 
@@ -335,8 +335,8 @@ public final class StreamOverlay {
                win.getScreenHeight(),
                win.getX(),
                win.getY(),
-               mc.getMainRenderTarget().width,
-               mc.getMainRenderTarget().height,
+               Mc.mainTarget().width,
+               Mc.mainTarget().height,
                win.getGuiScale(),
                renderer,
                slotWindow != null ? slotWindow.describe() : "pending"
@@ -558,11 +558,11 @@ public final class StreamOverlay {
    private static void allocate(int px) {
       int side = 7 * px;
       GpuDevice device = RenderSystem.getDevice();
-      scratch = device.createTexture("Venti overlay icons", 15, TextureFormat.RGBA8, side, side, 1, 1);
+      scratch = Gpu.texture(() -> "Venti overlay icons", 15, false, side, side, 1);
       scratchView = device.createTextureView(scratch);
-      scratchDepth = device.createTexture("Venti overlay icon depth", 8, TextureFormat.DEPTH32, side, side, 1, 1);
+      scratchDepth = Gpu.texture(() -> "Venti overlay icon depth", 8, true, side, side, 1);
       scratchDepthView = device.createTextureView(scratchDepth);
-      device.createCommandEncoder().clearColorAndDepthTextures(scratch, 0, scratchDepth, 1.0);
+      Gpu.clearColorAndDepth(device.createCommandEncoder(), scratch, scratchDepth);
       iconPx = px;
    }
 
@@ -638,7 +638,7 @@ public final class StreamOverlay {
             view.close();
          }
 
-         MappedView viewx = encoder.mapBuffer(readback.slice(0L, used), true, false);
+         Gpu.Mapped viewx = Gpu.map(encoder, readback.slice(0L, used), true, false);
 
          try {
             ByteBuffer data = viewx.data();
@@ -721,7 +721,7 @@ public final class StreamOverlay {
          if (usable) {
             long bytes = (long)asyncRegion[2] * asyncRegion[3] * 4L;
             CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-            MappedView view = encoder.mapBuffer(asyncBuffer.slice(0L, bytes), true, false);
+            Gpu.Mapped view = Gpu.map(encoder, asyncBuffer.slice(0L, bytes), true, false);
 
             try {
                changed = unpackBackground(view.data(), 0, asyncRegion, true, slotBits, scale);
@@ -757,7 +757,7 @@ public final class StreamOverlay {
    }
 
    private static long frameTextureBytes() {
-      GpuTexture frame = Minecraft.getInstance().getMainRenderTarget().getColorTexture();
+      GpuTexture frame = Mc.mainTarget().getColorTexture();
       return (long)frame.getWidth(0) * frame.getHeight(0) * 4L;
    }
 
@@ -772,7 +772,7 @@ public final class StreamOverlay {
    }
 
    private static boolean region(long slotBits, int scale, int[] out) {
-      GpuTexture target = Minecraft.getInstance().getMainRenderTarget().getColorTexture();
+      GpuTexture target = Mc.mainTarget().getColorTexture();
       int px = 16 * scale;
       int x0 = Integer.MAX_VALUE;
       int y0 = Integer.MAX_VALUE;
@@ -804,7 +804,7 @@ public final class StreamOverlay {
    }
 
    private static void copyRegion(CommandEncoder encoder, GpuBuffer target, long offset, int[] region) {
-      GpuTexture color = Minecraft.getInstance().getMainRenderTarget().getColorTexture();
+      GpuTexture color = Mc.mainTarget().getColorTexture();
       encoder.copyTextureToBuffer(color, target, offset, NOTHING, 0, region[0], color.getHeight(0) - region[1] - region[3], region[2], region[3]);
    }
 

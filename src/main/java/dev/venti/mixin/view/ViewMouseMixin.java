@@ -2,6 +2,7 @@ package dev.venti.mixin.view;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import dev.venti.compat.Mc;
 import dev.venti.modules.view.FreelookModule;
 import dev.venti.modules.view.ZoomModule;
 import net.minecraft.client.Minecraft;
@@ -18,7 +19,7 @@ public abstract class ViewMouseMixin {
    @Inject(method = "onScroll(JDD)V", at = @At("HEAD"), cancellable = true)
    private void venti$zoomScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
       Minecraft mc = Minecraft.getInstance();
-      if (vertical != 0.0 && window == mc.getWindow().handle() && mc.screen == null && mc.getOverlay() == null && ZoomModule.scroll(vertical)) {
+      if (vertical != 0.0 && window == mc.getWindow().handle() && Mc.screen() == null && Mc.overlay() == null && ZoomModule.scroll(vertical)) {
          ci.cancel();
       }
    }
