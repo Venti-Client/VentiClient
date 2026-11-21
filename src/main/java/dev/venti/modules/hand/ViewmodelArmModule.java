@@ -1,18 +1,18 @@
 package dev.venti.modules.hand;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.mixin.hand.AccessorHandPlayerModel;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.entity.PlayerEntityRenderer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.ItemDisplayContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.tag.ItemTags;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /** 3D Hand: draws your own arm holding the item in first person (ported from Anubis by 4ldenz). */
 public final class ViewmodelArmModule extends Module {
@@ -48,27 +48,27 @@ public final class ViewmodelArmModule extends Module {
    }
 
    private static boolean weaponOrTool(ItemStack stack) {
-      return stack.isIn(ItemTags.SWORDS)
-         || stack.isIn(ItemTags.AXES)
-         || stack.isIn(ItemTags.PICKAXES)
-         || stack.isIn(ItemTags.SHOVELS)
-         || stack.isIn(ItemTags.HOES)
-         || stack.isIn(ItemTags.SPEARS)
-         || stack.isOf(Items.MACE)
-         || stack.isOf(Items.FISHING_ROD)
-         || stack.isOf(Items.SHEARS)
-         || stack.isOf(Items.FLINT_AND_STEEL)
-         || stack.isOf(Items.BRUSH)
-         || stack.isOf(Items.CARROT_ON_A_STICK)
-         || stack.isOf(Items.WARPED_FUNGUS_ON_A_STICK);
+      return stack.is(ItemTags.SWORDS)
+         || stack.is(ItemTags.AXES)
+         || stack.is(ItemTags.PICKAXES)
+         || stack.is(ItemTags.SHOVELS)
+         || stack.is(ItemTags.HOES)
+         || stack.is(ItemTags.SPEARS)
+         || stack.is(Items.MACE)
+         || stack.is(Items.FISHING_ROD)
+         || stack.is(Items.SHEARS)
+         || stack.is(Items.FLINT_AND_STEEL)
+         || stack.is(Items.BRUSH)
+         || stack.is(Items.CARROT_ON_A_STICK)
+         || stack.is(Items.WARPED_FUNGUS_ON_A_STICK);
    }
 
-   public static void shoulder(MatrixStack pose, boolean right, PlayerEntityRenderer<?> renderer) {
+   public static void shoulder(PoseStack pose, boolean right, AvatarRenderer<?> renderer) {
       FirstPersonArm.shoulder(pose, right, ((AccessorHandPlayerModel)renderer.getModel()).venti$handSlim());
    }
 
    public static void renderArm(
-      MatrixStack pose, LivingEntity holder, ItemStack stack, ItemDisplayContext context, OrderedRenderCommandQueue collector, int light, boolean mainHand
+      PoseStack pose, LivingEntity holder, ItemStack stack, ItemDisplayContext context, SubmitNodeCollector collector, int light, boolean mainHand
    ) {
       if (covers(stack, mainHand)) {
          FirstPersonArm.Arm arm = FirstPersonArm.arm();

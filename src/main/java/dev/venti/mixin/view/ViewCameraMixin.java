@@ -3,7 +3,7 @@ package dev.venti.mixin.view;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.venti.modules.view.FreelookModule;
-import net.minecraft.client.render.Camera;
+import net.minecraft.client.Camera;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -14,10 +14,10 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(Camera.class)
 public abstract class ViewCameraMixin {
    @WrapOperation(
-      method = "update(Lnet/minecraft/world/World;Lnet/minecraft/entity/Entity;ZZF)V",
+      method = "setup(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/Entity;ZZF)V",
       at = {
-         @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V", ordinal = 0),
-         @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V", ordinal = 1)
+         @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setRotation(FF)V", ordinal = 0),
+         @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setRotation(FF)V", ordinal = 1)
       }
    )
    private void venti$freelookRotation(Camera camera, float yaw, float pitch, Operation<Void> original) {

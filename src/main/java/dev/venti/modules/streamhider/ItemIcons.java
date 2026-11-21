@@ -1,17 +1,23 @@
 package dev.venti.modules.streamhider;
 
+import com.mojang.blaze3d.ProjectionType;
+import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.buffers.GpuFence;
-import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
 import com.mojang.blaze3d.opengl.GlConst;
 import com.mojang.blaze3d.opengl.GlStateManager;
+import com.mojang.blaze3d.opengl.GlTexture;
+import com.mojang.blaze3d.platform.Lighting.Entry;
+import com.mojang.blaze3d.platform.NativeImage.Format;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.textures.TextureFormat;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.imgui.ImGuiManager;
 import imgui.ImDrawList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -24,29 +30,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import com.mojang.blaze3d.systems.ProjectionType;
-import net.minecraft.client.render.item.ItemRenderState;
-import net.minecraft.util.Atlases;
-import net.minecraft.client.texture.GlTexture;
-import net.minecraft.client.render.ProjectionMatrix2;
-import net.minecraft.client.render.BlockRenderLayer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl;
-import net.minecraft.client.render.command.RenderDispatcher;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.BlockRenderLayers;
-import net.minecraft.item.ItemDisplayContext;
-import net.minecraft.client.util.BufferAllocator;
-import net.minecraft.client.texture.NativeImage.Format;
-import net.minecraft.client.render.DiffuseLighting.Type;
-import net.minecraft.client.render.VertexConsumerProvider.Immediate;
-import net.minecraft.client.render.fog.FogRenderer.FogType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+import net.minecraft.client.renderer.fog.FogRenderer.FogMode;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.data.AtlasIds;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4fStack;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -74,10 +72,10 @@ public final class ItemIcons {
    private static final int[] VIEWPORT = new int[4];
    private static GpuTexture depth;
    private static GpuTextureView depthView;
-   private static ProjectionMatrix2 projection;
-   private static OrderedRenderCommandQueueImpl submits;
-   private static RenderDispatcher features;
-   private static Immediate buffers;
+   private static CachedOrthoProjectionMatrixBuffer projection;
+   private static SubmitNodeStorage submits;
+   private static FeatureRenderDispatcher features;
+   private static BufferSource buffers;
    private static GpuBuffer readback;
    private static ByteBuffer straightened;
    private static boolean straightenFailed;
@@ -194,7 +192,7 @@ public final class ItemIcons {
 
    private static GpuTexture currentAtlas() {
       try {
-         return MinecraftClient.getInstance().getAtlasManager().getAtlasTexture(Atlases.ITEMS).getGlTexture();
+         return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS).getTexture();
       } catch (RuntimeException var1) {
          return null;
       }
@@ -285,7 +283,7 @@ public final class ItemIcons {
    }
 
    private static boolean seeThrough(Item item) {
-      return item instanceof BlockItem block ? BlockRenderLayers.getBlockLayer(block.getBlock().getDefaultState()) == BlockRenderLayer.TRANSLUCENT : false;
+      return item instanceof BlockItem block ? ItemBlockRenderTypes.getChunkRenderType(block.getBlock().defaultBlockState()) == ChunkSectionLayer.TRANSLUCENT : false;
    }
 
    private static ItemIcons.Cell paint(ItemIcons.Sheet sheet, boolean seeThrough) {
@@ -309,7 +307,7 @@ public final class ItemIcons {
             }
 
             ItemIcons.Cell cell = new ItemIcons.Cell();
-            cell.texture = ((GlTexture)sheet.color).getGlId();
+            cell.texture = ((GlTexture)sheet.color).glId();
             cell.u0 = left / 512.0F;
             cell.u1 = (left + px) / 512.0F;
             cell.v0 = (512 - top) / 512.0F;
@@ -336,17 +334,17 @@ public final class ItemIcons {
    }
 
    public static void render(
-      ItemRenderState model, GpuTexture target, GpuTextureView targetView, GpuTexture targetDepth, GpuTextureView targetDepthView, int x, int y, int cell
+      ItemStackRenderState model, GpuTexture target, GpuTextureView targetView, GpuTexture targetDepth, GpuTextureView targetDepthView, int x, int y, int cell
    ) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       int side = target.getWidth(0);
       int glY = side - y - cell;
       RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(target, 0, targetDepth, 1.0, x, glY, cell, cell);
       if (features == null) {
-         buffers = VertexConsumerProvider.immediate(new BufferAllocator(262144));
-         submits = new OrderedRenderCommandQueueImpl();
-         features = new RenderDispatcher(
-            submits, mc.getBlockRenderManager(), buffers, mc.getAtlasManager(), mc.getBufferBuilders().getOutlineVertexConsumers(), mc.getBufferBuilders().getEffectVertexConsumers(), mc.textRenderer
+         buffers = MultiBufferSource.immediate(new ByteBufferBuilder(262144));
+         submits = new SubmitNodeStorage();
+         features = new FeatureRenderDispatcher(
+            submits, mc.getBlockRenderer(), buffers, mc.getAtlasManager(), mc.renderBuffers().outlineBufferSource(), mc.renderBuffers().crumblingBufferSource(), mc.font
          );
       }
 
@@ -366,24 +364,24 @@ public final class ItemIcons {
          RenderSystem.outputColorTextureOverride = targetView;
          RenderSystem.outputDepthTextureOverride = targetDepthView;
          if (projection == null) {
-            projection = new ProjectionMatrix2("Venti icons", -1000.0F, 1000.0F, true);
+            projection = new CachedOrthoProjectionMatrixBuffer("Venti icons", -1000.0F, 1000.0F, true);
          }
 
-         RenderSystem.setProjectionMatrix(projection.set(side, side), ProjectionType.ORTHOGRAPHIC);
-         Type light = model.isSideLit() ? Type.ITEMS_3D : Type.ITEMS_FLAT;
-         mc.gameRenderer.getDiffuseLighting().setShaderLights(light);
-         RenderSystem.setShaderFog(((dev.venti.mixin.streamhider.GameRendererAccessor)mc.gameRenderer).venti$noInvLeakFogRenderer().getFogBuffer(FogType.NONE));
+         RenderSystem.setProjectionMatrix(projection.getBuffer(side, side), ProjectionType.ORTHOGRAPHIC);
+         Entry light = model.usesBlockLight() ? Entry.ITEMS_3D : Entry.ITEMS_FLAT;
+         mc.gameRenderer.getLighting().setupFor(light);
+         RenderSystem.setShaderFog(((dev.venti.mixin.streamhider.GameRendererAccessor)mc.gameRenderer).venti$noInvLeakFogRenderer().getBuffer(FogMode.NONE));
          RenderSystem.enableScissorForRenderTypeDraws(x, glY, cell, cell);
-         MatrixStack pose = new MatrixStack();
+         PoseStack pose = new PoseStack();
          pose.translate(x + cell * 0.5F, y + cell * 0.5F, 0.0F);
          pose.scale(cell, -cell, cell);
 
          try {
-            model.render(pose, submits, 15728880, OverlayTexture.DEFAULT_UV, 0);
-            features.render();
+            model.submit(pose, submits, 15728880, OverlayTexture.NO_OVERLAY, 0);
+            features.renderAllFeatures();
          } finally {
             submits.clear();
-            buffers.draw();
+            buffers.endBatch();
          }
       } finally {
          RenderSystem.disableScissorForRenderTypeDraws();
@@ -497,7 +495,7 @@ public final class ItemIcons {
 
    private static boolean prepare(GlTexture gl) {
       int bound = GL11.glGetInteger(32873);
-      GL11.glBindTexture(3553, gl.getGlId());
+      GL11.glBindTexture(3553, gl.glId());
 
       boolean held;
       try {
@@ -534,12 +532,12 @@ public final class ItemIcons {
       if (texture.isClosed()) {
          return false;
       } else if (texture instanceof GlTexture gl) {
-         if (!GL11.glIsTexture(gl.getGlId())) {
+         if (!GL11.glIsTexture(gl.glId())) {
             return false;
          } else {
             int bound = GL11.glGetInteger(32873);
-            GL11.glBindTexture(3553, gl.getGlId());
-            boolean alive = GL11.glGetInteger(32873) == gl.getGlId() && holds(gl);
+            GL11.glBindTexture(3553, gl.glId());
+            boolean alive = GL11.glGetInteger(32873) == gl.glId() && holds(gl);
             GL11.glBindTexture(3553, bound);
             if (!alive) {
                GlStateManager.clearGlErrors();

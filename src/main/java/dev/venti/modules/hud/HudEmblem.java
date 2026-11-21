@@ -1,7 +1,6 @@
 package dev.venti.modules.hud;
 
 import dev.venti.gui.image.ThemeImages;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;

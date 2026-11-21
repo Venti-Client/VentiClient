@@ -1,5 +1,9 @@
 package dev.venti.modules.spotify.sky;
 
+import dev.venti.modules.spotify.SpotifyHud;
+import dev.venti.modules.spotify.spotify.Lyrics;
+import dev.venti.modules.spotify.spotify.NowPlaying;
+import dev.venti.modules.spotify.spotify.SyncedLyrics;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -14,15 +18,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import dev.venti.modules.spotify.SpotifyHud;
-import dev.venti.modules.spotify.spotify.Lyrics;
-import dev.venti.modules.spotify.spotify.NowPlaying;
-import dev.venti.modules.spotify.spotify.SyncedLyrics;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.Camera;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.Mth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,7 +130,7 @@ public final class SkyLyrics {
       }
 
       float sweep = Math.min(Math.max(800.0F, letters * 95.0F), Math.max(300.0F, (next - start) * 0.92F));
-      return MathHelper.clamp((at - start) / sweep, 0.0F, 1.0F);
+      return Mth.clamp((at - start) / sweep, 0.0F, 1.0F);
    }
 
    /** The x (in image pixels) the sung part reaches, sweeping letter by letter through the measured edges. */
@@ -141,7 +141,7 @@ public final class SkyLyrics {
 
       float chars = progress * (edges.length - 1);
       int whole = Math.min(edges.length - 2, (int)chars);
-      return MathHelper.lerp(chars - whole, edges[whole], edges[whole + 1]);
+      return Mth.lerp(chars - whole, edges[whole], edges[whole + 1]);
    }
 
    /** The synced lyric line playing right now, or "" between lines. */
@@ -162,8 +162,8 @@ public final class SkyLyrics {
                   this.canvas = new SkyCanvas();
                }
 
-               Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
-               float target = MathHelper.floorMod(camera.getYaw() / 360.0F + 0.25F, 1.0F);
+               Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+               float target = Mth.positiveModulo(camera.yRot() / 360.0F + 0.25F, 1.0F);
                this.viewU = Float.isNaN(this.viewU) ? target : wrap(this.viewU + wrapDelta(target - this.viewU) * Math.min(1.0F, dt * 2.2F));
                NowPlaying track = on ? module.nowPlaying() : null;
                boolean playing = track != null && track.playing();
@@ -231,7 +231,7 @@ public final class SkyLyrics {
    }
 
    private void drawShown(SkyLyrics.Shown shown, boolean follow, float elevation, float degrees, int color, int glow, float progress) {
-      float alpha = MathHelper.clamp(shown.alpha, 0.0F, 1.0F);
+      float alpha = Mth.clamp(shown.alpha, 0.0F, 1.0F);
       if (!(alpha <= 0.003F)) {
          float tall = degrees;
          float wide = degrees * shown.aspect;
@@ -243,7 +243,7 @@ public final class SkyLyrics {
          float e = elevation * (float) (Math.PI / 180.0);
          float centre = 0.72F - e / (float) (Math.PI / 3);
          float halfY = tall * (float) (Math.PI / 180.0) / (float) (Math.PI / 3) * 0.5F;
-         float halfU = wide / (360.0F * Math.max(0.2F, MathHelper.cos(e))) * 0.5F;
+         float halfU = wide / (360.0F * Math.max(0.2F, Mth.cos(e))) * 0.5F;
          SpotifyHud module = SpotifyHud.active();
          float u = (follow ? this.viewU : shown.u) + (module != null ? module.skyOffset() / 360.0F : 0.0F);
          float top = centre - halfY;
@@ -254,7 +254,7 @@ public final class SkyLyrics {
             float sizeH = tall * 2.8F * this.emojiScale * pop * (float) (Math.PI / 180.0) / (float) (Math.PI / 3);
             this.canvas
                .sprite(
-                  shown.emoji, u, centre, sizeH, sizeH, MathHelper.sin(time * 0.9F + shown.phase) * 0.05F, withAlpha(16777215, alpha * 0.32F), false
+                  shown.emoji, u, centre, sizeH, sizeH, Mth.sin(time * 0.9F + shown.phase) * 0.05F, withAlpha(16777215, alpha * 0.32F), false
                );
          }
 
@@ -270,7 +270,7 @@ public final class SkyLyrics {
          this.canvas.bandSlice(shown.fill, u - halfU, u + halfU, top, bottom, 0.0F, lit, withAlpha(sungColor, alpha * (sungColor >>> 24) / 255.0F), false, 32);
          if (shown.emoji != null && shown.style != SpotifyHud.SkyEmojiStyle.BEHIND) {
             if (shown.style == SpotifyHud.SkyEmojiStyle.REPLACE_WORD) {
-               float bob = MathHelper.sin(time * 2.2F + shown.phase) * tall * 0.03F * (float) (Math.PI / 180.0) / (float) (Math.PI / 3);
+               float bob = Mth.sin(time * 2.2F + shown.phase) * tall * 0.03F * (float) (Math.PI / 180.0) / (float) (Math.PI / 3);
                float sizeH = shown.emojiSize * (bottom - top) * pop;
                this.canvas
                   .sprite(
@@ -279,18 +279,18 @@ public final class SkyLyrics {
                      top + shown.emojiY * (bottom - top) - bob,
                      sizeH,
                      sizeH,
-                     MathHelper.sin(time * 1.7F + shown.phase) * 0.06F,
+                     Mth.sin(time * 1.7F + shown.phase) * 0.06F,
                      withAlpha(16777215, alpha),
                      false
                   );
             } else {
                float emojiTall = tall * 1.0F * this.emojiScale;
                float emojiDegrees = emojiTall * pop;
-               float offsetU = (emojiTall * 0.5F + 0.8F) / (360.0F * Math.max(0.2F, MathHelper.cos(e)));
-               float bob = MathHelper.sin(time * 2.2F + shown.phase) * tall * 0.06F;
+               float offsetU = (emojiTall * 0.5F + 0.8F) / (360.0F * Math.max(0.2F, Mth.cos(e)));
+               float bob = Mth.sin(time * 2.2F + shown.phase) * tall * 0.06F;
                float y = 0.72F - (elevation + bob) * (float) (Math.PI / 180.0) / (float) (Math.PI / 3);
                float sizeH = emojiDegrees * (float) (Math.PI / 180.0) / (float) (Math.PI / 3);
-               float spin = MathHelper.sin(time * 1.7F + shown.phase) * 0.12F;
+               float spin = Mth.sin(time * 1.7F + shown.phase) * 0.12F;
                this.canvas.sprite(shown.emoji, u + (shown.right ? 1.0F : -1.0F) * (halfU + offsetU), y, sizeH, sizeH, spin, withAlpha(16777215, alpha), false);
             }
          }
@@ -535,7 +535,7 @@ public final class SkyLyrics {
    }
 
    private static int withAlpha(int rgb, float alpha) {
-      return Math.round(MathHelper.clamp(alpha, 0.0F, 1.0F) * 255.0F) << 24 | rgb & 16777215;
+      return Math.round(Mth.clamp(alpha, 0.0F, 1.0F) * 255.0F) << 24 | rgb & 16777215;
    }
 
    private static float wrap(float u) {

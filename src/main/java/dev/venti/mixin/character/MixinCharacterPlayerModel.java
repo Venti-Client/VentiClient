@@ -1,27 +1,27 @@
 package dev.venti.mixin.character;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.modules.character.CharacterLayer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-import net.minecraft.util.Arm;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.render.entity.model.PlayerEntityModel;
+import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.world.entity.HumanoidArm;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Environment(EnvType.CLIENT)
-@Mixin({PlayerEntityModel.class})
+@Mixin({PlayerModel.class})
 public abstract class MixinCharacterPlayerModel {
    @Inject(
-      method = {"setArmAngle(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;Lnet/minecraft/util/Arm;Lnet/minecraft/client/util/math/MatrixStack;)V"},
+      method = {"translateToHand(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;)V"},
       at = {@At("HEAD")},
       cancellable = true
    )
-   private void venti$characterHand(PlayerEntityRenderState state, Arm arm, MatrixStack poseStack, CallbackInfo ci) {
-      if (CharacterLayer.translateToHand((PlayerEntityModel)(Object)this, state, arm, poseStack)) {
+   private void venti$characterHand(AvatarRenderState state, HumanoidArm arm, PoseStack poseStack, CallbackInfo ci) {
+      if (CharacterLayer.translateToHand((PlayerModel)(Object)this, state, arm, poseStack)) {
          ci.cancel();
       }
    }

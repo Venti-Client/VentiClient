@@ -4,12 +4,12 @@ import dev.venti.modules.character.CharacterHolder;
 import dev.venti.modules.character.WornCharacter;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
 @Environment(EnvType.CLIENT)
-@Mixin({PlayerEntityRenderState.class})
+@Mixin({AvatarRenderState.class})
 public abstract class MixinCharacterAvatarRenderState implements CharacterHolder {
    @Unique
    private WornCharacter venti$character;

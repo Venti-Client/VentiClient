@@ -3,21 +3,21 @@ package dev.venti.modules.character;
 import dev.venti.modules.character.kit.CharacterModel;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.resources.Identifier;
 
 @Environment(EnvType.CLIENT)
 public final class WornCharacter {
    final CharacterModel model;
-   final RenderLayer solid;
-   final RenderLayer decal;
-   final RenderLayer ghost;
+   final RenderType solid;
+   final RenderType decal;
+   final RenderType ghost;
 
    WornCharacter(CharacterModel model, Identifier texture) {
       this.model = model;
-      this.solid = RenderLayers.entitySolid(texture);
-      this.decal = RenderLayers.entityTranslucent(texture);
-      this.ghost = RenderLayers.itemEntityTranslucentCull(texture);
+      this.solid = RenderTypes.entitySolid(texture);
+      this.decal = RenderTypes.entityTranslucent(texture);
+      this.ghost = RenderTypes.itemEntityTranslucentCull(texture);
    }
 }

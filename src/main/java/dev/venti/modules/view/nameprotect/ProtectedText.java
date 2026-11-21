@@ -6,39 +6,39 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import net.minecraft.text.Text;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.StringVisitable;
-import net.minecraft.text.HoverEvent.ShowEntity;
-import net.minecraft.text.HoverEvent.ShowText;
-import net.minecraft.text.HoverEvent.EntityContent;
-import net.minecraft.text.StringVisitable.StyledVisitor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText.StyledContentConsumer;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.HoverEvent.EntityTooltipInfo;
+import net.minecraft.network.chat.HoverEvent.ShowEntity;
+import net.minecraft.network.chat.HoverEvent.ShowText;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 
 public final class ProtectedText {
    private ProtectedText() {
    }
 
-   public static Text rewrite(NameMatcher matcher, Text text) {
+   public static Component rewrite(NameMatcher matcher, Component text) {
       if (text != null && !matcher.isEmpty()) {
-         Text rebuilt = rebuild(matcher, text, true);
+         Component rebuilt = rebuild(matcher, text, true);
          return rebuilt != null ? rebuilt : text;
       } else {
          return text;
       }
    }
 
-   public static StringVisitable rewrite(NameMatcher matcher, StringVisitable text) {
+   public static FormattedText rewrite(NameMatcher matcher, FormattedText text) {
       if (text != null && !matcher.isEmpty()) {
-         Text rebuilt = rebuild(matcher, text, true);
-         return (StringVisitable)(rebuilt != null ? rebuilt : text);
+         Component rebuilt = rebuild(matcher, text, true);
+         return (FormattedText)(rebuilt != null ? rebuilt : text);
       } else {
          return text;
       }
    }
 
-   private static Text rebuild(NameMatcher matcher, StringVisitable text, boolean withHovers) {
+   private static Component rebuild(NameMatcher matcher, FormattedText text, boolean withHovers) {
       ProtectedText.Pieces pieces = new ProtectedText.Pieces();
       text.visit(pieces, Style.EMPTY);
       if (pieces.count == 0) {
@@ -100,14 +100,14 @@ public final class ProtectedText {
 
    private static HoverEvent rewriteHover(NameMatcher matcher, HoverEvent hover) {
       if (hover instanceof ShowText showText) {
-         Text value = showText.value();
-         Text rewritten = value != null ? rebuild(matcher, value, false) : null;
+         Component value = showText.value();
+         Component rewritten = value != null ? rebuild(matcher, value, false) : null;
          return (HoverEvent)(rewritten != null ? new ShowText(rewritten) : hover);
       } else if (hover instanceof ShowEntity showEntity) {
-         EntityContent info = showEntity.entity();
+         EntityTooltipInfo info = showEntity.entity();
          if (info != null && !info.name.isEmpty()) {
-            Text rewritten = rebuild(matcher, (StringVisitable)info.name.get(), false);
-            return (HoverEvent)(rewritten != null ? new ShowEntity(new EntityContent(info.entityType, info.uuid, rewritten)) : hover);
+            Component rewritten = rebuild(matcher, (FormattedText)info.name.get(), false);
+            return (HoverEvent)(rewritten != null ? new ShowEntity(new EntityTooltipInfo(info.type, info.uuid, rewritten)) : hover);
          } else {
             return hover;
          }
@@ -116,7 +116,7 @@ public final class ProtectedText {
       }
    }
 
-   private static final class Pieces implements StyledVisitor<Object> {
+   private static final class Pieces implements StyledContentConsumer<Object> {
       final StringBuilder text = new StringBuilder();
       Style[] styles = new Style[8];
       int[] starts = new int[9];
@@ -191,11 +191,11 @@ public final class ProtectedText {
          }
       }
 
-      Text build(Style[] styles) {
-         MutableText root = Text.empty();
+      Component build(Style[] styles) {
+         MutableComponent root = Component.empty();
 
          for (int i = 0; i < this.runTexts.size(); i++) {
-            root.append(Text.literal(this.runTexts.get(i).toString()).setStyle(styles[this.runPieces.get(i)]));
+            root.append(Component.literal(this.runTexts.get(i).toString()).setStyle(styles[this.runPieces.get(i)]));
          }
 
          return root;

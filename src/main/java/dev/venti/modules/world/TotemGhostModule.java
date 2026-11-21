@@ -1,20 +1,19 @@
 package dev.venti.modules.world;
 
-import dev.venti.module.Module;
-import dev.venti.module.ModuleCategory;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
-
+import dev.venti.module.Module;
+import dev.venti.module.ModuleCategory;
 import java.util.function.Consumer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.client.world.ClientWorld;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 
 @Environment(EnvType.CLIENT)
 public final class TotemGhostModule extends Module {
@@ -63,7 +62,7 @@ public final class TotemGhostModule extends Module {
    private final float[] roll = new float[PARTS.length];
    private int head;
    private int count;
-   private ClientWorld boundLevel;
+   private ClientLevel boundLevel;
    private double originX;
    private double originY;
    private double originZ;
@@ -103,7 +102,7 @@ public final class TotemGhostModule extends Module {
       this.boundLevel = null;
    }
 
-   private boolean bind(ClientWorld level) {
+   private boolean bind(ClientLevel level) {
       if (level == null) {
          if (this.boundLevel != null) {
             this.reset();
@@ -124,7 +123,7 @@ public final class TotemGhostModule extends Module {
    @Override
    protected void onTick() {
       if (this.boundLevel != null) {
-         this.bind(MinecraftClient.getInstance().world);
+         this.bind(Minecraft.getInstance().level);
       }
    }
 
@@ -133,8 +132,8 @@ public final class TotemGhostModule extends Module {
    }
 
    private void capture(LivingEntity entity) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (entity instanceof PlayerEntity player && this.bind(mc.world) && player.getEntityWorld() == mc.world) {
+      Minecraft mc = Minecraft.getInstance();
+      if (entity instanceof Player player && this.bind(mc.level) && player.level() == mc.level) {
          if (!player.isSpectator()) {
             boolean mine = player == mc.player;
             if (!mine || this.own.get()) {
@@ -148,13 +147,13 @@ public final class TotemGhostModule extends Module {
                spirit.x = player.getX();
                spirit.y = player.getY();
                spirit.z = player.getZ();
-               spirit.bodyYaw = player.bodyYaw;
-               spirit.headYaw = MathHelper.wrapDegrees(player.headYaw - player.bodyYaw);
-               spirit.headPitch = player.getPitch();
-               spirit.walk = player.limbAnimator.getAnimationProgress();
-               spirit.stride = Math.min(1.0F, player.limbAnimator.getSpeed());
+               spirit.bodyYaw = player.yBodyRot;
+               spirit.headYaw = Mth.wrapDegrees(player.yHeadRot - player.yBodyRot);
+               spirit.headPitch = player.getXRot();
+               spirit.walk = player.walkAnimation.position();
+               spirit.stride = Math.min(1.0F, player.walkAnimation.speed());
                spirit.scale = player.getScale();
-               spirit.crouch = player.isInSneakingPose();
+               spirit.crouch = player.isCrouching();
                spirit.mine = mine;
                spirit.born = System.nanoTime();
             }
@@ -163,8 +162,8 @@ public final class TotemGhostModule extends Module {
    }
 
    public void render3D(float partialTick) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (this.bind(mc.world) && this.count != 0) {
+      Minecraft mc = Minecraft.getInstance();
+      if (this.bind(mc.level) && this.count != 0) {
          long now = System.nanoTime();
 
          float life;
@@ -174,7 +173,7 @@ public final class TotemGhostModule extends Module {
 
          if (this.count != 0) {
             this.palette.resolve(this.colorMode.get(), WorldAccent.argb(), this.bodyColor.argb(), this.auraColor.argb());
-            this.canvas.begin(mc.gameRenderer.getCamera());
+            this.canvas.begin(mc.gameRenderer.getMainCamera());
 
             for (int n = 0; n < this.count; n++) {
                TotemGhostModule.Spirit spirit = this.spirits[(this.head + n) % 12];
@@ -209,8 +208,8 @@ public final class TotemGhostModule extends Module {
       this.originZ = s.z;
       this.unit = 0.05859375F * s.scale * (1.0F + 0.08F * t);
       float lean = s.crouch ? 0.45F * (1.0F - ka) : 0.0F;
-      this.leanSin = MathHelper.sin(lean);
-      this.leanCos = MathHelper.cos(lean);
+      this.leanSin = Mth.sin(lean);
+      this.leanCos = Mth.cos(lean);
       this.drop = s.crouch ? 3.0F * (1.0F - ka) : 0.0F;
       this.pose(s, ka);
       boolean glass = this.look.is("Glass");
@@ -245,14 +244,14 @@ public final class TotemGhostModule extends Module {
    }
 
    private void pose(TotemGhostModule.Spirit s, float ka) {
-      float swing = MathHelper.cos(s.walk * 0.6662F) * s.stride;
+      float swing = Mth.cos(s.walk * 0.6662F) * s.stride;
       float settle = 1.0F - ka;
       float crouchArms = s.crouch ? 0.35F : 0.0F;
       this.pitch[0] = swing * 1.4F * settle - 0.05F * ka;
       this.pitch[1] = -swing * 1.4F * settle - 0.15F * ka;
       this.pitch[2] = 0.0F;
-      this.pitch[3] = MathHelper.lerp(ka, -swing + crouchArms, 2.75F);
-      this.pitch[4] = MathHelper.lerp(ka, swing + crouchArms, 2.75F);
+      this.pitch[3] = Mth.lerp(ka, -swing + crouchArms, 2.75F);
+      this.pitch[4] = Mth.lerp(ka, swing + crouchArms, 2.75F);
       this.pitch[5] = -s.headPitch * (float) (Math.PI / 180.0) * settle + 0.3F * ka;
       this.yaw[5] = s.headYaw * (float) (Math.PI / 180.0) * settle;
       this.roll[3] = 0.32F * ka;
@@ -262,12 +261,12 @@ public final class TotemGhostModule extends Module {
    private void place(int index, float inflate) {
       float[] part = PARTS[index];
       boolean torso = index >= 2;
-      float cp = MathHelper.cos(this.pitch[index]);
-      float sp = MathHelper.sin(this.pitch[index]);
-      float cy = MathHelper.cos(this.yaw[index]);
-      float sy = MathHelper.sin(this.yaw[index]);
-      float cr = MathHelper.cos(this.roll[index]);
-      float sr = MathHelper.sin(this.roll[index]);
+      float cp = Mth.cos(this.pitch[index]);
+      float sp = Mth.sin(this.pitch[index]);
+      float cy = Mth.cos(this.yaw[index]);
+      float sy = Mth.sin(this.yaw[index]);
+      float cr = Mth.cos(this.roll[index]);
+      float sr = Mth.sin(this.roll[index]);
 
       for (int c = 0; c < 8; c++) {
          float lx = (c & 1) == 0 ? part[3] - inflate : part[6] + inflate;
@@ -339,9 +338,9 @@ public final class TotemGhostModule extends Module {
          this.canvas
             .flat(
                GlyphShapes.ANKH,
-               s.x + MathHelper.cos(angle) * radius * 0.78F,
+               s.x + Mth.cos(angle) * radius * 0.78F,
                y + 0.004,
-               s.z + MathHelper.sin(angle) * radius * 0.78F,
+               s.z + Mth.sin(angle) * radius * 0.78F,
                0.13F * s.scale,
                -angle - (float) (Math.PI / 2),
                GlyphTint.alpha(light, a)
@@ -363,7 +362,7 @@ public final class TotemGhostModule extends Module {
    }
 
    private static float dissolve(float t, float tier) {
-      return 1.0F - MathHelper.clamp((t - 0.45F - tier * 0.22F) / 0.3F, 0.0F, 1.0F);
+      return 1.0F - Mth.clamp((t - 0.45F - tier * 0.22F) / 0.3F, 0.0F, 1.0F);
    }
 
    private static float ascend(float t) {
@@ -372,7 +371,7 @@ public final class TotemGhostModule extends Module {
    }
 
    private static float smooth(float t) {
-      float k = MathHelper.clamp(t, 0.0F, 1.0F);
+      float k = Mth.clamp(t, 0.0F, 1.0F);
       return k * k * (3.0F - 2.0F * k);
    }
 

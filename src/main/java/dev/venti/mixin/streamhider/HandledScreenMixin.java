@@ -5,12 +5,12 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import dev.venti.modules.streamhider.StreamHiderModule;
 import dev.venti.modules.streamhider.StreamOverlay;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,52 +19,52 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** Your own slots in every container screen, the cursor stack, drag previews and tooltips. */
-@Mixin(HandledScreen.class)
+@Mixin(AbstractContainerScreen.class)
 public abstract class HandledScreenMixin {
    @Shadow
-   protected Slot focusedSlot;
+   protected Slot hoveredSlot;
    @Shadow
-   protected int x;
+   protected int leftPos;
    @Shadow
-   protected int y;
+   protected int topPos;
 
    @Shadow
-   public abstract ScreenHandler getScreenHandler();
+   public abstract AbstractContainerMenu getMenu();
 
    @WrapOperation(
-      method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;II)V",
-      at = @At(value = "INVOKE", target = "Lnet/minecraft/screen/slot/Slot;getStack()Lnet/minecraft/item/ItemStack;")
+      method = "renderSlot(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/inventory/Slot;II)V",
+      at = @At(value = "INVOKE", target = "Lnet/minecraft/world/inventory/Slot;getItem()Lnet/minecraft/world/item/ItemStack;")
    )
-   private ItemStack venti$noInvLeakSlot(Slot slot, Operation<ItemStack> original, @Local(argsOnly = true) DrawContext context) {
+   private ItemStack venti$noInvLeakSlot(Slot slot, Operation<ItemStack> original, @Local(argsOnly = true) GuiGraphics context) {
       ItemStack stack = original.call(slot);
       if (!StreamHiderModule.ownSlot(slot)) {
          return stack;
       }
 
-      int sx = StreamHiderModule.screenX(context, slot.x, slot.y, this.x + slot.x);
-      int sy = StreamHiderModule.screenY(context, slot.x, slot.y, this.y + slot.y);
-      return StreamHiderModule.container(stack, slot, sx, sy, slot == this.focusedSlot);
+      int sx = StreamHiderModule.screenX(context, slot.x, slot.y, this.leftPos + slot.x);
+      int sy = StreamHiderModule.screenY(context, slot.x, slot.y, this.topPos + slot.y);
+      return StreamHiderModule.container(stack, slot, sx, sy, slot == this.hoveredSlot);
    }
 
    @WrapOperation(
-      method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;II)V",
-      at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;copyWithCount(I)Lnet/minecraft/item/ItemStack;")
+      method = "renderSlot(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/inventory/Slot;II)V",
+      at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;copyWithCount(I)Lnet/minecraft/world/item/ItemStack;")
    )
    private ItemStack venti$noInvLeakDragPreview(ItemStack stack, int count, Operation<ItemStack> original) {
       return StreamHiderModule.dragged(original.call(stack, count));
    }
 
    @WrapOperation(
-      method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;II)V",
-      at = @At(value = "INVOKE", target = "Lnet/minecraft/screen/slot/Slot;getBackgroundSprite()Lnet/minecraft/util/Identifier;")
+      method = "renderSlot(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/inventory/Slot;II)V",
+      at = @At(value = "INVOKE", target = "Lnet/minecraft/world/inventory/Slot;getNoItemIcon()Lnet/minecraft/resources/Identifier;")
    )
    private Identifier venti$noInvLeakSilhouette(Slot slot, Operation<Identifier> original) {
       Identifier icon = original.call(slot);
-      return icon != null && StreamHiderModule.overlaying() && StreamHiderModule.ownSlot(slot) && slot.hasStack() ? null : icon;
+      return icon != null && StreamHiderModule.overlaying() && StreamHiderModule.ownSlot(slot) && slot.hasItem() ? null : icon;
    }
 
    @ModifyVariable(
-      method = "drawItem(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/item/ItemStack;IILjava/lang/String;)V",
+      method = "renderFloatingItem(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/item/ItemStack;IILjava/lang/String;)V",
       at = @At("HEAD"),
       argsOnly = true
    )
@@ -72,11 +72,11 @@ public abstract class HandledScreenMixin {
       return StreamHiderModule.carried(stack, x, y);
    }
 
-   @Inject(method = "drawMouseoverTooltip(Lnet/minecraft/client/gui/DrawContext;II)V", at = @At("HEAD"), cancellable = true)
-   private void venti$noInvLeakTooltip(DrawContext context, int mouseX, int mouseY, CallbackInfo ci) {
-      if (StreamHiderModule.hidesTooltips() && StreamHiderModule.ownSlot(this.focusedSlot)) {
-         if (StreamHiderModule.overlaying() && this.focusedSlot.hasStack() && this.getScreenHandler().getCursorStack().isEmpty()) {
-            StreamOverlay.tooltip(this.focusedSlot.getStack(), mouseX, mouseY);
+   @Inject(method = "renderTooltip(Lnet/minecraft/client/gui/GuiGraphics;II)V", at = @At("HEAD"), cancellable = true)
+   private void venti$noInvLeakTooltip(GuiGraphics context, int mouseX, int mouseY, CallbackInfo ci) {
+      if (StreamHiderModule.hidesTooltips() && StreamHiderModule.ownSlot(this.hoveredSlot)) {
+         if (StreamHiderModule.overlaying() && this.hoveredSlot.hasItem() && this.getMenu().getCarried().isEmpty()) {
+            StreamOverlay.tooltip(this.hoveredSlot.getItem(), mouseX, mouseY);
          }
 
          ci.cancel();

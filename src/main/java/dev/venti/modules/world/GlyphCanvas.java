@@ -3,14 +3,14 @@ package dev.venti.modules.world;
 import java.util.Arrays;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.world.debug.gizmo.Gizmo;
-import net.minecraft.world.debug.gizmo.GizmoDrawer;
-import net.minecraft.world.debug.gizmo.VisibilityConfigurable;
-import net.minecraft.world.debug.gizmo.GizmoDrawing;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.client.render.Camera;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.client.Camera;
+import net.minecraft.gizmos.Gizmo;
+import net.minecraft.gizmos.GizmoPrimitives;
+import net.minecraft.gizmos.GizmoProperties;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3fc;
 
 @Environment(EnvType.CLIENT)
@@ -20,7 +20,7 @@ public final class GlyphCanvas implements Gizmo {
    private static final int MIN_ALPHA = 3;
    private static final int VERTEX_BITS = 9;
    private static final double RIBBON_NEAR = 0.05;
-   private final Vec3d[] vertices = new Vec3d[512];
+   private final Vec3[] vertices = new Vec3[512];
    private double[] quadPos = new double[3072];
    private int[] quadColor = new int[256];
    private int quads;
@@ -44,13 +44,13 @@ public final class GlyphCanvas implements Gizmo {
    public void begin(Camera camera) {
       this.quads = 0;
       this.lines = 0;
-      Vec3d eye = camera.getCameraPos();
+      Vec3 eye = camera.position();
       this.camX = eye.x;
       this.camY = eye.y;
       this.camZ = eye.z;
-      Vector3fc left = camera.getDiagonalPlane();
-      Vector3fc up = camera.getVerticalPlane();
-      Vector3fc forward = camera.getHorizontalPlane();
+      Vector3fc left = camera.leftVector();
+      Vector3fc up = camera.upVector();
+      Vector3fc forward = camera.forwardVector();
       this.rightX = -left.x();
       this.rightY = -left.y();
       this.rightZ = -left.z();
@@ -69,9 +69,9 @@ public final class GlyphCanvas implements Gizmo {
 
       this.quads = 0;
       if (this.lines != 0) {
-         VisibilityConfigurable properties = GizmoDrawing.collect(this);
+         GizmoProperties properties = Gizmos.addGizmo(this);
          if (onTop) {
-            properties.ignoreOcclusion();
+            properties.setAlwaysOnTop();
          }
       }
    }
@@ -102,7 +102,7 @@ public final class GlyphCanvas implements Gizmo {
    public void quad(
       double ax, double ay, double az, double bx, double by, double bz, double cx, double cy, double cz, double dx, double dy, double dz, int argb
    ) {
-      if (ColorHelper.getAlpha(argb) >= 3 && this.reserveQuad()) {
+      if (ARGB.alpha(argb) >= 3 && this.reserveQuad()) {
          int p = this.quads * 12;
          double[] out = this.quadPos;
          out[p] = ax;
@@ -144,7 +144,7 @@ public final class GlyphCanvas implements Gizmo {
    }
 
    public void line(double ax, double ay, double az, double bx, double by, double bz, int argb, float width) {
-      if (ColorHelper.getAlpha(argb) >= 3 && this.reserveLine()) {
+      if (ARGB.alpha(argb) >= 3 && this.reserveLine()) {
          int p = this.lines * 6;
          double[] out = this.linePos;
          out[p] = ax;
@@ -210,7 +210,7 @@ public final class GlyphCanvas implements Gizmo {
    }
 
    public void shape(float[] shape, double x, double y, double z, double ux, double uy, double uz, double vx, double vy, double vz, int argb) {
-      if (ColorHelper.getAlpha(argb) >= 3) {
+      if (ARGB.alpha(argb) >= 3) {
          for (int i = 0; i + 7 < shape.length; i += 8) {
             float u0 = shape[i];
             float v0 = shape[i + 1];
@@ -248,9 +248,9 @@ public final class GlyphCanvas implements Gizmo {
    }
 
    public void sprite(float[] shape, double x, double y, double z, float width, float height, float angle, float shiftU, float shiftV, int argb) {
-      if (ColorHelper.getAlpha(argb) >= 3) {
-         float cos = MathHelper.cos(angle);
-         float sin = MathHelper.sin(angle);
+      if (ARGB.alpha(argb) >= 3) {
+         float cos = Mth.cos(angle);
+         float sin = Mth.sin(angle);
          double ux = (this.rightX * cos + this.upX * sin) * width;
          double uy = (this.rightY * cos + this.upY * sin) * width;
          double uz = (this.rightZ * cos + this.upZ * sin) * width;
@@ -262,23 +262,23 @@ public final class GlyphCanvas implements Gizmo {
    }
 
    public void flat(float[] shape, double x, double y, double z, float size, float angle, int argb) {
-      float cos = MathHelper.cos(angle) * size;
-      float sin = MathHelper.sin(angle) * size;
+      float cos = Mth.cos(angle) * size;
+      float sin = Mth.sin(angle) * size;
       double flip = this.camY >= y ? -1.0 : 1.0;
       this.shape(shape, x, y, z, cos, 0.0, flip * sin, -sin, 0.0, flip * cos, argb);
    }
 
    public void band(double x, double y, double z, float inner, float outer, float from, float to, int segments, int argb) {
-      if (!(outer <= inner) && segments > 0 && ColorHelper.getAlpha(argb) >= 3) {
+      if (!(outer <= inner) && segments > 0 && ARGB.alpha(argb) >= 3) {
          double flip = this.camY >= y ? -1.0 : 1.0;
          float step = (to - from) / segments;
-         float cosA = MathHelper.cos(from);
-         float sinA = MathHelper.sin(from);
+         float cosA = Mth.cos(from);
+         float sinA = Mth.sin(from);
 
          for (int i = 1; i <= segments; i++) {
             float angle = from + step * i;
-            float cosB = MathHelper.cos(angle);
-            float sinB = MathHelper.sin(angle);
+            float cosB = Mth.cos(angle);
+            float sinB = Mth.sin(angle);
             this.quad(
                x + cosA * inner,
                y,
@@ -304,28 +304,28 @@ public final class GlyphCanvas implements Gizmo {
       this.band(x, y, z, inner, outer, 0.0F, (float) (Math.PI * 2), segments, argb);
    }
 
-   public void draw(GizmoDrawer out, float alpha) {
+   public void emit(GizmoPrimitives out, float alpha) {
       boolean faded = alpha < 1.0F;
       double[] l = this.linePos;
       int i = 0;
 
       for (int p = 0; i < this.lines; p += 6) {
-         int color = faded ? ColorHelper.scaleAlpha(this.lineColor[i], alpha) : this.lineColor[i];
+         int color = faded ? ARGB.multiplyAlpha(this.lineColor[i], alpha) : this.lineColor[i];
          out.addLine(this.vertex(l[p], l[p + 1], l[p + 2]), this.vertex(l[p + 3], l[p + 4], l[p + 5]), color, this.lineWidth[i]);
          i++;
       }
    }
 
-   private Vec3d vertex(double x, double y, double z) {
+   private Vec3 vertex(double x, double y, double z) {
       long hash = Double.doubleToRawLongBits(x) * -7046029254386353131L
          ^ Double.doubleToRawLongBits(y) * -4417276706812531889L
          ^ Double.doubleToRawLongBits(z) * 1609587929392839161L;
       int slot = (int)(hash >>> 55);
-      Vec3d cached = this.vertices[slot];
+      Vec3 cached = this.vertices[slot];
       if (cached != null && cached.x == x && cached.y == y && cached.z == z) {
          return cached;
       } else {
-         Vec3d made = new Vec3d(x, y, z);
+         Vec3 made = new Vec3(x, y, z);
          this.vertices[slot] = made;
          return made;
       }

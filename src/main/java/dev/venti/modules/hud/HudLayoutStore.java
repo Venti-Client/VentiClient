@@ -2,6 +2,7 @@ package dev.venti.modules.hud;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import dev.venti.imgui.ImGuiManager;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -12,11 +13,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import dev.venti.imgui.ImGuiManager;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
 
 final class HudLayoutStore {
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
@@ -394,7 +394,7 @@ final class HudLayoutStore {
    }
 
    private static float vanillaGuiScale() {
-      return Math.max(1, MinecraftClient.getInstance().getWindow().getScaleFactor());
+      return Math.max(1, Minecraft.getInstance().getWindow().getGuiScale());
    }
 
    private float firstFreeY(HudLayoutStore.HudElementState state, float startY, float gap) {

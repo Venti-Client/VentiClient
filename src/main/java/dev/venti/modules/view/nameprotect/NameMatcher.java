@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Map;
 
 public final class NameMatcher {
    public static final NameMatcher EMPTY = new NameMatcher(Map.of());

@@ -1,5 +1,6 @@
 package dev.venti.modules.hand;
 
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import dev.venti.config.BooleanSetting;
@@ -11,13 +12,12 @@ import dev.venti.module.ModuleCategory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.item.ItemRenderer;
-import net.minecraft.client.texture.AbstractTexture;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.resource.Resource;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.util.ARGB;
 
 /**
  * Custom Glint: recolours the enchantment glint textures in place and changes the glint's scroll speed and
@@ -34,8 +34,8 @@ public final class CustomGlintModule extends Module {
    private final NumberSetting intensity = this.add("intensity", new NumberSetting("Intensity", 1.0F, 0.05F, 1.0F).step(0.05F));
    private final NumberSetting speed = this.add("speed", new NumberSetting("Speed", 1.0F, 0.1F, 4.0F).step(0.1F));
    private final NumberSetting patternSize = this.add("pattern-size", new NumberSetting("Pattern Size", 1.0F, 0.25F, 4.0F).step(0.25F));
-   private final GlintTexture items = new GlintTexture(ItemRenderer.ITEM_ENCHANTMENT_GLINT);
-   private final GlintTexture armor = new GlintTexture(ItemRenderer.ENTITY_ENCHANTMENT_GLINT);
+   private final GlintTexture items = new GlintTexture(ItemRenderer.ENCHANTED_GLINT_ITEM);
+   private final GlintTexture armor = new GlintTexture(ItemRenderer.ENCHANTED_GLINT_ARMOR);
    private double glintClock = Double.NaN;
    private long glintClockReal;
 
@@ -60,8 +60,8 @@ public final class CustomGlintModule extends Module {
    @Override
    protected void onDisable() {
       active = null;
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (mc.isOnThread()) {
+      Minecraft mc = Minecraft.getInstance();
+      if (mc.isSameThread()) {
          this.restore();
       } else {
          mc.execute(() -> {
@@ -88,8 +88,8 @@ public final class CustomGlintModule extends Module {
    }
 
    private void refresh() {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (mc.world != null && mc.getOverlay() == null && RenderSystem.tryGetDevice() != null) {
+      Minecraft mc = Minecraft.getInstance();
+      if (mc.level != null && mc.getOverlay() == null && RenderSystem.tryGetDevice() != null) {
          int itemRgb = this.colorMode.is(COLOR_ACCENT) ? HandAccent.argb() & 0xFFFFFF : this.itemColor.argb() & 0xFFFFFF;
          int armorRgb = this.colorMode.is(COLOR_CUSTOM) && this.separateArmor.get() ? this.armorColor.argb() & 0xFFFFFF : itemRgb;
          float strength = this.intensity.get();
@@ -99,7 +99,7 @@ public final class CustomGlintModule extends Module {
    }
 
    private void restore() {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       this.items.restore(mc);
       this.armor.restore(mc);
    }
@@ -118,7 +118,7 @@ public final class CustomGlintModule extends Module {
          this.id = id;
       }
 
-      void tint(MinecraftClient mc, int rgb, float intensity) {
+      void tint(Minecraft mc, int rgb, float intensity) {
          GpuTexture gpu = this.gpuTexture(mc);
          if (gpu == null || gpu.isClosed() || gpu == this.unusable) {
             return;
@@ -146,7 +146,7 @@ public final class CustomGlintModule extends Module {
          }
       }
 
-      void restore(MinecraftClient mc) {
+      void restore(Minecraft mc) {
          GpuTexture gpu = this.written != null ? this.gpuTexture(mc) : null;
          if (gpu != null && gpu == this.written && !gpu.isClosed() && this.original != null) {
             this.upload(gpu, this.original);
@@ -158,22 +158,22 @@ public final class CustomGlintModule extends Module {
          this.pattern = null;
       }
 
-      private GpuTexture gpuTexture(MinecraftClient mc) {
+      private GpuTexture gpuTexture(Minecraft mc) {
          try {
             AbstractTexture texture = mc.getTextureManager().getTexture(this.id);
-            return texture == null ? null : texture.getGlTexture();
+            return texture == null ? null : texture.getTexture();
          } catch (IllegalStateException e) {
             return null;
          }
       }
 
-      private boolean readShipped(MinecraftClient mc, GpuTexture gpu) {
+      private boolean readShipped(Minecraft mc, GpuTexture gpu) {
          Optional<Resource> resource = mc.getResourceManager().getResource(this.id);
          if (resource.isEmpty()) {
             return false;
          }
 
-         try (InputStream in = resource.get().getInputStream(); NativeImage image = NativeImage.read(in)) {
+         try (InputStream in = resource.get().open(); NativeImage image = NativeImage.read(in)) {
             int w = image.getWidth();
             int h = image.getHeight();
             if (w != gpu.getWidth(0) || h != gpu.getHeight(0)) {
@@ -185,9 +185,9 @@ public final class CustomGlintModule extends Module {
             int i = 0;
             for (int y = 0; y < h; y++) {
                for (int x = 0; x < w; x++, i++) {
-                  int argb = image.getColorArgb(x, y);
+                  int argb = image.getPixel(x, y);
                   pixels[i] = argb;
-                  luma[i] = Math.max(ColorHelper.getRed(argb), Math.max(ColorHelper.getGreen(argb), ColorHelper.getBlue(argb)));
+                  luma[i] = Math.max(ARGB.red(argb), Math.max(ARGB.green(argb), ARGB.blue(argb)));
                }
             }
 
@@ -203,13 +203,13 @@ public final class CustomGlintModule extends Module {
       }
 
       private int[] tinted(int rgb, float intensity) {
-         float r = ColorHelper.getRed(rgb) * intensity / 255.0F;
-         float g = ColorHelper.getGreen(rgb) * intensity / 255.0F;
-         float b = ColorHelper.getBlue(rgb) * intensity / 255.0F;
+         float r = ARGB.red(rgb) * intensity / 255.0F;
+         float g = ARGB.green(rgb) * intensity / 255.0F;
+         float b = ARGB.blue(rgb) * intensity / 255.0F;
          int[] out = new int[this.pattern.length];
          for (int i = 0; i < out.length; i++) {
             int l = this.pattern[i];
-            out[i] = ColorHelper.getArgb(ColorHelper.getAlpha(this.original[i]), Math.round(l * r), Math.round(l * g), Math.round(l * b));
+            out[i] = ARGB.color(ARGB.alpha(this.original[i]), Math.round(l * r), Math.round(l * g), Math.round(l * b));
          }
 
          return out;
@@ -220,7 +220,7 @@ public final class CustomGlintModule extends Module {
             int i = 0;
             for (int y = 0; y < this.height; y++) {
                for (int x = 0; x < this.width; x++, i++) {
-                  image.setColorArgb(x, y, argb[i]);
+                  image.setPixel(x, y, argb[i]);
                }
             }
 

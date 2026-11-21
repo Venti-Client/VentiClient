@@ -2,19 +2,19 @@ package dev.venti.mixin.view;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import dev.venti.modules.view.NameProtectModule;
-import net.minecraft.client.gui.hud.BossBarHud;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.BossHealthOverlay;
+import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 /** Name Protect: boss bar titles. */
-@Mixin(BossBarHud.class)
+@Mixin(BossHealthOverlay.class)
 public abstract class ViewNameProtectBossBarMixin {
    @ModifyExpressionValue(
-      method = "render(Lnet/minecraft/client/gui/DrawContext;)V",
-      at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/ClientBossBar;getName()Lnet/minecraft/text/Text;")
+      method = "render(Lnet/minecraft/client/gui/GuiGraphics;)V",
+      at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/LerpingBossEvent;getName()Lnet/minecraft/network/chat/Component;")
    )
-   private Text venti$protectBossName(Text original) {
+   private Component venti$protectBossName(Component original) {
       return NameProtectModule.protect(original);
    }
 }

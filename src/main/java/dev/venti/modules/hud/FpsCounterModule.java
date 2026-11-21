@@ -11,7 +11,7 @@ import dev.venti.modules.spotify.SpotifyHud;
 import imgui.ImDrawList;
 import imgui.ImFont;
 import imgui.ImGui;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 /**
  * Frames per second on the same rounded card the Spotify HUD uses, so the two match.
@@ -41,8 +41,8 @@ public final class FpsCounterModule extends Module {
    }
 
    public boolean hasWork(boolean editing) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      return this.isEnabled() && (editing || mc.world != null && !mc.options.hudHidden);
+      Minecraft mc = Minecraft.getInstance();
+      return this.isEnabled() && (editing || mc.level != null && !mc.options.hideGui);
    }
 
    public void render(boolean editing) {
@@ -51,9 +51,9 @@ public final class FpsCounterModule extends Module {
          return;
       }
 
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       float s = ImGuiManager.getInstance().uiScale() * this.scale.get();
-      int fps = Math.max(0, mc.getCurrentFps());
+      int fps = Math.max(0, mc.getFps());
       String text = this.label.get() ? fps + " FPS" : Integer.toString(fps);
       ImFont font = ImGuiManager.getInstance().hudTextFont();
       int px = Math.round(TEXT_PX * s);

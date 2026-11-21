@@ -11,12 +11,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.Level;
 
 /**
  * A small stand-in for Meteor's Starscript: replaces {@code {name}} tokens in presence messages.
@@ -34,7 +34,7 @@ final class Placeholders {
    }
 
    static String apply(String message) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       Matcher matcher = TOKEN.matcher(message);
       StringBuilder out = new StringBuilder();
       while (matcher.find()) {
@@ -46,32 +46,32 @@ final class Placeholders {
       return out.toString();
    }
 
-   private static String resolve(MinecraftClient mc, String name) {
+   private static String resolve(Minecraft mc, String name) {
       return switch (name) {
-         case "player", "player.name" -> mc.getSession().getUsername();
+         case "player", "player.name" -> mc.getUser().getName();
          case "server", "server.name", "world" -> serverName(mc);
          case "health", "player.health" -> withPlayer(mc, p -> number(p.player.getHealth()));
-         case "hunger", "player.hunger" -> withPlayer(mc, p -> Integer.toString(p.player.getHungerManager().getFoodLevel()));
+         case "hunger", "player.hunger" -> withPlayer(mc, p -> Integer.toString(p.player.getFoodData().getFoodLevel()));
          case "x", "player.x" -> withPlayer(mc, p -> Integer.toString(p.player.getBlockX()));
          case "y", "player.y" -> withPlayer(mc, p -> Integer.toString(p.player.getBlockY()));
          case "z", "player.z" -> withPlayer(mc, p -> Integer.toString(p.player.getBlockZ()));
          case "dimension", "player.dimension" -> dimension(mc);
          case "biome", "player.biome" -> biome(mc);
-         case "fps" -> Integer.toString(mc.getCurrentFps());
+         case "fps" -> Integer.toString(mc.getFps());
          case "ping" -> ping(mc);
          case "version", "venti.version" -> FabricLoader.getInstance()
             .getModContainer("venti")
             .map(c -> c.getMetadata().getVersion().getFriendlyString())
             .orElse("");
-         case "mc_version" -> SharedConstants.getGameVersion().name();
+         case "mc_version" -> SharedConstants.getCurrentVersion().name();
          case "time" -> LocalTime.now().format(TIME);
-         case "server.difficulty" -> mc.world != null ? mc.world.getDifficulty().getName() : "";
-         case "server.player_count" -> mc.getNetworkHandler() != null ? Integer.toString(mc.getNetworkHandler().getPlayerList().size()) : "0";
+         case "server.difficulty" -> mc.level != null ? mc.level.getDifficulty().getKey() : "";
+         case "server.player_count" -> mc.getConnection() != null ? Integer.toString(mc.getConnection().getOnlinePlayers().size()) : "0";
          default -> null;
       };
    }
 
-   private static String withPlayer(MinecraftClient mc, Function<MinecraftClient, String> value) {
+   private static String withPlayer(Minecraft mc, Function<Minecraft, String> value) {
       return mc.player != null ? value.apply(mc) : "";
    }
 
@@ -80,56 +80,56 @@ final class Placeholders {
    }
 
    /** Singleplayer world name, server address, or "realms", like Meteor's {@code Utils.getWorldName()}. */
-   private static String serverName(MinecraftClient mc) {
-      if (mc.isInSingleplayer()) {
-         return mc.getServer() != null && mc.world != null ? mc.getServer().getSaveProperties().getLevelName() : "";
+   private static String serverName(Minecraft mc) {
+      if (mc.isLocalServer()) {
+         return mc.getSingleplayerServer() != null && mc.level != null ? mc.getSingleplayerServer().getWorldData().getLevelName() : "";
       }
 
-      ServerInfo entry = mc.getCurrentServerEntry();
+      ServerData entry = mc.getCurrentServer();
       if (entry == null) {
          return "";
       }
 
-      return entry.isRealm() ? "realms" : entry.address;
+      return entry.isRealm() ? "realms" : entry.ip;
    }
 
-   private static String dimension(MinecraftClient mc) {
-      if (mc.world == null) {
+   private static String dimension(Minecraft mc) {
+      if (mc.level == null) {
          return "";
       }
 
-      if (mc.world.getRegistryKey() == World.OVERWORLD) {
+      if (mc.level.dimension() == Level.OVERWORLD) {
          return "Overworld";
-      } else if (mc.world.getRegistryKey() == World.NETHER) {
+      } else if (mc.level.dimension() == Level.NETHER) {
          return "Nether";
-      } else if (mc.world.getRegistryKey() == World.END) {
+      } else if (mc.level.dimension() == Level.END) {
          return "End";
       }
 
-      return title(mc.world.getRegistryKey().getValue().getPath());
+      return title(mc.level.dimension().identifier().getPath());
    }
 
-   private static String biome(MinecraftClient mc) {
-      if (mc.player == null || mc.world == null) {
+   private static String biome(Minecraft mc) {
+      if (mc.player == null || mc.level == null) {
          return "";
       }
 
-      return mc.world
-         .getRegistryManager()
-         .getOptional(RegistryKeys.BIOME)
+      return mc.level
+         .registryAccess()
+         .lookup(Registries.BIOME)
          .map(registry -> {
-            Identifier id = registry.getId(mc.world.getBiome(mc.player.getBlockPos()).value());
+            Identifier id = registry.getKey(mc.level.getBiome(mc.player.blockPosition()).value());
             return id == null ? "Unknown" : title(id.getPath());
          })
          .orElse("Unknown");
    }
 
-   private static String ping(MinecraftClient mc) {
-      if (mc.getNetworkHandler() == null || mc.player == null) {
+   private static String ping(Minecraft mc) {
+      if (mc.getConnection() == null || mc.player == null) {
          return "0";
       }
 
-      PlayerListEntry entry = mc.getNetworkHandler().getPlayerListEntry(mc.player.getUuid());
+      PlayerInfo entry = mc.getConnection().getPlayerInfo(mc.player.getUUID());
       return Integer.toString(entry != null ? entry.getLatency() : 0);
    }
 

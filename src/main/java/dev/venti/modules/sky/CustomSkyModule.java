@@ -14,10 +14,10 @@ import dev.venti.modules.spotify.sky.SkyTexture;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.network.chat.Component;
 
 /** Replaces the overworld sky with a picture or animated GIF wrapped around the whole sky. */
 public final class CustomSkyModule extends Module {
@@ -82,7 +82,7 @@ public final class CustomSkyModule extends Module {
          float seconds = (System.nanoTime() % 3_600_000_000_000L) / 1.0E9F;
          float offset = this.spin.get() * seconds / 360.0F % 1.0F;
          float bottom = this.mapping.is("Dome") ? 0.95F : 2.22F;
-         float light = this.darkenAtNight.get() ? daylight(MinecraftClient.getInstance().world, tickDelta) : 1.0F;
+         float light = this.darkenAtNight.get() ? daylight(Minecraft.getInstance().level, tickDelta) : 1.0F;
          int shade = Math.round(light * 255.0F);
          int color = 0xFF000000 | shade << 16 | shade << 8 | shade;
          this.canvas.sphere(texture, Math.round(this.repeat.get()), offset, bottom, color);
@@ -120,7 +120,7 @@ public final class CustomSkyModule extends Module {
          } catch (RuntimeException e) {
             this.failed = true;
             LOGGER.warn("[Venti] Custom Sky could not load {}", this.loaded, e);
-            this.chat(Text.literal("couldn't load " + this.loaded).formatted(Formatting.RED));
+            this.chat(Component.literal("couldn't load " + this.loaded).withStyle(ChatFormatting.RED));
          }
 
          this.loading = null;
@@ -157,11 +157,11 @@ public final class CustomSkyModule extends Module {
    }
 
    /** 1 at midday, down to 0.25 at midnight, following the vanilla day cycle. */
-   private static float daylight(ClientWorld world, float tickDelta) {
+   private static float daylight(ClientLevel world, float tickDelta) {
       if (world == null) {
          return 1.0F;
       } else {
-         double day = ((world.getTimeOfDay() % 24000L) + tickDelta) / 24000.0;
+         double day = ((world.getDayTime() % 24000L) + tickDelta) / 24000.0;
          float sun = (float)Math.cos((day - 0.25) * Math.PI * 2.0);
          return Math.max(0.25F, Math.min(1.0F, 0.6F + sun * 0.6F));
       }

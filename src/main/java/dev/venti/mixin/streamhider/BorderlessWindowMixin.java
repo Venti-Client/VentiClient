@@ -1,10 +1,10 @@
 package dev.venti.mixin.streamhider;
 
+import com.mojang.blaze3d.platform.Monitor;
+import com.mojang.blaze3d.platform.ScreenManager;
+import com.mojang.blaze3d.platform.VideoMode;
+import com.mojang.blaze3d.platform.Window;
 import dev.venti.modules.streamhider.BorderlessFullscreen;
-import net.minecraft.client.util.Monitor;
-import net.minecraft.client.util.MonitorTracker;
-import net.minecraft.client.util.VideoMode;
-import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,11 +22,11 @@ public abstract class BorderlessWindowMixin implements BorderlessFullscreen.Swit
    private long handle;
    @Shadow
    @Final
-   private MonitorTracker monitorTracker;
+   private ScreenManager screenManager;
    @Shadow
    private boolean fullscreen;
    @Shadow
-   private boolean currentFullscreen;
+   private boolean actuallyFullscreen;
    @Shadow
    private int windowedX;
    @Shadow
@@ -46,10 +46,10 @@ public abstract class BorderlessWindowMixin implements BorderlessFullscreen.Swit
    @Unique
    private boolean venti$borderless;
 
-   @Inject(method = "updateWindowRegion()V", at = @At("HEAD"), cancellable = true)
+   @Inject(method = "setMode()V", at = @At("HEAD"), cancellable = true)
    private void venti$setMode(CallbackInfo ci) {
       if (this.fullscreen && BorderlessFullscreen.wanted()) {
-         Monitor monitor = this.monitorTracker.getMonitor((Window)(Object)this);
+         Monitor monitor = this.screenManager.findBestMonitor((Window)(Object)this);
          if (monitor != null) {
             boolean exclusive = GLFW.glfwGetWindowMonitor(this.handle) != 0L;
             if (!exclusive && !this.venti$borderless) {
@@ -59,9 +59,9 @@ public abstract class BorderlessWindowMixin implements BorderlessFullscreen.Swit
                this.windowedHeight = this.height;
             }
 
-            VideoMode mode = monitor.getCurrentVideoMode();
-            this.x = monitor.getViewportX();
-            this.y = monitor.getViewportY();
+            VideoMode mode = monitor.getCurrentMode();
+            this.x = monitor.getX();
+            this.y = monitor.getY();
             this.width = mode.getWidth();
             this.height = mode.getHeight();
             GLFW.glfwSetWindowAttrib(this.handle, GLFW.GLFW_DECORATED, GLFW.GLFW_FALSE);
@@ -95,6 +95,6 @@ public abstract class BorderlessWindowMixin implements BorderlessFullscreen.Swit
 
    @Override
    public void venti$reapplyMode() {
-      this.currentFullscreen = !this.fullscreen;
+      this.actuallyFullscreen = !this.fullscreen;
    }
 }

@@ -1,49 +1,48 @@
 package dev.venti.modules.world;
 
-import dev.venti.module.Module;
-import dev.venti.module.ModuleCategory;
-import dev.venti.config.BooleanSetting;
-import dev.venti.config.ColorSetting;
-import dev.venti.config.ModeSetting;
-import dev.venti.config.NumberSetting;
-
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.TextureFormat;
-import com.mojang.blaze3d.vertex.VertexFormat.DrawMode;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import dev.venti.config.BooleanSetting;
+import dev.venti.config.ColorSetting;
+import dev.venti.config.ModeSetting;
+import dev.venti.config.NumberSetting;
+import dev.venti.module.Module;
+import dev.venti.module.ModuleCategory;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.List;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.ResourceTexture;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.client.render.LayeringTransform;
-import net.minecraft.client.render.RenderSetup;
-import net.minecraft.client.texture.MipmapStrategy;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.util.Identifier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.texture.MipmapHelper;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.VertexConsumerProvider.Immediate;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.LayeringTransform;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.texture.MipmapGenerator;
+import net.minecraft.client.renderer.texture.MipmapStrategy;
+import net.minecraft.client.renderer.texture.SimpleTexture;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 
 @Environment(EnvType.CLIENT)
 public final class JumpCirclesModule extends Module {
    public static volatile JumpCirclesModule active;
-   public static final Identifier LOGO_TEXTURE = Identifier.of("venti", "textures/misc/jump_circle_logo.png");
-   public static final Identifier LOGO_GLOW_TEXTURE = Identifier.of("venti", "textures/misc/jump_circle_logo_glow.png");
+   public static final Identifier LOGO_TEXTURE = Identifier.fromNamespaceAndPath("venti", "textures/misc/jump_circle_logo.png");
+   public static final Identifier LOGO_GLOW_TEXTURE = Identifier.fromNamespaceAndPath("venti", "textures/misc/jump_circle_logo_glow.png");
    private static final String COLOR_ACCENT = "Accent";
    private static final String COLOR_CUSTOM = "Custom";
    private static final int MAX_RINGS = 24;
@@ -114,10 +113,10 @@ public final class JumpCirclesModule extends Module {
    public static void onJump(LivingEntity entity) {
       JumpCirclesModule module = active;
       if (module != null) {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         if (entity == mc.player && mc.world != null) {
-            module.syncLevel(mc.world);
-            module.spawn(entity.getX(), entity.getY(), entity.getZ(), entity.getYaw());
+         Minecraft mc = Minecraft.getInstance();
+         if (entity == mc.player && mc.level != null) {
+            module.syncLevel(mc.level);
+            module.spawn(entity.getX(), entity.getY(), entity.getZ(), entity.getYRot());
          }
       }
    }
@@ -149,7 +148,7 @@ public final class JumpCirclesModule extends Module {
       return (long)(this.duration.get() * 1.0E9);
    }
 
-   private void syncLevel(ClientWorld level) {
+   private void syncLevel(ClientLevel level) {
       int key = System.identityHashCode(level);
       if (key != this.levelKey) {
          this.levelKey = key;
@@ -161,8 +160,8 @@ public final class JumpCirclesModule extends Module {
 
    @Override
    protected void onTick() {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      ClientWorld level = mc.world;
+      Minecraft mc = Minecraft.getInstance();
+      ClientLevel level = mc.level;
       if (level == null) {
          this.clear();
       } else {
@@ -173,10 +172,10 @@ public final class JumpCirclesModule extends Module {
             }
          } else {
             this.tick++;
-            List<AbstractClientPlayerEntity> players = level.getPlayers();
+            List<AbstractClientPlayer> players = level.players();
 
             for (int i = 0; i < players.size(); i++) {
-               AbstractClientPlayerEntity player = players.get(i);
+               AbstractClientPlayer player = players.get(i);
                if (player != mc.player) {
                   JumpCirclesModule.Lift lift = (JumpCirclesModule.Lift)this.lifts.get(player.getId());
                   if (lift == null) {
@@ -199,12 +198,12 @@ public final class JumpCirclesModule extends Module {
       }
    }
 
-   private void track(AbstractClientPlayerEntity player, JumpCirclesModule.Lift lift) {
-      if (player.isOnGround()) {
+   private void track(AbstractClientPlayer player, JumpCirclesModule.Lift lift) {
+      if (player.onGround()) {
          lift.x = player.getX();
          lift.y = player.getY();
          lift.z = player.getZ();
-         lift.yaw = player.getYaw();
+         lift.yaw = player.getYRot();
          lift.airTicks = -1;
          lift.judged = false;
       } else if (!lift.judged) {
@@ -220,11 +219,11 @@ public final class JumpCirclesModule extends Module {
       }
    }
 
-   private static boolean canLeaveRing(AbstractClientPlayerEntity player) {
-      return !player.hasVehicle()
-         && !player.isGliding()
-         && !player.isInFluid()
-         && !player.isClimbing()
+   private static boolean canLeaveRing(AbstractClientPlayer player) {
+      return !player.isPassenger()
+         && !player.isFallFlying()
+         && !player.isInLiquid()
+         && !player.onClimbable()
          && player.hurtTime == 0
          && !player.isSpectator()
          && !player.isInvisible();
@@ -237,7 +236,7 @@ public final class JumpCirclesModule extends Module {
       }
    }
 
-   private void render(Vec3d camera) {
+   private void render(Vec3 camera) {
       long now = System.nanoTime();
       this.expire(now);
       if (this.count != 0) {
@@ -247,7 +246,7 @@ public final class JumpCirclesModule extends Module {
          float life = (float)this.durationNanos();
          float core = 0.025F + 0.02F * radiusMax;
          int coreRgb = towardsWhite(rgb, 0.45F);
-         Immediate buffers = MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers();
+         BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
          if (this.logo.get()) {
             float alpha = (argb >>> 24) / 255.0F;
             VertexConsumer out = buffers.getBuffer(JumpCirclesModule.Logo.GLOW_TYPE);
@@ -259,7 +258,7 @@ public final class JumpCirclesModule extends Module {
                }
             }
 
-            buffers.draw(JumpCirclesModule.Logo.GLOW_TYPE);
+            buffers.endBatch(JumpCirclesModule.Logo.GLOW_TYPE);
             out = buffers.getBuffer(JumpCirclesModule.Logo.TYPE);
 
             for (int nx = 0; nx < this.count; nx++) {
@@ -269,7 +268,7 @@ public final class JumpCirclesModule extends Module {
                }
             }
 
-            buffers.draw(JumpCirclesModule.Logo.TYPE);
+            buffers.endBatch(JumpCirclesModule.Logo.TYPE);
          }
 
          VertexConsumer out = buffers.getBuffer(JumpCirclesModule.Ring.TYPE);
@@ -293,11 +292,11 @@ public final class JumpCirclesModule extends Module {
             }
          }
 
-         buffers.draw(JumpCirclesModule.Ring.TYPE);
+         buffers.endBatch(JumpCirclesModule.Ring.TYPE);
       }
    }
 
-   private boolean pose(int slot, long now, float life, float radiusMax, Vec3d camera) {
+   private boolean pose(int slot, long now, float life, float radiusMax, Vec3 camera) {
       float cx = (float)(this.ringX[slot] - camera.x);
       float cy = (float)(this.ringY[slot] + 0.015 - camera.y);
       float cz = (float)(this.ringZ[slot] - camera.z);
@@ -336,10 +335,10 @@ public final class JumpCirclesModule extends Module {
          float az = (fz - fx) * half;
          float bx = (fx - fz) * half;
          float bz = (fz + fx) * half;
-         out.vertex(x + ax, y, z + az).texture(0.0F, 0.0F).color(argb);
-         out.vertex(x + bx, y, z + bz).texture(1.0F, 0.0F).color(argb);
-         out.vertex(x - ax, y, z - az).texture(1.0F, 1.0F).color(argb);
-         out.vertex(x - bx, y, z - bz).texture(0.0F, 1.0F).color(argb);
+         out.addVertex(x + ax, y, z + az).setUv(0.0F, 0.0F).setColor(argb);
+         out.addVertex(x + bx, y, z + bz).setUv(1.0F, 0.0F).setColor(argb);
+         out.addVertex(x - ax, y, z - az).setUv(1.0F, 1.0F).setColor(argb);
+         out.addVertex(x - bx, y, z - bz).setUv(0.0F, 1.0F).setColor(argb);
       }
    }
 
@@ -353,10 +352,10 @@ public final class JumpCirclesModule extends Module {
          float sinA = SIN[from];
          float cosB = COS[to];
          float sinB = SIN[to];
-         out.vertex(x + cosA * r0, y, z + sinA * r0).color(c0);
-         out.vertex(x + cosB * r0, y, z + sinB * r0).color(c0);
-         out.vertex(x + cosB * r1, y, z + sinB * r1).color(c1);
-         out.vertex(x + cosA * r1, y, z + sinA * r1).color(c1);
+         out.addVertex(x + cosA * r0, y, z + sinA * r0).setColor(c0);
+         out.addVertex(x + cosB * r0, y, z + sinB * r0).setColor(c0);
+         out.addVertex(x + cosB * r1, y, z + sinB * r1).setColor(c1);
+         out.addVertex(x + cosA * r1, y, z + sinA * r1).setColor(c1);
       }
    }
 
@@ -396,57 +395,57 @@ public final class JumpCirclesModule extends Module {
 
    @Environment(EnvType.CLIENT)
    private static final class Logo {
-      static final RenderPipeline PIPELINE = RenderPipeline.builder(new Snippet[]{RenderPipelines.TRANSFORMS_AND_PROJECTION_SNIPPET})
-         .withLocation(Identifier.of("venti", "pipeline/jump_circle_logo"))
+      static final RenderPipeline PIPELINE = RenderPipeline.builder(new Snippet[]{RenderPipelines.MATRICES_PROJECTION_SNIPPET})
+         .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/jump_circle_logo"))
          .withVertexShader("core/position_tex_color")
          .withFragmentShader("core/position_tex_color")
          .withSampler("Sampler0")
          .withBlend(BlendFunction.TRANSLUCENT)
          .withDepthWrite(false)
          .withCull(false)
-         .withVertexFormat(VertexFormats.POSITION_TEXTURE_COLOR, DrawMode.QUADS)
+         .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, Mode.QUADS)
          .build();
-      static final RenderLayer TYPE = RenderLayer.of(
+      static final RenderType TYPE = RenderType.create(
          "venti_jump_circle_logo",
-         RenderSetup.builder(PIPELINE).texture("Sampler0", JumpCirclesModule.LOGO_TEXTURE).layeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).build()
+         RenderSetup.builder(PIPELINE).withTexture("Sampler0", JumpCirclesModule.LOGO_TEXTURE).setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).createRenderSetup()
       );
-      static final RenderLayer GLOW_TYPE = RenderLayer.of(
+      static final RenderType GLOW_TYPE = RenderType.create(
          "venti_jump_circle_logo_glow",
-         RenderSetup.builder(PIPELINE).texture("Sampler0", JumpCirclesModule.LOGO_GLOW_TEXTURE).layeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).build()
+         RenderSetup.builder(PIPELINE).withTexture("Sampler0", JumpCirclesModule.LOGO_GLOW_TEXTURE).setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).createRenderSetup()
       );
 
       static {
-         MinecraftClient.getInstance().getTextureManager().registerTexture(JumpCirclesModule.LOGO_TEXTURE, new JumpCirclesModule.LogoTexture(JumpCirclesModule.LOGO_TEXTURE));
-         MinecraftClient.getInstance()
+         Minecraft.getInstance().getTextureManager().registerAndLoad(JumpCirclesModule.LOGO_TEXTURE, new JumpCirclesModule.LogoTexture(JumpCirclesModule.LOGO_TEXTURE));
+         Minecraft.getInstance()
             .getTextureManager()
-            .registerTexture(JumpCirclesModule.LOGO_GLOW_TEXTURE, new JumpCirclesModule.LogoTexture(JumpCirclesModule.LOGO_GLOW_TEXTURE));
+            .registerAndLoad(JumpCirclesModule.LOGO_GLOW_TEXTURE, new JumpCirclesModule.LogoTexture(JumpCirclesModule.LOGO_GLOW_TEXTURE));
       }
    }
 
    @Environment(EnvType.CLIENT)
-   private static final class LogoTexture extends ResourceTexture {
+   private static final class LogoTexture extends SimpleTexture {
       LogoTexture(Identifier id) {
          super(id);
       }
 
       // $VF: Could not verify finally blocks. A semaphore variable has been added to preserve control flow.
       // Please report this to the Vineflower issue tracker, at https://github.com/Vineflower/vineflower/issues with a copy of the class file (if you have the rights to distribute it!)
-      protected void load(NativeImage image) {
+      protected void doLoad(NativeImage image) {
          int levels = 32 - Integer.numberOfLeadingZeros(Math.min(image.getWidth(), image.getHeight()));
-         NativeImage[] mips = MipmapHelper.getMipmapLevelsImages(this.getId(), new NativeImage[]{image}, levels - 1, MipmapStrategy.MEAN, 0.0F);
+         NativeImage[] mips = MipmapGenerator.generateMipLevels(this.resourceId(), new NativeImage[]{image}, levels - 1, MipmapStrategy.MEAN, 0.0F);
          boolean var11 = false /* VF: Semaphore variable */;
 
          try {
             var11 = true;
             GpuDevice level = RenderSystem.getDevice();
             this.close();
-            this.glTexture = level.createTexture(this.getId()::toString, 5, TextureFormat.RGBA8, image.getWidth(), image.getHeight(), 1, levels);
-            this.glTextureView = level.createTextureView(this.glTexture);
+            this.texture = level.createTexture(this.resourceId()::toString, 5, TextureFormat.RGBA8, image.getWidth(), image.getHeight(), 1, levels);
+            this.textureView = level.createTextureView(this.texture);
             CommandEncoder encoder = level.createCommandEncoder();
 
             for (int levelx = 0; levelx < levels; levelx++) {
                NativeImage mip = mips[levelx];
-               encoder.writeToTexture(this.glTexture, mip, levelx, 0, 0, 0, mip.getWidth(), mip.getHeight(), 0, 0);
+               encoder.writeToTexture(this.texture, mip, levelx, 0, 0, 0, mip.getWidth(), mip.getHeight(), 0, 0);
             }
 
             var11 = false;
@@ -462,14 +461,14 @@ public final class JumpCirclesModule extends Module {
             mips[level].close();
          }
 
-         this.sampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR, true);
+         this.sampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR, true);
       }
    }
 
    @Environment(EnvType.CLIENT)
    private static final class Ring {
-      static final RenderLayer TYPE = RenderLayer.of(
-         "venti_jump_circles", RenderSetup.builder(RenderPipelines.DEBUG_QUADS).layeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).build()
+      static final RenderType TYPE = RenderType.create(
+         "venti_jump_circles", RenderSetup.builder(RenderPipelines.DEBUG_QUADS).setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).createRenderSetup()
       );
    }
 }

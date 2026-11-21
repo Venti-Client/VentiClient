@@ -1,17 +1,17 @@
 package dev.venti.mixin.hud;
 
 import java.util.Map;
-import net.minecraft.entity.player.ItemCooldownManager;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemCooldowns;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /** Reads the local player's cooldown groups for the HUD cooldown tray. */
-@Mixin(ItemCooldownManager.class)
+@Mixin(ItemCooldowns.class)
 public interface ItemCooldownManagerAccessor {
-   @Accessor("entries")
+   @Accessor("cooldowns")
    Map<Identifier, ?> venti$Cooldowns();
 
-   @Accessor("tick")
+   @Accessor("tickCount")
    int venti$TickCount();
 }

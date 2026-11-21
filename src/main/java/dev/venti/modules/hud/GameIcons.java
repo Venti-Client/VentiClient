@@ -10,14 +10,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -42,13 +42,13 @@ final class GameIcons {
    private GameIcons() {
    }
 
-   static ThemeImages.Texture effect(RegistryEntry<StatusEffect> effect) {
-      Identifier id = effect.getKey().<Identifier>map(RegistryKey::getValue).orElse(null);
-      return id == null ? null : texture(Identifier.of(id.getNamespace(), "textures/mob_effect/" + id.getPath() + ".png"));
+   static ThemeImages.Texture effect(Holder<MobEffect> effect) {
+      Identifier id = effect.unwrapKey().<Identifier>map(ResourceKey::identifier).orElse(null);
+      return id == null ? null : texture(Identifier.fromNamespaceAndPath(id.getNamespace(), "textures/mob_effect/" + id.getPath() + ".png"));
    }
 
    static ThemeImages.Texture block(String name) {
-      return texture(Identifier.ofVanilla("textures/block/" + name + ".png"));
+      return texture(Identifier.withDefaultNamespace("textures/block/" + name + ".png"));
    }
 
    static ThemeImages.Texture item(Item item) {
@@ -61,11 +61,11 @@ final class GameIcons {
          return cached;
       }
 
-      Identifier id = Registries.ITEM.getId(item);
+      Identifier id = BuiltInRegistries.ITEM.getKey(item);
       String path = ITEM_ALIASES.getOrDefault(id.getPath(), id.getPath());
-      ThemeImages.Texture texture = texture(Identifier.of(id.getNamespace(), "textures/item/" + path + ".png"));
+      ThemeImages.Texture texture = texture(Identifier.fromNamespaceAndPath(id.getNamespace(), "textures/item/" + path + ".png"));
       if (texture == null) {
-         texture = texture(Identifier.of(id.getNamespace(), "textures/block/" + path + ".png"));
+         texture = texture(Identifier.fromNamespaceAndPath(id.getNamespace(), "textures/block/" + path + ".png"));
       }
 
       if (texture == null) {
@@ -121,7 +121,7 @@ final class GameIcons {
    private static ThemeImages.Texture texture(Identifier path) {
       ThemeImages.Texture texture = TEXTURES.get(path);
       if (texture == null && !MISSING.contains(path)) {
-         try (InputStream in = MinecraftClient.getInstance().getResourceManager().open(path)) {
+         try (InputStream in = Minecraft.getInstance().getResourceManager().open(path)) {
             texture = decode(in.readAllBytes());
          } catch (RuntimeException | IOException e) {
             texture = null;

@@ -1,29 +1,29 @@
 package dev.venti.mixin.character;
 
-import dev.venti.modules.character.CharacterLayer;
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.modules.character.AvatarModule;
+import dev.venti.modules.character.CharacterLayer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-import net.minecraft.client.render.entity.PlayerEntityRenderer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.entity.PlayerLikeEntity;
-import net.minecraft.client.network.ClientPlayerLikeEntity;
-import net.minecraft.util.Identifier;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.render.entity.model.PlayerEntityModel;
-import net.minecraft.client.model.ModelPart;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.EntityRendererFactory.Context;
+import net.minecraft.client.entity.ClientAvatarEntity;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.EntityRendererProvider.Context;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.Avatar;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Environment(EnvType.CLIENT)
-@Mixin({PlayerEntityRenderer.class})
-public abstract class MixinCharacterAvatarRenderer<T extends PlayerLikeEntity & ClientPlayerLikeEntity> extends LivingEntityRenderer<T, PlayerEntityRenderState, PlayerEntityModel> {
-   protected MixinCharacterAvatarRenderer(Context context, PlayerEntityModel model, float shadowRadius) {
+@Mixin({AvatarRenderer.class})
+public abstract class MixinCharacterAvatarRenderer<T extends Avatar & ClientAvatarEntity> extends LivingEntityRenderer<T, AvatarRenderState, PlayerModel> {
+   protected MixinCharacterAvatarRenderer(Context context, PlayerModel model, float shadowRadius) {
       super(context, model, shadowRadius);
    }
 
@@ -32,26 +32,26 @@ public abstract class MixinCharacterAvatarRenderer<T extends PlayerLikeEntity & 
       at = {@At("TAIL")}
    )
    private void venti$addCharacterLayer(Context context, boolean slim, CallbackInfo ci) {
-      this.addFeature(new CharacterLayer(this));
+      this.addLayer(new CharacterLayer(this));
    }
 
    @Inject(
-      method = {"updateRenderState(Lnet/minecraft/entity/PlayerLikeEntity;Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;F)V"},
+      method = {"extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V"},
       at = {@At("TAIL")}
    )
-   private void venti$extractCharacter(PlayerLikeEntity entity, PlayerEntityRenderState state, float partialTick, CallbackInfo ci) {
+   private void venti$extractCharacter(Avatar entity, AvatarRenderState state, float partialTick, CallbackInfo ci) {
       AvatarModule.extract(entity, state);
    }
 
    @Inject(
-      method = {"renderArm"},
+      method = {"renderHand"},
       at = {@At("HEAD")},
       cancellable = true
    )
    private void venti$characterFirstPersonHand(
-      MatrixStack poseStack, OrderedRenderCommandQueue collector, int light, Identifier skin, ModelPart arm, boolean sleeve, CallbackInfo ci
+      PoseStack poseStack, SubmitNodeCollector collector, int light, Identifier skin, ModelPart arm, boolean sleeve, CallbackInfo ci
    ) {
-      if (CharacterLayer.firstPersonHand((PlayerEntityModel)this.getModel(), poseStack, collector, light, arm)) {
+      if (CharacterLayer.firstPersonHand((PlayerModel)this.getModel(), poseStack, collector, light, arm)) {
          ci.cancel();
       }
    }

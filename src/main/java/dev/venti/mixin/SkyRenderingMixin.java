@@ -1,36 +1,36 @@
 package dev.venti.mixin;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.modules.sky.CustomSkyModule;
 import dev.venti.modules.spotify.sky.SkyLyrics;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.SkyRendering;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.world.MoonPhase;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.SkyRenderer;
+import net.minecraft.world.level.MoonPhase;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(SkyRendering.class)
+@Mixin(SkyRenderer.class)
 public abstract class SkyRenderingMixin {
    /** Custom Sky draws its picture in place of the vanilla sky dome. */
-   @Inject(method = "renderTopSky", at = @At("HEAD"), cancellable = true)
+   @Inject(method = "renderSkyDisc", at = @At("HEAD"), cancellable = true)
    private void venti$customSky(int color, CallbackInfo ci) {
       CustomSkyModule sky = CustomSkyModule.active();
-      if (sky != null && sky.render(MinecraftClient.getInstance().getRenderTickCounter().getTickProgress(false))) {
+      if (sky != null && sky.render(Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false))) {
          ci.cancel();
       }
    }
 
-   @Inject(method = "renderSkyDark", at = @At("HEAD"), cancellable = true)
+   @Inject(method = "renderDarkDisc", at = @At("HEAD"), cancellable = true)
    private void venti$noDarkBelowHorizon(CallbackInfo ci) {
       if (CustomSkyModule.active() != null) {
          ci.cancel();
       }
    }
 
-   @Inject(method = "renderGlowingSky", at = @At("HEAD"), cancellable = true)
-   private void venti$noSunset(MatrixStack matrices, float angle, int color, CallbackInfo ci) {
+   @Inject(method = "renderSunriseAndSunset", at = @At("HEAD"), cancellable = true)
+   private void venti$noSunset(PoseStack matrices, float angle, int color, CallbackInfo ci) {
       CustomSkyModule sky = CustomSkyModule.active();
       if (sky != null && sky.hideSunset()) {
          ci.cancel();
@@ -38,7 +38,7 @@ public abstract class SkyRenderingMixin {
    }
 
    @Inject(method = "renderSun", at = @At("HEAD"), cancellable = true)
-   private void venti$noSun(float alpha, MatrixStack matrices, CallbackInfo ci) {
+   private void venti$noSun(float alpha, PoseStack matrices, CallbackInfo ci) {
       CustomSkyModule sky = CustomSkyModule.active();
       if (sky != null && sky.hideSunMoon()) {
          ci.cancel();
@@ -46,7 +46,7 @@ public abstract class SkyRenderingMixin {
    }
 
    @Inject(method = "renderMoon", at = @At("HEAD"), cancellable = true)
-   private void venti$noMoon(MoonPhase phase, float alpha, MatrixStack matrices, CallbackInfo ci) {
+   private void venti$noMoon(MoonPhase phase, float alpha, PoseStack matrices, CallbackInfo ci) {
       CustomSkyModule sky = CustomSkyModule.active();
       if (sky != null && sky.hideSunMoon()) {
          ci.cancel();
@@ -54,7 +54,7 @@ public abstract class SkyRenderingMixin {
    }
 
    @Inject(method = "renderStars", at = @At("HEAD"), cancellable = true)
-   private void venti$noStars(float brightness, MatrixStack matrices, CallbackInfo ci) {
+   private void venti$noStars(float brightness, PoseStack matrices, CallbackInfo ci) {
       CustomSkyModule sky = CustomSkyModule.active();
       if (sky != null && sky.hideStars()) {
          ci.cancel();
@@ -62,9 +62,9 @@ public abstract class SkyRenderingMixin {
    }
 
    /** Sky lyrics are painted onto the sky right after the sun, moon and stars. */
-   @Inject(method = "renderCelestialBodies", at = @At("TAIL"))
+   @Inject(method = "renderSunMoonAndStars", at = @At("TAIL"))
    private void venti$afterCelestials(
-      MatrixStack matrices, float sunAngle, float moonAngle, float starAngle, MoonPhase moonPhase, float rainBrightness, float starBrightness, CallbackInfo ci
+      PoseStack matrices, float sunAngle, float moonAngle, float starAngle, MoonPhase moonPhase, float rainBrightness, float starBrightness, CallbackInfo ci
    ) {
       SkyLyrics.render();
    }

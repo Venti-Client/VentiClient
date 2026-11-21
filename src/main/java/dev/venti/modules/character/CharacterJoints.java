@@ -3,11 +3,11 @@ package dev.venti.modules.character;
 import dev.venti.modules.character.kit.Bone;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-import net.minecraft.util.SwingAnimationType;
-import net.minecraft.util.Arm;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.client.render.entity.model.BipedEntityModel.ArmPose;
+import net.minecraft.client.model.HumanoidModel.ArmPose;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.item.SwingAnimationType;
 
 @Environment(EnvType.CLIENT)
 final class CharacterJoints {
@@ -22,8 +22,8 @@ final class CharacterJoints {
    private CharacterJoints() {
    }
 
-   static float angle(PlayerEntityRenderState state, Bone bone, float swing) {
-      float fade = !state.isGliding && !state.usingRiptide ? 1.0F - state.leaningPitch * 0.8F : 0.0F;
+   static float angle(AvatarRenderState state, Bone bone, float swing) {
+      float fade = !state.isFallFlying && !state.isAutoSpinAttack ? 1.0F - state.swimAmount * 0.8F : 0.0F;
       if (fade <= 0.0F) {
          return 0.0F;
       } else if (bone.leg()) {
@@ -33,14 +33,14 @@ final class CharacterJoints {
       }
    }
 
-   private static float knee(PlayerEntityRenderState state, Bone bone) {
-      if (state.hasVehicle) {
+   private static float knee(AvatarRenderState state, Bone bone) {
+      if (state.isPassenger) {
          return AvatarModule.seat(state);
       } else {
-         float speed = Math.min(1.0F, state.limbSwingAmplitude / state.limbAmplitudeInverse);
-         float phase = state.limbSwingAnimationProgress * 0.6662F + (bone == Bone.LEFT_LEG ? (float) Math.PI : 0.0F);
-         float flex = speed * (0.1F + 0.85F * Math.max(0.0F, MathHelper.sin(phase)));
-         if (state.isInSneakingPose) {
+         float speed = Math.min(1.0F, state.walkAnimationSpeed / state.speedValue);
+         float phase = state.walkAnimationPos * 0.6662F + (bone == Bone.LEFT_LEG ? (float) Math.PI : 0.0F);
+         float flex = speed * (0.1F + 0.85F * Math.max(0.0F, Mth.sin(phase)));
+         if (state.isCrouching) {
             flex += 0.62F;
          }
 
@@ -48,14 +48,14 @@ final class CharacterJoints {
       }
    }
 
-   private static float elbow(PlayerEntityRenderState state, Bone bone, float swing) {
+   private static float elbow(AvatarRenderState state, Bone bone, float swing) {
       boolean right = bone == Bone.RIGHT_ARM;
       ArmPose pose = right ? state.rightArmPose : state.leftArmPose;
       ArmPose other = right ? state.leftArmPose : state.rightArmPose;
       if (other.isTwoHanded()) {
          return 0.0F;
       } else {
-         float speed = Math.min(1.0F, state.limbSwingAmplitude / state.limbAmplitudeInverse);
+         float speed = Math.min(1.0F, state.walkAnimationSpeed / state.speedValue);
 
          float flex = switch (pose) {
             case EMPTY -> 0.16F + 0.45F * Math.max(0.0F, -swing) + 0.3F * speed;
@@ -67,13 +67,13 @@ final class CharacterJoints {
          if (flex <= 0.0F) {
             return 0.0F;
          } else {
-            if (state.isInSneakingPose) {
+            if (state.isCrouching) {
                flex += 0.2F;
             }
 
-            Arm arm = right ? Arm.RIGHT : Arm.LEFT;
-            if (state.handSwingProgress > 0.0F && state.preferredArm == arm && state.swingAnimationType == SwingAnimationType.WHACK) {
-               flex += 0.6F * MathHelper.sin(state.handSwingProgress * (float) Math.PI);
+            HumanoidArm arm = right ? HumanoidArm.RIGHT : HumanoidArm.LEFT;
+            if (state.attackTime > 0.0F && state.attackArm == arm && state.swingAnimationType == SwingAnimationType.WHACK) {
+               flex += 0.6F * Mth.sin(state.attackTime * (float) Math.PI);
             }
 
             return Math.min(1.6F, flex);

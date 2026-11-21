@@ -23,9 +23,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,8 +144,8 @@ public final class SpotifyHud extends Module {
             this.lyrics = null;
          }
 
-         this.chat(Text.literal("Not supported").formatted(Formatting.RED)
-            .append(Text.literal(", only the Spotify app on Windows, macOS and Linux works").formatted(Formatting.GRAY)));
+         this.chat(Component.literal("Not supported").withStyle(ChatFormatting.RED)
+            .append(Component.literal(", only the Spotify app on Windows, macOS and Linux works").withStyle(ChatFormatting.GRAY)));
       } else {
          SpotifyHud.Poller started = new SpotifyHud.Poller();
          synchronized (this.publishLock) {

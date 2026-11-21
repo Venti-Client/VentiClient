@@ -1,8 +1,8 @@
 package dev.venti.modules.spotify.hud;
 
-import dev.venti.modules.spotify.SpotifyHud;
 import dev.venti.config.Settings;
 import dev.venti.imgui.ImGuiManager;
+import dev.venti.modules.spotify.SpotifyHud;
 import dev.venti.modules.spotify.spotify.AlbumArt;
 import dev.venti.modules.spotify.spotify.DisplayText;
 import dev.venti.modules.spotify.spotify.Lyrics;
@@ -25,8 +25,8 @@ import java.util.Map;
 import java.util.function.IntPredicate;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryUtil;
 
@@ -57,10 +57,10 @@ public final class SpotifyHudRenderer {
 
    /** True when the card has anything to draw this frame, so ImGui can stay idle otherwise. */
    public boolean hasWork(boolean editMode) {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       if (editMode) {
          return true;
-      } else if (client.world == null || client.options.hudHidden) {
+      } else if (client.level == null || client.options.hideGui) {
          if (this.spotifyArtTexture != null) {
             this.releaseSpotifyArt();
          }
@@ -73,17 +73,17 @@ public final class SpotifyHudRenderer {
    }
 
    public void render(boolean editMode) {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       SpotifyHud module = SpotifyHud.get();
       Settings settings = module.settings();
-      this.chatInput = client.currentScreen instanceof ChatScreen;
+      this.chatInput = client.screen instanceof ChatScreen;
       this.spotifyButtonsShown = this.spotifyButtonsDrawn;
       this.spotifyButtonsDrawn = false;
       float dt = Math.max(ImGui.getIO().getDeltaTime(), 0.001F);
       float screenW = ImGui.getIO().getDisplaySizeX();
       float screenH = ImGui.getIO().getDisplaySizeY();
       boolean shown = SpotifyHud.shouldShowHud();
-      if (client.world != null || editMode) {
+      if (client.level != null || editMode) {
          this.screenLyrics.render(ImGui.getBackgroundDrawList(), editMode, screenW, screenH);
       } else if (this.screenLyrics.visible()) {
          this.screenLyrics.release();

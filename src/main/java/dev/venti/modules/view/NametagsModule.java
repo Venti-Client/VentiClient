@@ -1,31 +1,31 @@
 package dev.venti.modules.view;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.LightmapTextureManager;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-import net.minecraft.client.render.item.ItemRenderState;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.font.TextRenderer.TextLayerType;
-import net.minecraft.item.ItemDisplayContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.RaycastContext;
-import net.minecraft.world.World;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font.DisplayMode;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
 /**
@@ -71,7 +71,7 @@ public final class NametagsModule extends Module {
       String pingText;
       int pingColor;
       String distanceText;
-      ItemRenderState item;
+      ItemStackRenderState item;
 
       /** False when blocks hide the player from the camera; the tag is then not drawn at all. */
       public boolean visible() {
@@ -83,23 +83,23 @@ public final class NametagsModule extends Module {
     * Called at the end of PlayerEntityRenderer.updateRenderState, after vanilla decided whether this player has a nametag
     * ({@code state.displayName}). Returns null when there is nothing for the module to restyle.
     */
-   public static Tag capture(AbstractClientPlayerEntity player, PlayerEntityRenderState state, float tickProgress) {
+   public static Tag capture(AbstractClientPlayer player, AvatarRenderState state, float tickProgress) {
       NametagsModule module = instance;
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (module == null || !module.isEnabled() || state.displayName == null || mc.world == null) {
+      Minecraft mc = Minecraft.getInstance();
+      if (module == null || !module.isEnabled() || state.nameTag == null || mc.level == null) {
          return null;
       }
 
       Tag tag = new Tag();
-      Camera camera = mc.gameRenderer.getCamera();
-      Vec3d eye = camera.getCameraPos();
-      tag.visible = canSee(mc.world, eye, player, tickProgress);
+      Camera camera = mc.gameRenderer.getMainCamera();
+      Vec3 eye = camera.position();
+      tag.visible = canSee(mc.level, eye, player, tickProgress);
       if (!tag.visible) {
          return tag;
       }
 
-      if (module.ping.get() && mc.getNetworkHandler() != null) {
-         PlayerListEntry info = mc.getNetworkHandler().getPlayerListEntry(player.getUuid());
+      if (module.ping.get() && mc.getConnection() != null) {
+         PlayerInfo info = mc.getConnection().getPlayerInfo(player.getUUID());
          if (info != null) {
             int latency = info.getLatency();
             tag.pingText = latency + "ms";
@@ -108,14 +108,14 @@ public final class NametagsModule extends Module {
       }
 
       if (module.distance.get()) {
-         tag.distanceText = Math.round((float)Math.sqrt(state.squaredDistanceToCamera)) + "m";
+         tag.distanceText = Math.round((float)Math.sqrt(state.distanceToCameraSq)) + "m";
       }
 
       if (module.heldItem.get()) {
-         ItemStack main = player.getMainHandStack();
+         ItemStack main = player.getMainHandItem();
          if (!main.isEmpty()) {
-            ItemRenderState item = new ItemRenderState();
-            mc.getItemModelManager().updateForLivingEntity(item, main, ItemDisplayContext.GUI, player);
+            ItemStackRenderState item = new ItemStackRenderState();
+            mc.getItemModelResolver().updateForLiving(item, main, ItemDisplayContext.GUI, player);
             if (!item.isEmpty()) {
                tag.item = item;
             }
@@ -129,18 +129,18 @@ public final class NametagsModule extends Module {
     * Line of sight from the camera to the player's head, eyes or body centre; any one clear ray counts.
     * Uses the camera-collision ("visual") block shapes, so glass and similar see-through blocks do not hide the tag.
     */
-   private static boolean canSee(World world, Vec3d from, AbstractClientPlayerEntity player, float tickProgress) {
-      Vec3d base = player.getLerpedPos(tickProgress);
-      double height = player.getHeight();
-      Vec3d[] targets = {
+   private static boolean canSee(Level world, Vec3 from, AbstractClientPlayer player, float tickProgress) {
+      Vec3 base = player.getPosition(tickProgress);
+      double height = player.getBbHeight();
+      Vec3[] targets = {
          base.add(0.0, height + 0.1, 0.0),
-         base.add(0.0, player.getStandingEyeHeight(), 0.0),
+         base.add(0.0, player.getEyeHeight(), 0.0),
          base.add(0.0, height * 0.5, 0.0)
       };
-      MinecraftClient mc = MinecraftClient.getInstance();
-      for (Vec3d to : targets) {
-         RaycastContext context = new RaycastContext(from, to, RaycastContext.ShapeType.VISUAL, RaycastContext.FluidHandling.NONE, mc.getCameraEntity() != null ? mc.getCameraEntity() : player);
-         if (world.raycast(context).getType() == HitResult.Type.MISS) {
+      Minecraft mc = Minecraft.getInstance();
+      for (Vec3 to : targets) {
+         ClipContext context = new ClipContext(from, to, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, mc.getCameraEntity() != null ? mc.getCameraEntity() : player);
+         if (world.clip(context).getType() == HitResult.Type.MISS) {
             return true;
          }
       }
@@ -149,76 +149,76 @@ public final class NametagsModule extends Module {
    }
 
    /** Draws the restyled tag at vanilla's label anchor. Everything uses depth-tested layers (no see-through pass). */
-   public static void render(PlayerEntityRenderState state, Tag tag, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState) {
+   public static void render(AvatarRenderState state, Tag tag, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
       NametagsModule module = instance;
-      if (module == null || state.nameLabelPos == null) {
+      if (module == null || state.nameTagAttachment == null) {
          return;
       }
 
-      MinecraftClient mc = MinecraftClient.getInstance();
-      TextRenderer font = mc.textRenderer;
-      Text name = state.displayName;
-      int nameW = font.getWidth(name);
-      int pingW = tag.pingText != null ? font.getWidth(tag.pingText) : 0;
-      int distW = tag.distanceText != null ? font.getWidth(tag.distanceText) : 0;
+      Minecraft mc = Minecraft.getInstance();
+      Font font = mc.font;
+      Component name = state.nameTag;
+      int nameW = font.width(name);
+      int pingW = tag.pingText != null ? font.width(tag.pingText) : 0;
+      int distW = tag.distanceText != null ? font.width(tag.distanceText) : 0;
       boolean hasItem = tag.item != null;
       boolean secondRow = hasItem || tag.distanceText != null;
       int row1W = nameW + (tag.pingText != null ? 5 + pingW : 0);
       int row2W = (hasItem ? ICON_SIZE : 0) + (hasItem && distW > 0 ? TEXT_GAP : 0) + distW;
       int panelW = Math.max(row1W, row2W) + PADDING * 2;
       int panelH = PADDING * 2 + 9 + (secondRow ? ROW_GAP + ICON_SIZE : 0);
-      float fade = state.sneaking ? 0.5F : 1.0F;
+      float fade = state.isDiscrete ? 0.5F : 1.0F;
       float surface = Math.max(0.0F, Math.min(1.0F, module.backgroundAlpha.get())) * fade;
       float chrome = Math.min(1.0F, surface * 2.0F);
       boolean shadow = surface < 0.55F;
-      int light = LightmapTextureManager.applyEmission(state.light, 2);
+      int light = LightTexture.lightCoordsWithEmission(state.lightCoords, 2);
       float s = 0.025F * Math.max(0.5F, Math.min(2.0F, module.scale.get()));
 
-      matrices.push();
-      matrices.translate(state.nameLabelPos.x, state.nameLabelPos.y + 0.5, state.nameLabelPos.z);
-      matrices.multiply(cameraState.orientation);
+      matrices.pushPose();
+      matrices.translate(state.nameTagAttachment.x, state.nameTagAttachment.y + 0.5, state.nameTagAttachment.z);
+      matrices.mulPose(cameraState.orientation);
       matrices.scale(s, -s, s);
       int x = -panelW / 2;
       int y = 9 + PADDING - panelH;
 
       // Panel slightly behind the text plane so the text never z-fights with it.
-      matrices.push();
+      matrices.pushPose();
       matrices.translate(0.0F, 0.0F, -0.5F);
       int panel = Math.round(surface * 255.0F) << 24 | PANEL_RGB;
       int border = scaleAlpha(BORDER, chrome);
-      queue.submitCustom(matrices, RenderLayers.textBackground(), (entry, vc) -> {
-         Matrix4f m = entry.getPositionMatrix();
+      queue.submitCustomGeometry(matrices, RenderTypes.textBackground(), (entry, vc) -> {
+         Matrix4f m = entry.pose();
          roundedRect(vc, m, x, y, x + panelW, y + panelH, panel, light);
          roundedBorder(vc, m, x, y, x + panelW, y + panelH, border, light);
       });
-      matrices.pop();
+      matrices.popPose();
 
       int left = x + PADDING;
       int textY = y + PADDING;
-      queue.submitText(matrices, left, textY, name.asOrderedText(), shadow, TextLayerType.NORMAL, light, scaleAlpha(TEXT_NAME, fade), 0, 0);
+      queue.submitText(matrices, left, textY, name.getVisualOrderText(), shadow, DisplayMode.NORMAL, light, scaleAlpha(TEXT_NAME, fade), 0, 0);
       if (tag.pingText != null) {
-         queue.submitText(matrices, left + nameW + 5, textY, Text.literal(tag.pingText).asOrderedText(), shadow, TextLayerType.NORMAL, light, scaleAlpha(tag.pingColor, fade), 0, 0);
+         queue.submitText(matrices, left + nameW + 5, textY, Component.literal(tag.pingText).getVisualOrderText(), shadow, DisplayMode.NORMAL, light, scaleAlpha(tag.pingColor, fade), 0, 0);
       }
 
       if (secondRow) {
          int rowY = textY + 9 + ROW_GAP;
          int cursor = left;
          if (hasItem) {
-            matrices.push();
+            matrices.pushPose();
             matrices.translate(cursor + ICON_SIZE / 2.0F, rowY + ICON_SIZE / 2.0F, 0.5F);
             // Same orientation as GUI item icons; depth squashed so 3D block models stay in front of the panel.
             matrices.scale(ICON_SIZE, -ICON_SIZE, 0.5F);
-            tag.item.render(matrices, queue, light, OverlayTexture.DEFAULT_UV, 0);
-            matrices.pop();
+            tag.item.submit(matrices, queue, light, OverlayTexture.NO_OVERLAY, 0);
+            matrices.popPose();
             cursor += ICON_SIZE + TEXT_GAP;
          }
 
          if (tag.distanceText != null) {
-            queue.submitText(matrices, cursor, rowY + 2, Text.literal(tag.distanceText).asOrderedText(), shadow, TextLayerType.NORMAL, light, scaleAlpha(TEXT_LABEL, fade), 0, 0);
+            queue.submitText(matrices, cursor, rowY + 2, Component.literal(tag.distanceText).getVisualOrderText(), shadow, DisplayMode.NORMAL, light, scaleAlpha(TEXT_LABEL, fade), 0, 0);
          }
       }
 
-      matrices.pop();
+      matrices.popPose();
    }
 
    private static int scaleAlpha(int argb, float factor) {
@@ -231,10 +231,10 @@ public final class NametagsModule extends Module {
          return;
       }
 
-      vc.vertex(m, x1, y1, 0.0F).color(color).light(light);
-      vc.vertex(m, x1, y2, 0.0F).color(color).light(light);
-      vc.vertex(m, x2, y2, 0.0F).color(color).light(light);
-      vc.vertex(m, x2, y1, 0.0F).color(color).light(light);
+      vc.addVertex(m, x1, y1, 0.0F).setColor(color).setLight(light);
+      vc.addVertex(m, x1, y2, 0.0F).setColor(color).setLight(light);
+      vc.addVertex(m, x2, y2, 0.0F).setColor(color).setLight(light);
+      vc.addVertex(m, x2, y1, 0.0F).setColor(color).setLight(light);
    }
 
    private static void roundedRect(VertexConsumer vc, Matrix4f m, int x1, int y1, int x2, int y2, int color, int light) {

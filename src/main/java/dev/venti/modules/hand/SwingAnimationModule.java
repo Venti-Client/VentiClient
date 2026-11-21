@@ -1,5 +1,7 @@
 package dev.venti.modules.hand;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
@@ -7,15 +9,13 @@ import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
 import java.util.Arrays;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.Monster;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RotationAxis;
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 
 /** Swing Animation: replaces the first-person swing with one of several styles (ported from Anubis by 4ldenz). */
 public final class SwingAnimationModule extends Module {
@@ -43,12 +43,12 @@ public final class SwingAnimationModule extends Module {
       this.style.onChange(this::cacheStyle);
       this.cacheStyle();
       AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
-         if (world.isClient() && player == MinecraftClient.getInstance().player) {
+         if (world.isClientSide() && player == Minecraft.getInstance().player) {
             lastHit = entity;
             lastHitAt = System.currentTimeMillis();
          }
 
-         return ActionResult.PASS;
+         return InteractionResult.PASS;
       });
    }
 
@@ -77,8 +77,8 @@ public final class SwingAnimationModule extends Module {
          return true;
       }
 
-      Entity looked = MinecraftClient.getInstance().targetedEntity;
-      return (looked instanceof PlayerEntity || looked instanceof Monster) && looked instanceof LivingEntity && looked.isAlive();
+      Entity looked = Minecraft.getInstance().crosshairPickEntity;
+      return (looked instanceof Player || looked instanceof Enemy) && looked instanceof LivingEntity && looked.isAlive();
    }
 
    public boolean covers(boolean mainHand) {
@@ -89,7 +89,7 @@ public final class SwingAnimationModule extends Module {
       return !this.styled ? ticks : Math.max(1, Math.round(ticks / this.tempo.get()));
    }
 
-   public void pose(MatrixStack pose, float progress, int side) {
+   public void pose(PoseStack pose, float progress, int side) {
       if (progress > 0.0F && progress < 1.0F) {
          float k = this.intensity.get();
          switch (this.styleIndex) {
@@ -103,57 +103,57 @@ public final class SwingAnimationModule extends Module {
       }
    }
 
-   private static void khopesh(MatrixStack pose, float t, int side, float k) {
+   private static void khopesh(PoseStack pose, float t, int side, float k) {
       float a = crest(t, 0.3F) * k;
-      pose.translate(side * -0.3F * a, 0.05F * MathHelper.sin((float)Math.PI * t) * k, -0.1F * a);
-      pose.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * 64.0F * a));
-      pose.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * 48.0F * a));
-      pose.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-14.0F * a));
+      pose.translate(side * -0.3F * a, 0.05F * Mth.sin((float)Math.PI * t) * k, -0.1F * a);
+      pose.mulPose(Axis.YP.rotationDegrees(side * 64.0F * a));
+      pose.mulPose(Axis.ZP.rotationDegrees(side * 48.0F * a));
+      pose.mulPose(Axis.XP.rotationDegrees(-14.0F * a));
    }
 
-   private static void ankh(MatrixStack pose, float t, int side, float k) {
-      float raise = t < 0.28F ? MathHelper.sin((float)Math.PI * t / 0.28F) * k : 0.0F;
+   private static void ankh(PoseStack pose, float t, int side, float k) {
+      float raise = t < 0.28F ? Mth.sin((float)Math.PI * t / 0.28F) * k : 0.0F;
       float strike = t <= 0.18F ? 0.0F : crest((t - 0.18F) / 0.82F, 0.28F) * k;
       pose.translate(side * -0.06F * strike, 0.16F * raise - 0.1F * strike, 0.06F * raise - 0.24F * strike);
-      pose.multiply(RotationAxis.POSITIVE_X.rotationDegrees(30.0F * raise - 105.0F * strike));
-      pose.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * 10.0F * strike));
+      pose.mulPose(Axis.XP.rotationDegrees(30.0F * raise - 105.0F * strike));
+      pose.mulPose(Axis.ZP.rotationDegrees(side * 10.0F * strike));
    }
 
-   private static void sickle(MatrixStack pose, float t, int side, float k) {
+   private static void sickle(PoseStack pose, float t, int side, float k) {
       float a = crest(t, 0.42F);
       float hook = a * a * k;
       a *= k;
       pose.translate(side * -0.1F * a, -0.24F * a, -0.06F * a);
-      pose.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * -100.0F * a));
-      pose.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * 30.0F * hook));
-      pose.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-25.0F * a));
+      pose.mulPose(Axis.ZP.rotationDegrees(side * -100.0F * a));
+      pose.mulPose(Axis.YP.rotationDegrees(side * 30.0F * hook));
+      pose.mulPose(Axis.XP.rotationDegrees(-25.0F * a));
    }
 
-   private static void scarab(MatrixStack pose, float t, int side, float k) {
+   private static void scarab(PoseStack pose, float t, int side, float k) {
       float turn = (float)(Math.PI * 2) * t;
-      float cos = MathHelper.cos(turn);
-      float sin = MathHelper.sin(turn);
-      float body = MathHelper.sin((float)Math.PI * t) * k;
+      float cos = Mth.cos(turn);
+      float sin = Mth.sin(turn);
+      float body = Mth.sin((float)Math.PI * t) * k;
       float r = 0.17F * k;
       pose.translate(side * r * 0.6F * (cos - 1.0F), r * sin, -0.12F * body);
-      pose.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * 40.0F * sin * k));
-      pose.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-40.0F * body));
+      pose.mulPose(Axis.ZP.rotationDegrees(side * 40.0F * sin * k));
+      pose.mulPose(Axis.XP.rotationDegrees(-40.0F * body));
    }
 
-   private static void horus(MatrixStack pose, float t, int side, float k) {
-      float beat = MathHelper.sin((float)(Math.PI * 2) * t);
+   private static void horus(PoseStack pose, float t, int side, float k) {
+      float beat = Mth.sin((float)(Math.PI * 2) * t);
       float w = beat * beat * (t < 0.5F ? 1.0F : 0.65F) * k;
       pose.translate(side * -0.08F * w, 0.06F * w, -0.1F * w);
-      pose.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * 26.0F * w));
-      pose.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-50.0F * w));
-      pose.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * -22.0F * w));
+      pose.mulPose(Axis.YP.rotationDegrees(side * 26.0F * w));
+      pose.mulPose(Axis.XP.rotationDegrees(-50.0F * w));
+      pose.mulPose(Axis.ZP.rotationDegrees(side * -22.0F * w));
    }
 
-   private static void sphinx(MatrixStack pose, float t, int side, float k) {
-      float a = (0.5F - 0.5F * MathHelper.cos((float)(Math.PI * 2) * t)) * k;
+   private static void sphinx(PoseStack pose, float t, int side, float k) {
+      float a = (0.5F - 0.5F * Mth.cos((float)(Math.PI * 2) * t)) * k;
       pose.translate(0.0F, -0.06F * a, -0.1F * a);
-      pose.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-24.0F * a));
-      pose.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * 10.0F * a));
+      pose.mulPose(Axis.XP.rotationDegrees(-24.0F * a));
+      pose.mulPose(Axis.YP.rotationDegrees(side * 10.0F * a));
    }
 
    private static float crest(float t, float peak) {

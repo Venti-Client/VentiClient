@@ -1,16 +1,16 @@
 package dev.venti.mixin.view;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.module.Modules;
 import dev.venti.modules.view.NametagState;
 import dev.venti.modules.view.NametagsModule;
 import dev.venti.modules.view.SkinChangeModule;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.entity.PlayerEntityRenderer;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.PlayerLikeEntity;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.world.entity.Avatar;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -23,30 +23,30 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * nametag decision), and replaces the label drawing only for those players. Nothing is drawn for players vanilla would
  * not label, and the restyled tag is depth-tested and hidden when blocks are in the way.
  */
-@Mixin(PlayerEntityRenderer.class)
+@Mixin(AvatarRenderer.class)
 public abstract class ViewPlayerRendererMixin {
    @Inject(
-      method = "updateRenderState(Lnet/minecraft/entity/PlayerLikeEntity;Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;F)V",
+      method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V",
       at = @At("TAIL")
    )
-   private void venti$updateState(PlayerLikeEntity entity, PlayerEntityRenderState state, float tickProgress, CallbackInfo ci) {
+   private void venti$updateState(Avatar entity, AvatarRenderState state, float tickProgress, CallbackInfo ci) {
       SkinChangeModule skins = Modules.get(SkinChangeModule.class);
       if (skins != null && skins.isEnabled()) {
-         state.skinTextures = skins.skinFor(state.id, state.skinTextures);
+         state.skin = skins.skinFor(state.id, state.skin);
       }
 
-      if (entity instanceof AbstractClientPlayerEntity player) {
+      if (entity instanceof AbstractClientPlayer player) {
          ((NametagState)state).venti$setNametag(NametagsModule.capture(player, state, tickProgress));
       }
    }
 
    @Inject(
-      method = "renderLabelIfPresent(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;Lnet/minecraft/client/render/state/CameraRenderState;)V",
+      method = "submitNameTag(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/CameraRenderState;)V",
       at = @At("HEAD"),
       cancellable = true
    )
-   private void venti$nametag(PlayerEntityRenderState state, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState, CallbackInfo ci) {
-      if (!NametagsModule.active() || state.displayName == null) {
+   private void venti$nametag(AvatarRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState, CallbackInfo ci) {
+      if (!NametagsModule.active() || state.nameTag == null) {
          return;
       }
 

@@ -3,27 +3,27 @@ package dev.venti.modules.world;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.vertex.VertexFormat.DrawMode;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat.Mode;
 import java.nio.ByteBuffer;
 import java.util.OptionalInt;
 import java.util.function.Supplier;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.gl.UniformType;
-import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.util.Identifier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.SimpleFramebuffer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.BufferUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,23 +32,23 @@ import org.slf4j.LoggerFactory;
 final class MotionBlurPass {
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
    private static final RenderPipeline PIPELINE = RenderPipeline.builder(new Snippet[0])
-      .withLocation(Identifier.of("venti", "pipeline/motion_blur"))
+      .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/motion_blur"))
       .withVertexShader("core/screenquad")
-      .withFragmentShader(Identifier.of("venti", "core/motion_blur"))
+      .withFragmentShader(Identifier.fromNamespaceAndPath("venti", "core/motion_blur"))
       .withSampler("InSampler")
       .withUniform("MotionBlurConfig", UniformType.UNIFORM_BUFFER)
       .withBlend(BlendFunction.TRANSLUCENT)
       .withColorWrite(true, false)
       .withDepthWrite(false)
       .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-      .withVertexFormat(VertexFormats.EMPTY, DrawMode.TRIANGLES)
+      .withVertexFormat(DefaultVertexFormat.EMPTY, Mode.TRIANGLES)
       .build();
    private static final Supplier<String> PASS_LABEL = () -> "Venti motion blur";
    private static final Supplier<String> CONFIG_LABEL = () -> "Venti motion blur config";
    private static final int CONFIG_SIZE = 16;
    private static final long STALE_NANOS = 1000000000L;
    private static final float MIN_RETENTION = 0.003921569F;
-   private static SimpleFramebuffer history;
+   private static TextureTarget history;
    private static GpuBuffer config;
    private static GpuBufferSlice configSlice;
    private static ByteBuffer configData;
@@ -62,30 +62,30 @@ final class MotionBlurPass {
    }
 
    static void apply(boolean worldRendered, float retention60) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      Framebuffer main = mc.getFramebuffer();
-      GpuTexture mainColor = main.getColorAttachment();
+      Minecraft mc = Minecraft.getInstance();
+      RenderTarget main = mc.getMainRenderTarget();
+      GpuTexture mainColor = main.getColorTexture();
       if (worldRendered
-         && mc.world != null
-         && mc.isFinishedLoading()
-         && !mc.gameRenderer.isRenderingPanorama()
+         && mc.level != null
+         && mc.isGameLoadFinished()
+         && !mc.gameRenderer.isPanoramicMode()
          && mainColor != null
-         && main.textureWidth > 0
-         && main.textureHeight > 0) {
+         && main.width > 0
+         && main.height > 0) {
          long now = System.nanoTime();
          long gap = now - lastFrameNanos;
          lastFrameNanos = now;
-         int level = System.identityHashCode(mc.world);
+         int level = System.identityHashCode(mc.level);
          if (level != levelKey) {
             levelKey = level;
             primed = false;
          }
 
          if (history == null) {
-            allocate(main.textureWidth, main.textureHeight);
+            allocate(main.width, main.height);
             primed = false;
-         } else if (history.textureWidth != main.textureWidth || history.textureHeight != main.textureHeight) {
-            history.resize(main.textureWidth, main.textureHeight);
+         } else if (history.width != main.width || history.height != main.height) {
+            history.resize(main.width, main.height);
             primed = false;
          }
 
@@ -98,24 +98,24 @@ final class MotionBlurPass {
             }
          }
 
-         encoder.copyTextureToTexture(mainColor, history.getColorAttachment(), 0, 0, 0, 0, 0, main.textureWidth, main.textureHeight);
+         encoder.copyTextureToTexture(mainColor, history.getColorTexture(), 0, 0, 0, 0, 0, main.width, main.height);
          primed = true;
       } else {
          primed = false;
       }
    }
 
-   private static void blend(CommandEncoder encoder, Framebuffer main, float retention) {
+   private static void blend(CommandEncoder encoder, RenderTarget main, float retention) {
       seed = seed + 1 & 63;
       configData.putFloat(0, retention);
       configData.putFloat(4, seed * 7.0F);
       encoder.writeToBuffer(configSlice, configData);
-      RenderPass pass = encoder.createRenderPass(PASS_LABEL, main.getColorAttachmentView(), OptionalInt.empty());
+      RenderPass pass = encoder.createRenderPass(PASS_LABEL, main.getColorTextureView(), OptionalInt.empty());
 
       try {
          pass.setPipeline(PIPELINE);
          pass.setUniform("MotionBlurConfig", configSlice);
-         pass.bindTexture("InSampler", history.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.NEAREST));
+         pass.bindTexture("InSampler", history.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
          pass.draw(0, 3);
       } catch (Throwable var7) {
          if (pass != null) {
@@ -149,7 +149,7 @@ final class MotionBlurPass {
    }
 
    private static void allocate(int width, int height) {
-      history = new SimpleFramebuffer("Venti motion blur history", width, height, false);
+      history = new TextureTarget("Venti motion blur history", width, height, false);
       config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, 16L);
       configSlice = config.slice();
       configData = BufferUtils.createByteBuffer(16);
@@ -157,7 +157,7 @@ final class MotionBlurPass {
 
    static void release() {
       if (history != null) {
-         history.delete();
+         history.destroyBuffers();
          history = null;
       }
 

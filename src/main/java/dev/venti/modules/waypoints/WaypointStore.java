@@ -15,10 +15,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.server.integrated.IntegratedServer;
-import net.minecraft.util.WorldSavePath;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ public final class WaypointStore {
    }
 
    /** Works out the key for the world just joined and loads its file. */
-   public void load(MinecraftClient mc, ServerInfo serverInfo) {
+   public void load(Minecraft mc, ServerData serverInfo) {
       this.saveNow();
       this.waypoints.clear();
       this.key = worldKey(mc, serverInfo);
@@ -137,12 +137,12 @@ public final class WaypointStore {
       return FabricLoader.getInstance().getConfigDir().resolve("venti").resolve("waypoints").resolve(this.key + ".json");
    }
 
-   static String worldKey(MinecraftClient mc, ServerInfo serverInfo) {
-      IntegratedServer server = mc.getServer();
+   static String worldKey(Minecraft mc, ServerData serverInfo) {
+      IntegratedServer server = mc.getSingleplayerServer();
       if (server != null) {
          String folder = null;
          try {
-            Path root = server.getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize();
+            Path root = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
             if (root.getFileName() != null) {
                folder = root.getFileName().toString();
             }
@@ -150,15 +150,15 @@ public final class WaypointStore {
          }
 
          if (folder == null || folder.isBlank()) {
-            folder = server.getSaveProperties().getLevelName();
+            folder = server.getWorldData().getLevelName();
          }
 
          return "sp_" + sanitize(folder);
       }
 
-      ServerInfo info = serverInfo != null ? serverInfo : mc.getCurrentServerEntry();
-      if (info != null && info.address != null && !info.address.isBlank()) {
-         return (info.isRealm() ? "realm_" : "mp_") + sanitize(info.address.trim());
+      ServerData info = serverInfo != null ? serverInfo : mc.getCurrentServer();
+      if (info != null && info.ip != null && !info.ip.isBlank()) {
+         return (info.isRealm() ? "realm_" : "mp_") + sanitize(info.ip.trim());
       }
 
       return "mp_unknown";

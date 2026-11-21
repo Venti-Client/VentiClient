@@ -1,19 +1,18 @@
 package dev.venti.modules.world;
 
+import dev.venti.config.NumberSetting;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-import dev.venti.config.NumberSetting;
-
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 
 @Environment(EnvType.CLIENT)
 public final class TimeChangerModule extends Module {
    public static volatile TimeChangerModule active;
    private final NumberSetting time = this.add("time", new NumberSetting("Time", 0.0F, -20000.0F, 20000.0F).step(1.0F));
-   private ClientWorld trackedLevel;
+   private ClientLevel trackedLevel;
    private long serverDayTime;
    private long appliedDayTime;
 
@@ -24,7 +23,7 @@ public final class TimeChangerModule extends Module {
    @Override
    protected void onEnable() {
       active = this;
-      ClientWorld level = MinecraftClient.getInstance().world;
+      ClientLevel level = Minecraft.getInstance().level;
       if (level != null) {
          this.applyForcedTime(level);
       }
@@ -33,7 +32,7 @@ public final class TimeChangerModule extends Module {
    @Override
    protected void onDisable() {
       active = null;
-      ClientWorld level = MinecraftClient.getInstance().world;
+      ClientLevel level = Minecraft.getInstance().level;
       if (level != null && level == this.trackedLevel) {
          writeDayTime(level, this.currentServerDayTime(level));
       }
@@ -43,7 +42,7 @@ public final class TimeChangerModule extends Module {
 
    @Override
    protected void onTick() {
-      ClientWorld level = MinecraftClient.getInstance().world;
+      ClientLevel level = Minecraft.getInstance().level;
       if (level == null) {
          this.trackedLevel = null;
       } else {
@@ -51,25 +50,25 @@ public final class TimeChangerModule extends Module {
       }
    }
 
-   private void applyForcedTime(ClientWorld level) {
-      this.serverDayTime = level == this.trackedLevel ? this.currentServerDayTime(level) : level.getTimeOfDay();
+   private void applyForcedTime(ClientLevel level) {
+      this.serverDayTime = level == this.trackedLevel ? this.currentServerDayTime(level) : level.getDayTime();
       this.trackedLevel = level;
       this.appliedDayTime = this.forcedDayTime();
       writeDayTime(level, this.appliedDayTime);
    }
 
-   private static void writeDayTime(ClientWorld level, long dayTime) {
-      if (level.getTimeOfDay() != dayTime) {
-         level.getLevelProperties().setTimeOfDay(dayTime);
-         level.getEnvironmentAttributes().tick();
+   private static void writeDayTime(ClientLevel level, long dayTime) {
+      if (level.getDayTime() != dayTime) {
+         level.getLevelData().setDayTime(dayTime);
+         level.environmentAttributes().invalidateTickCache();
       }
    }
 
-   private long currentServerDayTime(ClientWorld level) {
-      return this.serverDayTime + (level.getTimeOfDay() - this.appliedDayTime);
+   private long currentServerDayTime(ClientLevel level) {
+      return this.serverDayTime + (level.getDayTime() - this.appliedDayTime);
    }
 
-   public long interceptServerDayTime(ClientWorld level, long dayTime) {
+   public long interceptServerDayTime(ClientLevel level, long dayTime) {
       this.trackedLevel = level;
       this.serverDayTime = dayTime;
       this.appliedDayTime = this.forcedDayTime();

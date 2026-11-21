@@ -1,5 +1,8 @@
 package dev.venti.modules.character;
 
+import dev.venti.modules.character.gltf.CharacterBake;
+import dev.venti.modules.character.gltf.ImageDecoder;
+import dev.venti.modules.character.kit.BakedDesign;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,9 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import dev.venti.modules.character.gltf.CharacterBake;
-import dev.venti.modules.character.gltf.ImageDecoder;
-import dev.venti.modules.character.kit.BakedDesign;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;

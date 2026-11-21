@@ -1,12 +1,12 @@
 package dev.venti.modules.character;
 
+import com.mojang.blaze3d.platform.Lighting.Entry;
 import dev.venti.modules.character.kit.Lights;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.world.dimension.DimensionType.CardinalLightType;
-import net.minecraft.client.render.DiffuseLighting.Type;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.level.dimension.DimensionType.CardinalLightType;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -20,12 +20,12 @@ public final class CharacterLighting {
    private static final Lights ITEMS_3D = transformed(
       new Matrix4f().scaling(1.0F, -1.0F, 1.0F).rotateYXZ(1.0821041F, 3.2375858F, 0.0F).rotateYXZ((float) (-Math.PI / 8), (float) (Math.PI * 3.0 / 4.0), 0.0F)
    );
-   private static Type entry = Type.LEVEL;
+   private static Entry entry = Entry.LEVEL;
 
    private CharacterLighting() {
    }
 
-   public static void setup(Type current) {
+   public static void setup(Entry current) {
       entry = current;
    }
 
@@ -40,8 +40,8 @@ public final class CharacterLighting {
    }
 
    private static boolean nether() {
-      ClientWorld level = MinecraftClient.getInstance().world;
-      return level != null && level.getDimension().cardinalLightType() == CardinalLightType.NETHER;
+      ClientLevel level = Minecraft.getInstance().level;
+      return level != null && level.dimensionType().cardinalLightType() == CardinalLightType.NETHER;
    }
 
    private static Lights transformed(Matrix4f matrix) {

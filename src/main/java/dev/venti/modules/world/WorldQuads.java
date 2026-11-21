@@ -1,31 +1,31 @@
 package dev.venti.modules.world;
 
+import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.blaze3d.systems.RenderSystem.AutoStorageIndexBuffer;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.systems.RenderSystem.ShapeIndexBuffer;
-import com.mojang.blaze3d.vertex.VertexFormat.DrawMode;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.MeshData;
+import com.mojang.blaze3d.vertex.VertexFormat.Mode;
 import java.util.Arrays;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import com.mojang.blaze3d.systems.ProjectionType;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.render.RawProjectionMatrix;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.util.Identifier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.BufferAllocator;
-import net.minecraft.client.render.BuiltBuffer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.PerspectiveProjectionMatrixBuffer;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
@@ -41,8 +41,8 @@ public final class WorldQuads {
    private static double originX;
    private static double originY;
    private static double originZ;
-   private static BufferAllocator bytes;
-   private static RawProjectionMatrix projectionBuffer;
+   private static ByteBufferBuilder bytes;
+   private static PerspectiveProjectionMatrixBuffer projectionBuffer;
    private final RenderPipeline pipeline;
    private float[] corners = new float[3072];
    private int[] colors = new int[256];
@@ -53,15 +53,15 @@ public final class WorldQuads {
    }
 
    private static RenderPipeline pipeline(String name, DepthTestFunction depth) {
-      return RenderPipeline.builder(new Snippet[]{RenderPipelines.TRANSFORMS_AND_PROJECTION_SNIPPET})
-         .withLocation(Identifier.of("venti", "pipeline/world_visuals_" + name))
+      return RenderPipeline.builder(new Snippet[]{RenderPipelines.MATRICES_PROJECTION_SNIPPET})
+         .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/world_visuals_" + name))
          .withVertexShader("core/position_color")
          .withFragmentShader("core/position_color")
          .withBlend(BlendFunction.TRANSLUCENT)
          .withDepthWrite(false)
          .withDepthTestFunction(depth)
          .withCull(false)
-         .withVertexFormat(VertexFormats.POSITION_COLOR, DrawMode.QUADS)
+         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, Mode.QUADS)
          .build();
    }
 
@@ -70,7 +70,7 @@ public final class WorldQuads {
    }
 
 
-   public static void beginFrame(Vec3d camera) {
+   public static void beginFrame(Vec3 camera) {
       originX = camera.x;
       originY = camera.y;
       originZ = camera.z;
@@ -149,11 +149,11 @@ public final class WorldQuads {
    public static void render(Matrix4f viewRotation, Matrix4f projection) {
       if (TESTED.quads != 0 || TOP.quads != 0) {
          if (projectionBuffer == null) {
-            projectionBuffer = new RawProjectionMatrix("venti world quads");
+            projectionBuffer = new PerspectiveProjectionMatrixBuffer("venti world quads");
          }
 
          RenderSystem.backupProjectionMatrix();
-         RenderSystem.setProjectionMatrix(projectionBuffer.set(projection), ProjectionType.PERSPECTIVE);
+         RenderSystem.setProjectionMatrix(projectionBuffer.getBuffer(projection), ProjectionType.PERSPECTIVE);
 
          try {
             TESTED.draw(viewRotation);
@@ -169,23 +169,23 @@ public final class WorldQuads {
    private void draw(Matrix4f viewRotation) {
       if (this.quads != 0) {
          if (bytes == null) {
-            bytes = new BufferAllocator(this.quads * 4 * VertexFormats.POSITION_COLOR.getVertexSize());
+            bytes = new ByteBufferBuilder(this.quads * 4 * DefaultVertexFormat.POSITION_COLOR.getVertexSize());
          }
 
-         BufferBuilder builder = new BufferBuilder(bytes, DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+         BufferBuilder builder = new BufferBuilder(bytes, Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
          float[] in = this.corners;
          int i = 0;
 
          for (int p = 0; i < this.quads; p += 12) {
             int color = this.colors[i];
-            builder.vertex(in[p], in[p + 1], in[p + 2]).color(color);
-            builder.vertex(in[p + 3], in[p + 4], in[p + 5]).color(color);
-            builder.vertex(in[p + 6], in[p + 7], in[p + 8]).color(color);
-            builder.vertex(in[p + 9], in[p + 10], in[p + 11]).color(color);
+            builder.addVertex(in[p], in[p + 1], in[p + 2]).setColor(color);
+            builder.addVertex(in[p + 3], in[p + 4], in[p + 5]).setColor(color);
+            builder.addVertex(in[p + 6], in[p + 7], in[p + 8]).setColor(color);
+            builder.addVertex(in[p + 9], in[p + 10], in[p + 11]).setColor(color);
             i++;
          }
 
-         BuiltBuffer mesh = builder.endNullable();
+         MeshData mesh = builder.build();
 
          label78: {
             try {
@@ -193,22 +193,22 @@ public final class WorldQuads {
                   break label78;
                }
 
-               GpuBuffer vertices = VertexFormats.POSITION_COLOR.uploadImmediateVertexBuffer(mesh.getBuffer());
-               ShapeIndexBuffer indices = RenderSystem.getSequentialBuffer(DrawMode.QUADS);
-               int indexCount = mesh.getDrawParameters().indexCount();
+               GpuBuffer vertices = DefaultVertexFormat.POSITION_COLOR.uploadImmediateVertexBuffer(mesh.vertexBuffer());
+               AutoStorageIndexBuffer indices = RenderSystem.getSequentialBuffer(Mode.QUADS);
+               int indexCount = mesh.drawState().indexCount();
                GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
-                  .write(viewRotation, new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
-               Framebuffer target = MinecraftClient.getInstance().getFramebuffer();
+                  .writeTransform(viewRotation, new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
+               RenderTarget target = Minecraft.getInstance().getMainRenderTarget();
                RenderPass pass = RenderSystem.getDevice()
                   .createCommandEncoder()
-                  .createRenderPass(() -> "Venti world quads", target.getColorAttachmentView(), OptionalInt.empty(), target.getDepthAttachmentView(), OptionalDouble.empty());
+                  .createRenderPass(() -> "Venti world quads", target.getColorTextureView(), OptionalInt.empty(), target.getDepthTextureView(), OptionalDouble.empty());
 
                try {
                   pass.setPipeline(this.pipeline);
                   RenderSystem.bindDefaultUniforms(pass);
                   pass.setUniform("DynamicTransforms", transforms);
                   pass.setVertexBuffer(0, vertices);
-                  pass.setIndexBuffer(indices.getIndexBuffer(indexCount), indices.getIndexType());
+                  pass.setIndexBuffer(indices.getBuffer(indexCount), indices.type());
                   pass.drawIndexed(0, 0, indexCount, 1);
                } catch (Throwable var15) {
                   if (pass != null) {

@@ -2,8 +2,8 @@ package dev.venti.modules.world;
 
 import dev.venti.module.Module;
 import dev.venti.module.Modules;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.LivingEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ public final class WorldHooks {
 
    /** Called on the client thread when the server reports a totem of undying popping. */
    public static void totemPop(LivingEntity entity) {
-      if (entity == null || entity.isRemoved() || MinecraftClient.getInstance().world == null) {
+      if (entity == null || entity.isRemoved() || Minecraft.getInstance().level == null) {
          return;
       }
 

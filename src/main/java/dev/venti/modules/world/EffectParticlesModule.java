@@ -1,26 +1,25 @@
 package dev.venti.modules.world;
 
-import dev.venti.module.Module;
-import dev.venti.module.ModuleCategory;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
-
+import dev.venti.module.Module;
+import dev.venti.module.ModuleCategory;
 import java.util.function.Consumer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.projectile.PersistentProjectileEntity;
-import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
-import net.minecraft.entity.projectile.TridentEntity;
-import net.minecraft.util.math.Box;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
+import net.minecraft.world.phys.AABB;
 
 @Environment(EnvType.CLIENT)
 public final class EffectParticlesModule extends Module {
@@ -62,9 +61,9 @@ public final class EffectParticlesModule extends Module {
    private final GlyphSwarm swarm = new GlyphSwarm(CAPACITY);
    private final GlyphCanvas canvas = new GlyphCanvas();
    private final GlyphTint palette = new GlyphTint();
-   private final Random random = Random.create();
+   private final RandomSource random = RandomSource.create();
    private final Consumer<LivingEntity> popSink = this::burst;
-   private ClientWorld boundLevel;
+   private ClientLevel boundLevel;
    private long lastFrame;
 
    public EffectParticlesModule() {
@@ -99,7 +98,7 @@ public final class EffectParticlesModule extends Module {
       this.lastFrame = 0L;
    }
 
-   private boolean bind(ClientWorld level) {
+   private boolean bind(ClientLevel level) {
       if (level == null) {
          if (this.boundLevel != null) {
             this.reset();
@@ -124,12 +123,12 @@ public final class EffectParticlesModule extends Module {
 
    @Override
    protected void onTick() {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      ClientPlayerEntity player = mc.player;
-      if (this.bind(mc.world) && player != null) {
+      Minecraft mc = Minecraft.getInstance();
+      LocalPlayer player = mc.player;
+      if (this.bind(mc.level) && player != null) {
          this.refreshPalette();
          if (this.projectiles.get()) {
-            this.trails(mc.world, player);
+            this.trails(mc.level, player);
          }
 
          if (this.footsteps.get()) {
@@ -139,8 +138,8 @@ public final class EffectParticlesModule extends Module {
    }
 
    public void render3D(float partialTick) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (this.bind(mc.world)) {
+      Minecraft mc = Minecraft.getInstance();
+      if (this.bind(mc.level)) {
          long now = System.nanoTime();
          float dt = this.lastFrame == 0L ? 0.0F : Math.min(0.1F, (float)(now - this.lastFrame) / 1.0E9F);
          this.lastFrame = now;
@@ -151,7 +150,7 @@ public final class EffectParticlesModule extends Module {
          this.swarm.trim(this.particleLimit());
          this.swarm.step(dt);
          if (this.swarm.count() != 0) {
-            this.canvas.begin(mc.gameRenderer.getCamera());
+            this.canvas.begin(mc.gameRenderer.getMainCamera());
             this.swarm.draw(this.canvas, 1.0F, this.halo.get());
             this.canvas.submit(false);
          }
@@ -159,51 +158,51 @@ public final class EffectParticlesModule extends Module {
    }
 
    private void burst(LivingEntity entity) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (this.bind(mc.world) && entity.getEntityWorld() == mc.world) {
+      Minecraft mc = Minecraft.getInstance();
+      if (this.bind(mc.level) && entity.level() == mc.level) {
          if (entity != mc.player || this.ownPops.get()) {
             this.refreshPalette();
-            Box box = entity.getBoundingBox();
+            AABB box = entity.getBoundingBox();
             int total = Math.round(this.popBurst.get());
             String mode = this.popGlyph.get();
 
             for (int i = 0; i < total; i++) {
                byte kind = pick(mode, i);
-               double px = box.minX + box.getLengthX() * this.random.nextDouble();
-               double py = box.minY + box.getLengthY() * (0.15 + 0.8 * this.random.nextDouble());
-               double pz = box.minZ + box.getLengthZ() * this.random.nextDouble();
+               double px = box.minX + box.getXsize() * this.random.nextDouble();
+               double py = box.minY + box.getYsize() * (0.15 + 0.8 * this.random.nextDouble());
+               double pz = box.minZ + box.getZsize() * this.random.nextDouble();
                float heading = this.random.nextFloat() * (float) (Math.PI * 2);
                float out = outward(kind) * (0.45F + this.random.nextFloat());
                float up = upward(kind) * (0.55F + 0.8F * this.random.nextFloat());
                this.emit(
-                  kind, px, py, pz, MathHelper.cos(heading) * out, up, MathHelper.sin(heading) * out, 1.0F, 1.0F, this.colorFor(kind, -1)
+                  kind, px, py, pz, Mth.cos(heading) * out, up, Mth.sin(heading) * out, 1.0F, 1.0F, this.colorFor(kind, -1)
                );
             }
          }
       }
    }
 
-   private void trails(ClientWorld level, ClientPlayerEntity player) {
+   private void trails(ClientLevel level, LocalPlayer player) {
       int density = Math.round(this.trailDensity.get());
       String mode = this.trailGlyph.get();
 
-      for (Entity entity : level.getEntities()) {
+      for (Entity entity : level.entitiesForRendering()) {
          int role = this.role(entity);
          if (role != -1) {
-            double dx = entity.getX() - entity.lastX;
-            double dy = entity.getY() - entity.lastY;
-            double dz = entity.getZ() - entity.lastZ;
-            if (!(dx * dx + dy * dy + dz * dz < 9.0E-4) && !(entity.squaredDistanceTo(player) > 6400.0)) {
-               double mid = entity.getHeight() * 0.5;
+            double dx = entity.getX() - entity.xo;
+            double dy = entity.getY() - entity.yo;
+            double dz = entity.getZ() - entity.zo;
+            if (!(dx * dx + dy * dy + dz * dz < 9.0E-4) && !(entity.distanceToSqr(player) > 6400.0)) {
+               double mid = entity.getBbHeight() * 0.5;
 
                for (int i = 0; i < density; i++) {
                   float f = (i + this.random.nextFloat()) / density;
-                  byte kind = pick(mode, entity.age * density + i);
+                  byte kind = pick(mode, entity.tickCount * density + i);
                   this.emit(
                      kind,
-                     entity.lastX + dx * f + this.jitter(0.06F),
-                     entity.lastY + dy * f + mid + this.jitter(0.06F),
-                     entity.lastZ + dz * f + this.jitter(0.06F),
+                     entity.xo + dx * f + this.jitter(0.06F),
+                     entity.yo + dy * f + mid + this.jitter(0.06F),
+                     entity.zo + dz * f + this.jitter(0.06F),
                      this.jitter(0.3F),
                      this.jitter(0.3F) + 0.15F,
                      this.jitter(0.3F),
@@ -217,17 +216,17 @@ public final class EffectParticlesModule extends Module {
       }
    }
 
-   private void steps(ClientPlayerEntity player) {
-      if (player.isOnGround() && !player.isSpectator() && !player.hasVehicle() && !player.isInFluid()) {
-         double dx = player.getX() - player.lastX;
-         double dz = player.getZ() - player.lastZ;
+   private void steps(LocalPlayer player) {
+      if (player.onGround() && !player.isSpectator() && !player.isPassenger() && !player.isInLiquid()) {
+         double dx = player.getX() - player.xo;
+         double dz = player.getZ() - player.zo;
          double speed = Math.sqrt(dx * dx + dz * dz);
          if (!(speed < 0.07)) {
             int count = Math.round(this.stepDensity.get()) + (player.isSprinting() ? 1 : 0);
             String mode = this.stepGlyph.get();
 
             for (int i = 0; i < count; i++) {
-               byte kind = pick(mode, player.age * count + i);
+               byte kind = pick(mode, player.tickCount * count + i);
                double back = 0.2 + 0.3 * this.random.nextDouble();
                this.emit(
                   kind,
@@ -265,11 +264,11 @@ public final class EffectParticlesModule extends Module {
    private int role(Entity entity) {
       if (entity.isRemoved()) {
          return -1;
-      } else if (entity instanceof EnderPearlEntity) {
+      } else if (entity instanceof ThrownEnderpearl) {
          return this.pearls.get() ? 0 : -1;
-      } else if (entity instanceof TridentEntity) {
+      } else if (entity instanceof ThrownTrident) {
          return this.tridents.get() ? 2 : -1;
-      } else if (entity instanceof PersistentProjectileEntity) {
+      } else if (entity instanceof AbstractArrow) {
          return this.arrows.get() ? 1 : -1;
       } else {
          return -1;

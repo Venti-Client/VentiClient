@@ -1,17 +1,17 @@
 package dev.venti.modules.spotify.sky;
 
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
+import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.textures.TextureFormat;
 import java.nio.IntBuffer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.gl.GpuSampler;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.util.ARGB;
 import org.lwjgl.system.MemoryUtil;
 
 @Environment(EnvType.CLIENT)
@@ -51,10 +51,10 @@ public final class SkyTexture implements SkyImage {
                NativeImage image = new NativeImage(w, h, false);
 
                try {
-                  IntBuffer pixels = MemoryUtil.memIntBuffer(image.imageId(), w * h);
+                  IntBuffer pixels = MemoryUtil.memIntBuffer(image.getPointer(), w * h);
 
                   for (int i = 0; i < w * h; i++) {
-                     pixels.put(i, ColorHelper.toAbgr(argb[i]));
+                     pixels.put(i, ARGB.toABGR(argb[i]));
                   }
 
                   device.createCommandEncoder().writeToTexture(texture, image, levelx, 0, 0, 0, w, h, 0, 0);
@@ -91,10 +91,10 @@ public final class SkyTexture implements SkyImage {
 
          SkyTexture e;
          try {
-            IntBuffer pixels = MemoryUtil.memIntBuffer(image.imageId(), width * height);
+            IntBuffer pixels = MemoryUtil.memIntBuffer(image.getPointer(), width * height);
 
             for (int i = 0; i < width * height; i++) {
-               pixels.put(i, ColorHelper.toAbgr(argb[i]));
+               pixels.put(i, ARGB.toABGR(argb[i]));
             }
 
             GpuTexture texture = device.createTexture(() -> label, 5, TextureFormat.RGBA8, width, height, 1, 1);
@@ -136,7 +136,7 @@ public final class SkyTexture implements SkyImage {
    }
 
    GpuSampler sampler() {
-      return RenderSystem.getSamplerCache().get(FilterMode.LINEAR, this.mipmapped);
+      return RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR, this.mipmapped);
    }
 
    @Override

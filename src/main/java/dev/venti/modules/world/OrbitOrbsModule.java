@@ -1,23 +1,22 @@
 package dev.venti.modules.world;
 
-import dev.venti.module.Module;
-import dev.venti.module.ModuleCategory;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
-
+import dev.venti.module.Module;
+import dev.venti.module.ModuleCategory;
 import java.awt.Color;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.util.math.BlockPos.Mutable;
-import net.minecraft.util.math.Direction.Axis;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 @Environment(EnvType.CLIENT)
 public final class OrbitOrbsModule extends Module {
@@ -63,15 +62,15 @@ public final class OrbitOrbsModule extends Module {
    private final BooleanSetting blocks = this.add("block-bounce", new BooleanSetting("Block Bounce", true));
    private final OrbitOrbsModule.Relic[] relics = new OrbitOrbsModule.Relic[32];
    private final GlyphCanvas canvas = new GlyphCanvas();
-   private final Random random = Random.create();
-   private final Mutable cursor = new Mutable();
+   private final RandomSource random = RandomSource.create();
+   private final MutableBlockPos cursor = new MutableBlockPos();
    private final double[] points = new double[564];
    private final double[] raw = new double[186];
    private final double[] near = new double[3];
    private final double[] far = new double[3];
    private int live;
    private int age;
-   private ClientWorld boundLevel;
+   private ClientLevel boundLevel;
 
    public OrbitOrbsModule() {
       super("orbit-orbs", "Orbit Orbs", "Glowing orbs float around you and leave a trail as they move.", ModuleCategory.VISUALS);
@@ -97,7 +96,7 @@ public final class OrbitOrbsModule extends Module {
       this.boundLevel = null;
    }
 
-   private void syncLevel(ClientWorld level) {
+   private void syncLevel(ClientLevel level) {
       if (level != this.boundLevel) {
          this.boundLevel = level;
          this.live = 0;
@@ -106,9 +105,9 @@ public final class OrbitOrbsModule extends Module {
 
    @Override
    protected void onTick() {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      ClientPlayerEntity player = mc.player;
-      ClientWorld level = mc.world;
+      Minecraft mc = Minecraft.getInstance();
+      LocalPlayer player = mc.player;
+      ClientLevel level = mc.level;
       if (player != null && level != null) {
          this.syncLevel(level);
          this.age++;
@@ -122,9 +121,9 @@ public final class OrbitOrbsModule extends Module {
          double px = player.getX();
          double py = player.getY();
          double pz = player.getZ();
-         float height = player.getHeight();
-         float moveX = (float)(px - player.lastX);
-         float moveZ = (float)(pz - player.lastZ);
+         float height = player.getBbHeight();
+         float moveX = (float)(px - player.xo);
+         float moveZ = (float)(pz - player.zo);
          float restitution = this.bounce.get();
 
          for (int i = 0; i < this.live; i++) {
@@ -159,22 +158,22 @@ public final class OrbitOrbsModule extends Module {
    private void place(OrbitOrbsModule.Relic r, double px, double py, double pz) {
       float angle = this.random.nextFloat() * (float) (Math.PI * 2);
       double radius = this.spread.get() * r.orbit;
-      r.x = px + MathHelper.cos(angle) * radius;
+      r.x = px + Mth.cos(angle) * radius;
       r.y = py + 0.15;
-      r.z = pz + MathHelper.sin(angle) * radius;
+      r.z = pz + Mth.sin(angle) * radius;
       r.lastX = r.x;
       r.lastY = r.y;
       r.lastZ = r.z;
-      r.vx = -MathHelper.sin(angle) * 0.03F;
+      r.vx = -Mth.sin(angle) * 0.03F;
       r.vy = 0.14F + 0.08F * this.random.nextFloat();
-      r.vz = MathHelper.cos(angle) * 0.03F;
+      r.vz = Mth.cos(angle) * 0.03F;
       r.placed = true;
       r.placedAt = this.age;
       r.head = 0;
       r.filled = 0;
    }
 
-   private void step(OrbitOrbsModule.Relic r, ClientWorld level, double px, double py, double pz, float height, float moveX, float moveZ, float restitution) {
+   private void step(OrbitOrbsModule.Relic r, ClientLevel level, double px, double py, double pz, float height, float moveX, float moveZ, float restitution) {
       if (!r.placed) {
          if (this.age < r.wakeAt) {
             return;
@@ -189,7 +188,7 @@ public final class OrbitOrbsModule extends Module {
       double dx = r.x - px;
       double dz = r.z - pz;
       double flat = Math.sqrt(dx * dx + dz * dz);
-      double hover = py + 0.35 + r.lift * (height + 0.2) + 0.16 * MathHelper.sin((this.age + r.phase * 16.0F) * 0.045F);
+      double hover = py + 0.35 + r.lift * (height + 0.2) + 0.16 * Mth.sin((this.age + r.phase * 16.0F) * 0.045F);
       double leash = this.spread.get() * 3.0 + 8.0;
       if (!(flat > leash) && !(Math.abs(r.y - hover) > leash)) {
          float nx = flat > 1.0E-4 ? (float)(dx / flat) : 1.0F;
@@ -199,8 +198,8 @@ public final class OrbitOrbsModule extends Module {
          r.vx += nx * pull - nz * swirl + moveX * 0.035F;
          r.vz += nz * pull + nx * swirl + moveZ * 0.035F;
          float wander = (this.age + r.phase * 20.0F) * 0.06F;
-         r.vx = r.vx + MathHelper.sin(wander) * 0.003F;
-         r.vz = r.vz + MathHelper.cos(wander * 1.31F) * 0.003F;
+         r.vx = r.vx + Mth.sin(wander) * 0.003F;
+         r.vz = r.vz + Mth.cos(wander * 1.31F) * 0.003F;
          r.vy -= 0.016F;
          double sink = hover - r.y;
          if (sink > 0.0) {
@@ -289,8 +288,8 @@ public final class OrbitOrbsModule extends Module {
       }
    }
 
-   private boolean solid(ClientWorld level, double x, double y, double z) {
-      this.cursor.set(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z));
+   private boolean solid(ClientLevel level, double x, double y, double z) {
+      this.cursor.set(Mth.floor(x), Mth.floor(y), Mth.floor(z));
       BlockState state = level.getBlockState(this.cursor);
       if (state.isAir()) {
          return false;
@@ -302,21 +301,21 @@ public final class OrbitOrbsModule extends Module {
             double lx = x - this.cursor.getX();
             double ly = y - this.cursor.getY();
             double lz = z - this.cursor.getZ();
-            return lx >= shape.getMin(Axis.X)
-               && lx <= shape.getMax(Axis.X)
-               && ly >= shape.getMin(Axis.Y)
-               && ly <= shape.getMax(Axis.Y)
-               && lz >= shape.getMin(Axis.Z)
-               && lz <= shape.getMax(Axis.Z);
+            return lx >= shape.min(Axis.X)
+               && lx <= shape.max(Axis.X)
+               && ly >= shape.min(Axis.Y)
+               && ly <= shape.max(Axis.Y)
+               && lz >= shape.min(Axis.Z)
+               && lz <= shape.max(Axis.Z);
          }
       }
    }
 
    public void render3D(float partialTick) {
       if (this.live != 0) {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         if (mc.world != null && mc.player != null) {
-            this.canvas.begin(mc.gameRenderer.getCamera());
+         Minecraft mc = Minecraft.getInstance();
+         if (mc.level != null && mc.player != null) {
+            this.canvas.begin(mc.gameRenderer.getMainCamera());
             float pt = partialTick;
             float time = (float)(System.nanoTime() - EPOCH) / 1.0E9F;
             int samples = Math.max(2, Math.min(60, Math.round(this.trailLength.get() * 20.0F)));
@@ -345,9 +344,9 @@ public final class OrbitOrbsModule extends Module {
    private int trail(OrbitOrbsModule.Relic r, float pt, int samples) {
       int m = Math.min(r.filled, samples + 2);
       if (m < 2) {
-         this.points[0] = MathHelper.lerp(pt, r.lastX, r.x);
-         this.points[1] = MathHelper.lerp(pt, r.lastY, r.y);
-         this.points[2] = MathHelper.lerp(pt, r.lastZ, r.z);
+         this.points[0] = Mth.lerp(pt, r.lastX, r.x);
+         this.points[1] = Mth.lerp(pt, r.lastY, r.y);
+         this.points[2] = Mth.lerp(pt, r.lastZ, r.z);
          return 1;
       } else {
          for (int k = 0; k < m; k++) {
@@ -476,8 +475,8 @@ public final class OrbitOrbsModule extends Module {
                   }
                   break;
                case "Aurora": {
-                  int col = lerpRgb(4194208, 11558911, 0.5F + 0.5F * MathHelper.sin(t * 6.0F + time * 1.5F));
-                  float shimmer = 0.45F + 0.55F * Math.abs(MathHelper.sin(k * 0.9F + time * 3.0F));
+                  int col = lerpRgb(4194208, 11558911, 0.5F + 0.5F * Mth.sin(t * 6.0F + time * 1.5F));
+                  float shimmer = 0.45F + 0.55F * Math.abs(Mth.sin(k * 0.9F + time * 3.0F));
                   double tall = extent * 3.2 * t * (0.7F + 0.3F * shimmer);
                   this.curtain(ax, ay, az, bx, by, bz, extent * 3.2 * tb * 0.5, tall * 0.5, 0.0, withAlpha(col, 0.5F * t * shimmer));
                   this.curtain(ax, ay, az, bx, by, bz, extent * 3.2 * tb, tall, extent * 3.2 * tb * 0.5, withAlpha(col, 0.16F * t * shimmer), tall * 0.5);
@@ -645,8 +644,8 @@ public final class OrbitOrbsModule extends Module {
 
          for (int v = 0; v < 3; v++) {
             float angle = (k + v) * (float) (Math.PI * 2) / segments;
-            out[o + 2 + v * 2] = MathHelper.cos(angle);
-            out[o + 3 + v * 2] = MathHelper.sin(angle);
+            out[o + 2 + v * 2] = Mth.cos(angle);
+            out[o + 3 + v * 2] = Mth.sin(angle);
          }
       }
 
@@ -690,12 +689,12 @@ public final class OrbitOrbsModule extends Module {
          return 0.0F;
       } else {
          float inv = 1.0F - t;
-         return 1.0F - inv * inv * inv + 0.22F * MathHelper.sin(t * (float) Math.PI) * inv;
+         return 1.0F - inv * inv * inv + 0.22F * Mth.sin(t * (float) Math.PI) * inv;
       }
    }
 
    private static int lerpRgb(int a, int b, float t) {
-      t = MathHelper.clamp(t, 0.0F, 1.0F);
+      t = Mth.clamp(t, 0.0F, 1.0F);
       int r = (int)((a >> 16 & 0xFF) + ((b >> 16 & 0xFF) - (a >> 16 & 0xFF)) * t);
       int g = (int)((a >> 8 & 0xFF) + ((b >> 8 & 0xFF) - (a >> 8 & 0xFF)) * t);
       int bl = (int)((a & 0xFF) + ((b & 0xFF) - (a & 0xFF)) * t);

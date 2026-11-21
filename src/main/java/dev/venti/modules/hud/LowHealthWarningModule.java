@@ -9,10 +9,10 @@ import dev.venti.module.ModuleCategory;
 import dev.venti.module.Modules;
 import imgui.ImDrawList;
 import imgui.ImGui;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.util.ARGB;
 
 /** Pulses a glow around the screen edges while your health is low (from the Anubis Low Health Warning). */
 public final class LowHealthWarningModule extends Module {
@@ -45,8 +45,8 @@ public final class LowHealthWarningModule extends Module {
    /** HUD layer hook: the module is on and the game screen (or chat) is showing. */
    public static boolean hasOverlayWork() {
       LowHealthWarningModule module = get();
-      MinecraftClient mc = MinecraftClient.getInstance();
-      return module != null && module.isEnabled() && mc.world != null && (mc.currentScreen == null || mc.currentScreen instanceof ChatScreen);
+      Minecraft mc = Minecraft.getInstance();
+      return module != null && module.isEnabled() && mc.level != null && (mc.screen == null || mc.screen instanceof ChatScreen);
    }
 
    /** HUD layer hook, run on every ImGui frame. */
@@ -70,7 +70,7 @@ public final class LowHealthWarningModule extends Module {
    }
 
    private void renderHudOverlay(ImDrawList dl, float screenW, float screenH) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       float dt = Math.min(Math.max(ImGui.getIO().getDeltaTime(), 0.0F), 0.1F);
       long now = System.nanoTime();
       if (now - this.lastFrame > 250000000L) {
@@ -79,10 +79,10 @@ public final class LowHealthWarningModule extends Module {
       }
 
       this.lastFrame = now;
-      ClientPlayerEntity player = mc.player;
-      boolean dead = player == null || player.isDead();
+      LocalPlayer player = mc.player;
+      boolean dead = player == null || player.isDeadOrDying();
       float want = 0.0F;
-      if (!dead && !mc.options.hudHidden && !player.isSpectator() && !player.getAbilities().invulnerable) {
+      if (!dead && !mc.options.hideGui && !player.isSpectator() && !player.getAbilities().invulnerable) {
          float health = player.getHealth() + (this.countAbsorption.get() ? player.getAbsorptionAmount() : 0.0F);
          float limit = this.warnBelow.get();
          if (health < limit) {
@@ -119,7 +119,7 @@ public final class LowHealthWarningModule extends Module {
          if (this.edgeLine.get()) {
             float line = Math.max(2.0F, depth * 0.07F);
             float alpha = this.intensity.get() * shown * (0.2F + 0.55F * beat);
-            int edge = manual ? this.edgeColor.argb() | 0xFF000000 : ColorHelper.lerp(0.5F, accent, -1);
+            int edge = manual ? this.edgeColor.argb() | 0xFF000000 : ARGB.srgbLerp(0.5F, accent, -1);
             frame(dl, screenW, screenH, line, HudChrome.ink(edge, alpha));
          }
       }

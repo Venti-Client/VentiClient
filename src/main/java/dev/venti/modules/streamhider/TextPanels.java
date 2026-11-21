@@ -1,13 +1,13 @@
 package dev.venti.modules.streamhider;
 
+import com.mojang.blaze3d.platform.Window;
 import java.util.List;
-import net.minecraft.client.util.Window;
-import net.minecraft.util.Formatting;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.component.DataComponentTypes;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 final class TextPanels {
    private static final int TOOLTIP_MARGIN = 12;
@@ -60,14 +60,14 @@ final class TextPanels {
    }
 
    static void update(Window win, int scale, int windowX, int windowY) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      int guiW = win.getScaledWidth();
-      int guiH = win.getScaledHeight();
+      Minecraft mc = Minecraft.getInstance();
+      int guiW = win.getGuiScaledWidth();
+      int guiH = win.getGuiScaledHeight();
       updateTooltip(mc, win, scale, windowX, windowY, guiW, guiH);
       updateName(mc, win, scale, windowX, windowY, guiW);
    }
 
-   private static void updateTooltip(MinecraftClient mc, Window win, int scale, int windowX, int windowY, int guiW, int guiH) {
+   private static void updateTooltip(Minecraft mc, Window win, int scale, int windowX, int windowY, int guiW, int guiH) {
       ItemStack stack = tooltipStack;
       if (stack == null) {
          if (tooltipWindow != null) {
@@ -77,20 +77,20 @@ final class TextPanels {
          shownTooltip = null;
       } else {
          if (tooltipWindow == null) {
-            tooltipWindow = new OverlayWindow(win.getHandle());
+            tooltipWindow = new OverlayWindow(win.handle());
          }
 
          boolean changed = stack != shownTooltip
             || stack.getCount() != shownTooltipCount
-            || stack.getDamage() != shownTooltipDamage
+            || stack.getDamageValue() != shownTooltipDamage
             || scale != shownTooltipScale;
          if (changed) {
-            List<Text> lines = Screen.getTooltipFromItem(mc, stack);
+            List<Component> lines = Screen.getTooltipFromItem(mc, stack);
             int w = 0;
             int h = lines.size() == 1 ? -2 : 0;
 
-            for (Text line : lines) {
-               w = Math.max(w, mc.textRenderer.getWidth(line));
+            for (Component line : lines) {
+               w = Math.max(w, mc.font.width(line));
                h += 10;
             }
 
@@ -110,7 +110,7 @@ final class TextPanels {
 
             shownTooltip = stack;
             shownTooltipCount = stack.getCount();
-            shownTooltipDamage = stack.getDamage();
+            shownTooltipDamage = stack.getDamageValue();
             shownTooltipScale = scale;
          }
 
@@ -137,19 +137,19 @@ final class TextPanels {
       }
    }
 
-   private static void updateName(MinecraftClient mc, Window win, int scale, int windowX, int windowY, int guiW) {
+   private static void updateName(Minecraft mc, Window win, int scale, int windowX, int windowY, int guiW) {
       ItemStack stack = nameStack;
       if (stack != null && nameAlpha > 0) {
          if (nameWindow == null) {
-            nameWindow = new OverlayWindow(win.getHandle());
+            nameWindow = new OverlayWindow(win.handle());
          }
 
-         Text name = Text.empty().append(stack.getName()).formatted(stack.getRarity().getFormatting());
-         if (stack.contains(DataComponentTypes.CUSTOM_NAME)) {
-            name = name.copy().formatted(Formatting.ITALIC);
+         Component name = Component.empty().append(stack.getHoverName()).withStyle(stack.getRarity().color());
+         if (stack.has(DataComponents.CUSTOM_NAME)) {
+            name = name.copy().withStyle(ChatFormatting.ITALIC);
          }
 
-         int width = mc.textRenderer.getWidth(name);
+         int width = mc.font.width(name);
          int x = (guiW - width) / 2;
          int screenX = windowX + (x - 2) * scale;
          int screenY = windowY + (nameY - 2) * scale;
@@ -158,7 +158,7 @@ final class TextPanels {
             int boxW = width + 4;
             int boxH = 9 + 4;
             canvas.wrap(nameWindow.pixels(boxW * scale, boxH * scale), nameWindow.stride(), boxW * scale, boxH * scale);
-            int backdrop = mc.options.getTextBackgroundColor(0.0F);
+            int backdrop = mc.options.getBackgroundColor(0.0F);
             if (backdrop != 0) {
                int a = (backdrop >>> 24) * nameAlpha / 255;
                canvas.rect(0, 0, boxW * scale, boxH * scale, a << 24 | backdrop & 16777215);

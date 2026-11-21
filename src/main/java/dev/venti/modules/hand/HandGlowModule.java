@@ -7,8 +7,8 @@ import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.ARGB;
 
 /** Hand Aura: glowing outline around your first-person hand and held item (ported from Anubis by 4ldenz). */
 public final class HandGlowModule extends Module {
@@ -46,7 +46,7 @@ public final class HandGlowModule extends Module {
       if (RenderSystem.isOnRenderThread()) {
          HandGlowPass.release();
       } else {
-         MinecraftClient.getInstance().execute(HandGlowModule::releaseIfOff);
+         Minecraft.getInstance().execute(HandGlowModule::releaseIfOff);
       }
    }
 
@@ -64,7 +64,7 @@ public final class HandGlowModule extends Module {
    public static void endCapture(boolean drawn) {
       if (HandGlowPass.end() && drawn) {
          HandGlowModule module = active;
-         float scale = Math.max(1.0F, MinecraftClient.getInstance().getFramebuffer().textureHeight / 1080.0F);
+         float scale = Math.max(1.0F, Minecraft.getInstance().getMainRenderTarget().height / 1080.0F);
          if (module == null) {
             HandGlowPass.compose(WHITE, 0.0F, 2.0F, 0.0F, 2.0F * scale, WHITE, 0.0F, 0.0F);
          } else {
@@ -94,7 +94,7 @@ public final class HandGlowModule extends Module {
    }
 
    private int sheenArgb(int glow) {
-      return this.manual() ? this.sheenColor.argb() : ColorHelper.lerp(SHEEN_LIFT, glow, WHITE);
+      return this.manual() ? this.sheenColor.argb() : ARGB.srgbLerp(SHEEN_LIFT, glow, WHITE);
    }
 
    private boolean shows() {

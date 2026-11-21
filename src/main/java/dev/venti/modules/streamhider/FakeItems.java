@@ -2,14 +2,14 @@ package dev.venti.modules.streamhider;
 
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * Picks the fake item each style shows for an inventory slot.
@@ -117,7 +117,7 @@ final class FakeItems {
       }
 
       // Stacks are cached per slot so counts stay put until the item, the seed or the Fake Counts setting changes.
-      long key = Registries.ITEM.getRawId(item) * 31L + seed * 7L + (fakeCounts ? 1L : 0L) + style.hashCode() * 131L;
+      long key = BuiltInRegistries.ITEM.getId(item) * 31L + seed * 7L + (fakeCounts ? 1L : 0L) + style.hashCode() * 131L;
       ItemStack cached = this.cache[slot];
       if (cached != null && this.cacheKey[slot] == key) {
          return cached;
@@ -130,24 +130,24 @@ final class FakeItems {
    }
 
    private static ItemStack build(String style, Item item, int slot, long seed, boolean fakeCounts) {
-      ItemStack stack = item.getDefaultStack();
+      ItemStack stack = item.getDefaultInstance();
       if (stack.isEmpty()) {
          return ItemStack.EMPTY;
       }
 
-      int max = stack.getMaxCount();
+      int max = stack.getMaxStackSize();
       if (fakeCounts && max > 1) {
          stack.setCount(1 + (int)Long.remainderUnsigned(FakeLoadout.mix(seed ^ slot ^ 81L), max));
       } else {
          stack.setCount(1);
       }
 
-      if (stack.isDamageable()) {
+      if (stack.isDamageableItem()) {
          if (RANDOM.equals(style) || SHUFFLE.equals(style) || STARTER.equals(style)) {
             int half = Math.max(1, stack.getMaxDamage() / 2);
-            stack.setDamage((int)Long.remainderUnsigned(FakeLoadout.mix(seed ^ slot ^ 82L), half));
+            stack.setDamageValue((int)Long.remainderUnsigned(FakeLoadout.mix(seed ^ slot ^ 82L), half));
          } else if (FLEX.equals(style)) {
-            stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+            stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
          }
       }
 
@@ -185,42 +185,42 @@ final class FakeItems {
 
    private static Item parse(String id) {
       Identifier parsed = id.isEmpty() ? null : Identifier.tryParse(id);
-      if (parsed == null || !Registries.ITEM.containsId(parsed)) {
+      if (parsed == null || !BuiltInRegistries.ITEM.containsKey(parsed)) {
          return Items.BARRIER;
       }
 
-      Item item = Registries.ITEM.get(parsed);
+      Item item = BuiltInRegistries.ITEM.getValue(parsed);
       return item == null || item == Items.AIR ? Items.BARRIER : item;
    }
 
    /** A cheap item of the same kind as the real one, so the layout looks real but reveals nothing. */
    static Item decoy(ItemStack real) {
       Item item = real.getItem();
-      if (real.isIn(ItemTags.SWORDS)) {
+      if (real.is(ItemTags.SWORDS)) {
          return Items.WOODEN_SWORD;
-      } else if (real.isIn(ItemTags.PICKAXES)) {
+      } else if (real.is(ItemTags.PICKAXES)) {
          return Items.WOODEN_PICKAXE;
-      } else if (real.isIn(ItemTags.AXES)) {
+      } else if (real.is(ItemTags.AXES)) {
          return Items.WOODEN_AXE;
-      } else if (real.isIn(ItemTags.SHOVELS)) {
+      } else if (real.is(ItemTags.SHOVELS)) {
          return Items.WOODEN_SHOVEL;
-      } else if (real.isIn(ItemTags.HOES)) {
+      } else if (real.is(ItemTags.HOES)) {
          return Items.WOODEN_HOE;
-      } else if (real.isIn(ItemTags.SPEARS)) {
+      } else if (real.is(ItemTags.SPEARS)) {
          return Items.WOODEN_SPEAR;
       } else if (item == Items.MACE || item == Items.TRIDENT) {
          return Items.WOODEN_SWORD;
       } else if (item == Items.BOW || item == Items.CROSSBOW) {
          return Items.BOW;
-      } else if (real.isIn(ItemTags.HEAD_ARMOR)) {
+      } else if (real.is(ItemTags.HEAD_ARMOR)) {
          return Items.LEATHER_HELMET;
-      } else if (real.isIn(ItemTags.CHEST_ARMOR)) {
+      } else if (real.is(ItemTags.CHEST_ARMOR)) {
          return Items.LEATHER_CHESTPLATE;
-      } else if (real.isIn(ItemTags.LEG_ARMOR)) {
+      } else if (real.is(ItemTags.LEG_ARMOR)) {
          return Items.LEATHER_LEGGINGS;
-      } else if (real.isIn(ItemTags.FOOT_ARMOR)) {
+      } else if (real.is(ItemTags.FOOT_ARMOR)) {
          return Items.LEATHER_BOOTS;
-      } else if (real.contains(DataComponentTypes.FOOD)) {
+      } else if (real.has(DataComponents.FOOD)) {
          return Items.BREAD;
       } else if (item == Items.POTION || item == Items.SPLASH_POTION || item == Items.LINGERING_POTION) {
          // Items.POTION's default stack is a water bottle.

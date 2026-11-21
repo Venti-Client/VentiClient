@@ -4,13 +4,17 @@ import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -19,12 +23,8 @@ import java.nio.ByteBuffer;
 import java.util.OptionalInt;
 import java.util.function.Supplier;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.gl.SimpleFramebuffer;
-import net.minecraft.client.gl.UniformType;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.BufferUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +33,9 @@ import org.slf4j.LoggerFactory;
 final class HandGlowPass {
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
    private static final RenderPipeline PIPELINE = RenderPipeline.builder()
-      .withLocation(Identifier.of("venti", "pipeline/hand_aura"))
+      .withLocation(Identifier.fromNamespaceAndPath("venti", "pipeline/hand_aura"))
       .withVertexShader("core/screenquad")
-      .withFragmentShader(Identifier.of("venti", "core/hand_aura"))
+      .withFragmentShader(Identifier.fromNamespaceAndPath("venti", "core/hand_aura"))
       .withSampler("CaptureSampler")
       .withSampler("HaloSampler")
       .withUniform("HandGlowConfig", UniformType.UNIFORM_BUFFER)
@@ -43,13 +43,13 @@ final class HandGlowPass {
       .withColorWrite(true, false)
       .withDepthWrite(false)
       .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-      .withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES)
+      .withVertexFormat(DefaultVertexFormat.EMPTY, VertexFormat.Mode.TRIANGLES)
       .build();
    private static final Supplier<String> PASS_LABEL = () -> "Venti hand aura";
    private static final Supplier<String> CONFIG_LABEL = () -> "Venti hand aura config";
    private static final int CONFIG_SIZE = 48;
    private static final MethodHandle SHADER_PACK_IN_USE = irisProbe();
-   private static SimpleFramebuffer hand;
+   private static TextureTarget hand;
    private static AuraBlur blur;
    private static GpuBuffer config;
    private static GpuBufferSlice configSlice;
@@ -65,13 +65,13 @@ final class HandGlowPass {
          return false;
       }
 
-      MinecraftClient mc = MinecraftClient.getInstance();
-      Framebuffer main = mc.getFramebuffer();
-      if (mc.world == null
-         || mc.gameRenderer.isRenderingPanorama()
-         || main.getColorAttachment() == null
-         || main.textureWidth <= 0
-         || main.textureHeight <= 0
+      Minecraft mc = Minecraft.getInstance();
+      RenderTarget main = mc.getMainRenderTarget();
+      if (mc.level == null
+         || mc.gameRenderer.isPanoramicMode()
+         || main.getColorTexture() == null
+         || main.width <= 0
+         || main.height <= 0
          || shaderPackInUse()) {
          return false;
       }
@@ -82,14 +82,14 @@ final class HandGlowPass {
       }
 
       if (hand == null) {
-         allocate(main.textureWidth, main.textureHeight);
-      } else if (hand.textureWidth != main.textureWidth || hand.textureHeight != main.textureHeight) {
-         hand.resize(main.textureWidth, main.textureHeight);
+         allocate(main.width, main.height);
+      } else if (hand.width != main.width || hand.height != main.height) {
+         hand.resize(main.width, main.height);
       }
 
-      device.createCommandEncoder().clearColorAndDepthTextures(hand.getColorAttachment(), 0, hand.getDepthAttachment(), 1.0);
-      RenderSystem.outputColorTextureOverride = hand.getColorAttachmentView();
-      RenderSystem.outputDepthTextureOverride = hand.getDepthAttachmentView();
+      device.createCommandEncoder().clearColorAndDepthTextures(hand.getColorTexture(), 0, hand.getDepthTexture(), 1.0);
+      RenderSystem.outputColorTextureOverride = hand.getColorTextureView();
+      RenderSystem.outputDepthTextureOverride = hand.getDepthTextureView();
       capturing = true;
       return true;
    }
@@ -106,11 +106,11 @@ final class HandGlowPass {
    }
 
    static void compose(int tintArgb, float aura, float reachPx, float rim, float rimPx, int sheenArgb, float sheen, float phase) {
-      Framebuffer main = MinecraftClient.getInstance().getFramebuffer();
+      RenderTarget main = Minecraft.getInstance().getMainRenderTarget();
       CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
       GpuTextureView halo = aura > 0.0F
-         ? blur.spread(encoder, hand.getColorAttachmentView(), hand.textureWidth, hand.textureHeight, reachPx)
-         : hand.getColorAttachmentView();
+         ? blur.spread(encoder, hand.getColorTextureView(), hand.width, hand.height, reachPx)
+         : hand.getColorTextureView();
       putColor(0, tintArgb, aura);
       putColor(16, sheenArgb, sheen);
       configData.putFloat(32, rim);
@@ -118,11 +118,11 @@ final class HandGlowPass {
       configData.putFloat(40, phase);
       configData.putFloat(44, 0.0F);
       encoder.writeToBuffer(configSlice, configData);
-      try (RenderPass pass = encoder.createRenderPass(PASS_LABEL, main.getColorAttachmentView(), OptionalInt.empty())) {
+      try (RenderPass pass = encoder.createRenderPass(PASS_LABEL, main.getColorTextureView(), OptionalInt.empty())) {
          pass.setPipeline(PIPELINE);
          pass.setUniform("HandGlowConfig", configSlice);
-         pass.bindTexture("CaptureSampler", hand.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
-         pass.bindTexture("HaloSampler", halo, RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
+         pass.bindTexture("CaptureSampler", hand.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+         pass.bindTexture("HaloSampler", halo, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
          pass.draw(0, 3);
       }
    }
@@ -149,7 +149,7 @@ final class HandGlowPass {
    }
 
    private static void allocate(int width, int height) {
-      hand = new SimpleFramebuffer("Venti hand aura", width, height, true);
+      hand = new TextureTarget("Venti hand aura", width, height, true);
       blur = new AuraBlur("Venti hand aura");
       config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, CONFIG_SIZE);
       configSlice = config.slice();
@@ -162,7 +162,7 @@ final class HandGlowPass {
       }
 
       if (hand != null) {
-         hand.delete();
+         hand.destroyBuffers();
          hand = null;
       }
 

@@ -3,17 +3,17 @@ package dev.venti.mixin.world;
 import dev.venti.modules.world.BlockOverlayModule;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.WorldRenderer;
+import net.minecraft.client.renderer.LevelRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Environment(EnvType.CLIENT)
-@Mixin({WorldRenderer.class})
+@Mixin({LevelRenderer.class})
 public abstract class MixinBlockOverlayLevelRenderer {
    @Inject(
-      method = {"renderTargetBlockOutline"},
+      method = {"renderBlockOutline"},
       at = {@At("HEAD")},
       cancellable = true
    )

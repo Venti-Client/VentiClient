@@ -1,26 +1,26 @@
 package dev.venti.mixin.hitfx;
 
 import dev.venti.modules.hitfx.HitFxModule;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** Lets Hit FX see (and swap out) server hit sounds. Runs after the main-thread hop, so only once per packet. */
-@Mixin(ClientPlayNetworkHandler.class)
+@Mixin(ClientPacketListener.class)
 public abstract class PlaySoundMixin {
    @Inject(
-      method = "onPlaySound",
+      method = "handleSoundEvent",
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V",
+         target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
          shift = At.Shift.AFTER
       ),
       cancellable = true
    )
-   private void venti$hitFx(PlaySoundS2CPacket packet, CallbackInfo ci) {
+   private void venti$hitFx(ClientboundSoundPacket packet, CallbackInfo ci) {
       if (HitFxModule.onServerSound(packet)) {
          ci.cancel();
       }

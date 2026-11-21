@@ -1,14 +1,14 @@
 package dev.venti.modules.hud;
 
-import imgui.ImDrawList;
-import imgui.ImFont;
 import dev.venti.imgui.ImGuiManager;
 import dev.venti.modules.streamhider.StreamHiderModule;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
+import imgui.ImDrawList;
+import imgui.ImFont;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 final class ArmorStatus {
    private static final EquipmentSlot[] ARMOR = new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
@@ -52,19 +52,19 @@ final class ArmorStatus {
       return this.presence > 0.0F;
    }
 
-   void update(MinecraftClient mc, HudModule hud, boolean active, boolean editMode, float dt) {
+   void update(Minecraft mc, HudModule hud, boolean active, boolean editMode, float dt) {
       this.clock += dt;
       this.column = hud.armorColumn();
       this.hands = hud.armorHands();
       HudModule.ArmorWear mode = hud.armorWear();
       this.gauge = mode != HudModule.ArmorWear.PERCENT;
       this.percent = mode != HudModule.ArmorWear.GAUGE;
-      ClientPlayerEntity player = mc.player;
+      LocalPlayer player = mc.player;
       boolean worn = false;
       EquipmentSlot[] order = this.order();
 
       for (int i = 0; i < order.length; i++) {
-         ItemStack stack = player == null ? ItemStack.EMPTY : StreamHiderModule.shownInHud(player.getEquippedStack(order[i]), order[i]);
+         ItemStack stack = player == null ? ItemStack.EMPTY : StreamHiderModule.shownInHud(player.getItemBySlot(order[i]), order[i]);
          if (!stack.isEmpty()) {
             worn = true;
          }
@@ -91,8 +91,8 @@ final class ArmorStatus {
    }
 
    private static float remaining(ItemStack stack) {
-      return !stack.isEmpty() && stack.isDamageable() && stack.getMaxDamage() > 0
-         ? Math.max(0.0F, 1.0F - (float)stack.getDamage() / stack.getMaxDamage())
+      return !stack.isEmpty() && stack.isDamageableItem() && stack.getMaxDamage() > 0
+         ? Math.max(0.0F, 1.0F - (float)stack.getDamageValue() / stack.getMaxDamage())
          : -1.0F;
    }
 
@@ -132,7 +132,7 @@ final class ArmorStatus {
       return Math.max(2.0F, (float)Math.round(3.0F * s));
    }
 
-   void draw(ImDrawList dl, HudLayoutStore.HudElementState state, float x, float y, float alpha, boolean shadow, MinecraftClient mc) {
+   void draw(ImDrawList dl, HudLayoutStore.HudElementState state, float x, float y, float alpha, boolean shadow, Minecraft mc) {
       float a = alpha * HudGlyphs.easeOutQuint(this.presence);
       if (!(a <= 0.004F) && mc.player != null) {
          float s = HudRenderer.scaleOf(state);
@@ -161,7 +161,7 @@ final class ArmorStatus {
                }
             }
 
-            ItemStack worn = StreamHiderModule.shownInHud(mc.player.getEquippedStack(order[i]), order[i]);
+            ItemStack worn = StreamHiderModule.shownInHud(mc.player.getItemBySlot(order[i]), order[i]);
             ItemStack stack = worn;
             float left = stack == worn ? this.wear[i] : -1.0F;
             if (this.column) {
@@ -259,7 +259,7 @@ final class ArmorStatus {
          }
 
          GameIcons.draw(dl, stack, ix, iy, (float)icon, a);
-         if (stack.hasGlint()) {
+         if (stack.hasFoil()) {
             HudGlyphs.sparkle(dl, ix + icon - 1.5F * s, iy + 1.5F * s, 2.8F * s, HudGlyphs.ink(-11654, a * 0.9F));
          }
 

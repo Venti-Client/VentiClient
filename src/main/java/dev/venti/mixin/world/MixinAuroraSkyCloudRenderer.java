@@ -3,7 +3,7 @@ package dev.venti.mixin.world;
 import dev.venti.modules.world.AuroraSkyModule;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.CloudRenderer;
+import net.minecraft.client.renderer.CloudRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin({CloudRenderer.class})
 public abstract class MixinAuroraSkyCloudRenderer {
    @ModifyVariable(
-      method = {"renderClouds"},
+      method = {"render"},
       at = @At("HEAD"),
       argsOnly = true,
       ordinal = 0

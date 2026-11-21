@@ -1,13 +1,13 @@
 package dev.venti.modules.hand;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import dev.venti.config.ActionSetting;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.RotationAxis;
 
 /** Hand Pose: moves, rotates and resizes your first-person hands, gliding between poses (ported from Anubis by 4ldenz). */
 public final class ViewmodelModule extends Module {
@@ -77,14 +77,14 @@ public final class ViewmodelModule extends Module {
       }
    }
 
-   public static void shape(MatrixStack pose, boolean mainHand, int side) {
+   public static void shape(PoseStack pose, boolean mainHand, int side) {
       ViewmodelModule module = live;
       if (module != null) {
          module.shapeHand(pose, mainHand, side);
       }
    }
 
-   private void shapeHand(MatrixStack pose, boolean mainHand, int side) {
+   private void shapeHand(PoseStack pose, boolean mainHand, int side) {
       boolean on = this.isEnabled();
       HandState state = mainHand ? this.mainState : this.offState;
       state.step(!mainHand && !this.link.get() ? this.off : this.main, on, this.follow());
@@ -93,9 +93,9 @@ public final class ViewmodelModule extends Module {
       } else if (!state.rested) {
          float[] v = state.value;
          pose.translate(side * (PIVOT_X + v[X]), PIVOT_Y + v[Y], PIVOT_Z + v[Z]);
-         pose.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * v[YAW]));
-         pose.multiply(RotationAxis.POSITIVE_X.rotationDegrees(v[PITCH]));
-         pose.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * v[ROLL]));
+         pose.mulPose(Axis.YP.rotationDegrees(side * v[YAW]));
+         pose.mulPose(Axis.XP.rotationDegrees(v[PITCH]));
+         pose.mulPose(Axis.ZP.rotationDegrees(side * v[ROLL]));
          pose.scale(v[SCALE], v[SCALE], v[SCALE]);
          pose.translate(-side * PIVOT_X, -PIVOT_Y, -PIVOT_Z);
       }

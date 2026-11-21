@@ -1,16 +1,16 @@
 package dev.venti.modules.character;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import dev.venti.modules.character.kit.Bone;
 import dev.venti.modules.character.kit.CharacterModel;
 import dev.venti.modules.character.kit.Motion;
 import dev.venti.modules.character.kit.PartMesh;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.client.render.entity.model.PlayerEntityModel;
-import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.util.Mth;
 
 @Environment(EnvType.CLIENT)
 final class CharacterMotion {
@@ -23,7 +23,7 @@ final class CharacterMotion {
    private CharacterMotion() {
    }
 
-   static float[] update(PlayerEntityRenderState state, CharacterModel model, PlayerEntityModel pm, float[] pitch) {
+   static float[] update(AvatarRenderState state, CharacterModel model, PlayerModel pm, float[] pitch) {
       if (model.motionSlots == 0) {
          return null;
       } else {
@@ -32,7 +32,7 @@ final class CharacterMotion {
          CharacterMotion.State st = (CharacterMotion.State)STATES.get(state.id);
          if (st == null || st.model != model) {
             st = new CharacterMotion.State(model);
-            st.bodyRot = state.bodyYaw;
+            st.bodyRot = state.bodyRot;
             STATES.put(state.id, st);
          }
 
@@ -41,8 +41,8 @@ final class CharacterMotion {
             return st.angles;
          } else {
             st.nanos = now;
-            float turn = MathHelper.wrapDegrees(state.bodyYaw - st.bodyRot);
-            st.bodyRot = state.bodyYaw;
+            float turn = Mth.wrapDegrees(state.bodyRot - st.bodyRot);
+            st.bodyRot = state.bodyRot;
             if (dt > 0.0F && dt < 0.25F) {
                st.turnRate = st.turnRate + (turn / dt - st.turnRate) * Math.min(1.0F, dt * 12.0F);
             } else {
@@ -50,9 +50,9 @@ final class CharacterMotion {
             }
 
             Motion.Input in = INPUT;
-            in.time = state.age / 20.0F;
-            in.walkPos = state.limbSwingAnimationProgress;
-            in.walkSpeed = state.limbSwingAmplitude;
+            in.time = state.ageInTicks / 20.0F;
+            in.walkPos = state.walkAnimationPos;
+            in.walkSpeed = state.walkAnimationSpeed;
             in.turnRate = st.turnRate;
             bone(in, Bone.HEAD, pm.head, pitch);
             bone(in, Bone.BODY, pm.body, pitch);
@@ -77,8 +77,8 @@ final class CharacterMotion {
    private static void bone(Motion.Input in, Bone bone, ModelPart part, float[] pitch) {
       int b = bone.ordinal();
       in.pitch[b] = pitch[b];
-      in.yaw[b] = -part.yaw;
-      in.roll[b] = -part.roll;
+      in.yaw[b] = -part.yRot;
+      in.roll[b] = -part.zRot;
    }
 
    private static void prune(long now) {

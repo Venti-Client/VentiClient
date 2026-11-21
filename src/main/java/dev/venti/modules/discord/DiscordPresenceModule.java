@@ -13,30 +13,30 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import meteordevelopment.discordipc.DiscordIPC;
 import meteordevelopment.discordipc.RichPresence;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.CreditsScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.TitleScreen;
-import net.minecraft.client.gui.screen.multiplayer.AddServerScreen;
-import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
-import net.minecraft.client.gui.screen.multiplayer.DirectConnectScreen;
-import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
-import net.minecraft.client.gui.screen.option.AccessibilityOptionsScreen;
-import net.minecraft.client.gui.screen.option.ChatOptionsScreen;
-import net.minecraft.client.gui.screen.option.ControlsOptionsScreen;
-import net.minecraft.client.gui.screen.option.LanguageOptionsScreen;
-import net.minecraft.client.gui.screen.option.OptionsScreen;
-import net.minecraft.client.gui.screen.option.SkinOptionsScreen;
-import net.minecraft.client.gui.screen.option.SoundOptionsScreen;
-import net.minecraft.client.gui.screen.option.VideoOptionsScreen;
-import net.minecraft.client.gui.screen.pack.PackScreen;
-import net.minecraft.client.gui.screen.world.CreateWorldScreen;
-import net.minecraft.client.gui.screen.world.EditGameRulesScreen;
-import net.minecraft.client.gui.screen.world.EditWorldScreen;
-import net.minecraft.client.gui.screen.world.LevelLoadingScreen;
-import net.minecraft.client.gui.screen.world.SelectWorldScreen;
-import net.minecraft.client.realms.gui.screen.RealmsScreen;
-import net.minecraft.util.Pair;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.DirectJoinServerScreen;
+import net.minecraft.client.gui.screens.LevelLoadingScreen;
+import net.minecraft.client.gui.screens.ManageServerScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.WinScreen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
+import net.minecraft.client.gui.screens.options.AccessibilityOptionsScreen;
+import net.minecraft.client.gui.screens.options.ChatOptionsScreen;
+import net.minecraft.client.gui.screens.options.LanguageSelectScreen;
+import net.minecraft.client.gui.screens.options.OptionsScreen;
+import net.minecraft.client.gui.screens.options.SkinCustomizationScreen;
+import net.minecraft.client.gui.screens.options.SoundOptionsScreen;
+import net.minecraft.client.gui.screens.options.VideoSettingsScreen;
+import net.minecraft.client.gui.screens.options.controls.ControlsScreen;
+import net.minecraft.client.gui.screens.packs.PackSelectionScreen;
+import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
+import net.minecraft.client.gui.screens.worldselection.EditGameRulesScreen;
+import net.minecraft.client.gui.screens.worldselection.EditWorldScreen;
+import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
+import net.minecraft.realms.RealmsScreen;
+import net.minecraft.util.Tuple;
 
 /**
  * Shows Venti as your Discord Rich Presence.
@@ -57,7 +57,7 @@ public final class DiscordPresenceModule extends Module {
    private static final int RECONNECT_TICKS = 600;
    /** Ticks to wait after the application ID was edited before reconnecting, so typing does not reconnect per key. */
    private static final int APP_ID_SETTLE_TICKS = 40;
-   private static final List<Pair<String, String>> CUSTOM_STATES = new ArrayList<>();
+   private static final List<Tuple<String, String>> CUSTOM_STATES = new ArrayList<>();
 
    private final StringSetting applicationId;
    private final StringSetting largeImageKey;
@@ -126,23 +126,23 @@ public final class DiscordPresenceModule extends Module {
       this.line2SelectMode = this.add("line_2_select_mode", new ModeSetting("Line 2 Select Mode", SEQUENTIAL, RANDOM, SEQUENTIAL));
 
       this.add("reconnect", new ActionSetting("Reconnect to Discord", () -> this.restartIn = 0));
-      this.add("placeholders", new ActionSetting("Copy placeholder list", () -> MinecraftClient.getInstance().keyboard.setClipboard(Placeholders.SUPPORTED)));
+      this.add("placeholders", new ActionSetting("Copy placeholder list", () -> Minecraft.getInstance().keyboardHandler.setClipboard(Placeholders.SUPPORTED)));
    }
 
    /** Lets other mods name their screens, like Meteor's {@code DiscordPresence.registerCustomState}. */
    public static void registerCustomState(String packageName, String state) {
-      for (Pair<String, String> pair : CUSTOM_STATES) {
-         if (pair.getLeft().equals(packageName)) {
-            pair.setRight(state);
+      for (Tuple<String, String> pair : CUSTOM_STATES) {
+         if (pair.getA().equals(packageName)) {
+            pair.setB(state);
             return;
          }
       }
 
-      CUSTOM_STATES.add(new Pair<>(packageName, state));
+      CUSTOM_STATES.add(new Tuple<>(packageName, state));
    }
 
    public static void unregisterCustomState(String packageName) {
-      CUSTOM_STATES.removeIf(pair -> pair.getLeft().equals(packageName));
+      CUSTOM_STATES.removeIf(pair -> pair.getA().equals(packageName));
    }
 
    @Override
@@ -212,7 +212,7 @@ public final class DiscordPresenceModule extends Module {
 
    @Override
    protected void onTick() {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (this.restartIn >= 0 && this.restartIn-- == 0) {
          this.connect();
       }
@@ -228,8 +228,8 @@ public final class DiscordPresenceModule extends Module {
       }
 
       // Meteor resets this from its OpenScreenEvent so main menu screen changes refresh the state line.
-      if (mc.currentScreen != this.lastScreen) {
-         this.lastScreen = mc.currentScreen;
+      if (mc.screen != this.lastScreen) {
+         this.lastScreen = mc.screen;
          if (!canUpdate(mc)) {
             this.lastWasInMainMenu = false;
          }
@@ -281,7 +281,7 @@ public final class DiscordPresenceModule extends Module {
          }
       } else if (!this.lastWasInMainMenu) {
          this.rpc.setDetails(Placeholders.apply("Venti Client {version}"));
-         this.rpc.setState(menuState(mc.currentScreen));
+         this.rpc.setState(menuState(mc.screen));
          update = true;
       }
 
@@ -293,8 +293,8 @@ public final class DiscordPresenceModule extends Module {
       this.lastWasInMainMenu = !canUpdate(mc);
    }
 
-   private static boolean canUpdate(MinecraftClient mc) {
-      return mc.world != null && mc.player != null;
+   private static boolean canUpdate(Minecraft mc) {
+      return mc.level != null && mc.player != null;
    }
 
    private static String menuState(Screen screen) {
@@ -308,25 +308,25 @@ public final class DiscordPresenceModule extends Module {
          return "Editing world";
       } else if (screen instanceof LevelLoadingScreen) {
          return "Loading world";
-      } else if (screen instanceof MultiplayerScreen) {
+      } else if (screen instanceof JoinMultiplayerScreen) {
          return "Selecting server";
-      } else if (screen instanceof AddServerScreen) {
+      } else if (screen instanceof ManageServerScreen) {
          return "Adding server";
-      } else if (screen instanceof ConnectScreen || screen instanceof DirectConnectScreen) {
+      } else if (screen instanceof ConnectScreen || screen instanceof DirectJoinServerScreen) {
          return "Connecting to server";
       } else if (screen instanceof ClickGuiScreen) {
          return "Browsing Venti's GUI";
       } else if (screen instanceof OptionsScreen
-         || screen instanceof SkinOptionsScreen
+         || screen instanceof SkinCustomizationScreen
          || screen instanceof SoundOptionsScreen
-         || screen instanceof VideoOptionsScreen
-         || screen instanceof ControlsOptionsScreen
-         || screen instanceof LanguageOptionsScreen
+         || screen instanceof VideoSettingsScreen
+         || screen instanceof ControlsScreen
+         || screen instanceof LanguageSelectScreen
          || screen instanceof ChatOptionsScreen
-         || screen instanceof PackScreen
+         || screen instanceof PackSelectionScreen
          || screen instanceof AccessibilityOptionsScreen) {
          return "Changing options";
-      } else if (screen instanceof CreditsScreen) {
+      } else if (screen instanceof WinScreen) {
          return "Reading credits";
       } else if (screen instanceof RealmsScreen) {
          return "Browsing Realms";
@@ -334,9 +334,9 @@ public final class DiscordPresenceModule extends Module {
 
       if (screen != null) {
          String className = screen.getClass().getName();
-         for (Pair<String, String> pair : CUSTOM_STATES) {
-            if (className.startsWith(pair.getLeft())) {
-               return pair.getRight();
+         for (Tuple<String, String> pair : CUSTOM_STATES) {
+            if (className.startsWith(pair.getA())) {
+               return pair.getB();
             }
          }
       }
