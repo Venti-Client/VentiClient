@@ -12,11 +12,7 @@ import dev.venti.module.Modules;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-//? if >=1.21.9 {
 import net.minecraft.client.render.state.SkyRenderState;
-//?} else {
-/*
-*///?}
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.util.math.BlockPos;
@@ -126,26 +122,13 @@ public final class AuroraSkyModule extends Module {
       this.auroraHere = 0.0F;
    }
 
-   //? if <1.21.9 {
-   /*// Stand-in for 1.21.9's sky render state: the values the sky mixin reads before the dome and feeds back to the sky pass.
-   public static final class SkyRenderState {
-      public float solarAngle;
-      public float rainGradient;
-      public float starBrightness;
-   }
-
-   *///?}
    public void extract(ClientWorld level, float partialTick, SkyRenderState state) {
       this.shaderRendered = false;
       this.night = MathHelper.clamp(state.starBrightness * 2.0F, 0.0F, 1.0F);
       float rain = 1.0F - state.rainGradient;
       float thunder = level.getThunderGradient(partialTick);
       if (this.keepInRain.get()) {
-         //? if >=1.21.11 {
          this.night = Math.max(this.night, clearNight(state.sunAngle) * rain);
-         //?} else {
-         /*this.night = Math.max(this.night, clearNight(state.solarAngle) * rain);
-         *///?}
          state.starBrightness = Math.max(state.starBrightness, this.night * 0.5F);
          state.rainGradient = 1.0F;
          rain = 0.0F;
@@ -157,13 +140,8 @@ public final class AuroraSkyModule extends Module {
       int flashTicks = ((AccessorAuroraSkyClientLevel)level).venti$atmosphereSkyFlash();
       this.sky
          .update(
-            //? if >=1.21.11 {
             state.sunAngle,
             state.moonAngle,
-            //?} else {
-            /*state.solarAngle,
-            state.solarAngle + (float)Math.PI, // the moon sits opposite the sun before 1.21.11
-            *///?}
             rain,
             thunder,
             flashTicks > 0 ? Math.min(1.0F, (flashTicks - partialTick) / 2.0F) : 0.0F,

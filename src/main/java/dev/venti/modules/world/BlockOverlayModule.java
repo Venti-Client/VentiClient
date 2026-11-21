@@ -13,11 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-//? if >=1.21.11 {
 import net.minecraft.world.debug.gizmo.VisibilityConfigurable;
 import net.minecraft.client.render.DrawStyle;
 import net.minecraft.world.debug.gizmo.GizmoDrawing;
-//?}
 import net.minecraft.entity.Entity;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.ChestBlock;
@@ -213,11 +211,7 @@ public final class BlockOverlayModule extends Module {
       } else if (state.getBlock() instanceof BedBlock) {
          other = at.offset(BedBlock.getOppositePartDirection(state));
       } else if (state.getBlock() instanceof ChestBlock && state.get(ChestBlock.CHEST_TYPE) != ChestType.SINGLE) {
-         //? if >=1.21.9 {
          other = ChestBlock.getPosInFrontOf(at, state);
-         //?} else {
-         /*other = at.offset(ChestBlock.getFacing(state));
-         *///?}
       }
 
       return other != null && world.getBlockState(other).isOf(state.getBlock()) ? other : null;
@@ -365,48 +359,23 @@ public final class BlockOverlayModule extends Module {
          for (int i = 0; i < pieces.size(); i++) {
             double[] p = pieces.get(i);
             int c = colors.get(i);
-            //? if >=1.21.11 {
             this.line(p, ColorHelper.scaleAlpha(c, 0.34F * this.fade), w + 3.0F, 0.002);
             this.line(p, ColorHelper.scaleAlpha(c, 0.13F * this.fade), w + 8.0F, 0.002);
-            //?} else {
-            /*this.line(p, scaleAlpha(c, 0.34F * this.fade), w + 3.0F, 0.002);
-            this.line(p, scaleAlpha(c, 0.13F * this.fade), w + 8.0F, 0.002);
-            *///?}
          }
       }
 
       for (int i = 0; i < pieces.size(); i++) {
-         //? if >=1.21.11 {
          this.line(pieces.get(i), ColorHelper.scaleAlpha(colors.get(i), this.fade), w, 0.004);
-         //?} else {
-         /*this.line(pieces.get(i), scaleAlpha(colors.get(i), this.fade), w, 0.004);
-         *///?}
       }
    }
 
    private void line(double[] p, int argb, float w, double lift) {
-      //? if >=1.21.11 {
       VisibilityConfigurable drawn = GizmoDrawing.line(this.lift(this.world(p[0], p[1], p[2]), lift), this.lift(this.world(p[3], p[4], p[5]), lift), argb, w);
       if (this.seeThrough.get()) {
          drawn.ignoreOcclusion();
       }
-      //?} else {
-      /*Vec3d a = this.lift(this.world(p[0], p[1], p[2]), lift);
-      Vec3d b = this.lift(this.world(p[3], p[4], p[5]), lift);
-      WorldQuads.layer(this.seeThrough.get()).line(a.x, a.y, a.z, b.x, b.y, b.z, argb, w);
-      *///?}
    }
 
-   //? if <1.21.11 {
-   /*// ColorHelper.scaleAlpha only exists from 1.21.11.
-   private static int scaleAlpha(int argb, float scale) {
-      if (argb == 0 || scale <= 0.0F) {
-         return 0;
-      }
-
-      return scale >= 1.0F ? argb : ColorHelper.withAlpha(ColorHelper.getAlphaFloat(argb) * scale, argb);
-   }
-   *///?}
 
    private Vec3d lift(Vec3d point, double by) {
       Vec3d toEye = this.eye.subtract(point);
@@ -426,31 +395,12 @@ public final class BlockOverlayModule extends Module {
       Vec3d centre = faceCentre(b, d);
       int c = this.colorAt(centre.x, centre.y, centre.z);
       int argb = MathHelper.clamp(Math.round(alpha * this.fade * 255.0F), 0, 255) << 24 | c & 16777215;
-      //? if >=1.21.11 {
       VisibilityConfigurable drawn = GizmoDrawing.face(min, max, d, DrawStyle.filled(argb));
       if (this.seeThrough.get()) {
          drawn.ignoreOcclusion();
       }
-      //?} else {
-      /*face(WorldQuads.layer(this.seeThrough.get()), min, max, d, argb);
-      *///?}
    }
 
-   //? if <1.21.11 {
-   /*// The filled face of the box min..max on side d (what GizmoDrawing.face draws on 1.21.11).
-   private static void face(WorldQuads out, Vec3d min, Vec3d max, Direction d, int argb) {
-      double x0 = min.x, y0 = min.y, z0 = min.z, x1 = max.x, y1 = max.y, z1 = max.z;
-      switch (d) {
-         case DOWN -> out.quad(x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, argb);
-         case UP -> out.quad(x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0, argb);
-         case NORTH -> out.quad(x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0, argb);
-         case SOUTH -> out.quad(x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, argb);
-         case WEST -> out.quad(x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, argb);
-         case EAST -> out.quad(x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, argb);
-      }
-   }
-
-   *///?}
    private void progressFill(float alpha) {
       double inflate = 0.004;
       if (this.faceOnly.get()) {

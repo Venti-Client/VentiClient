@@ -61,7 +61,6 @@ public final class TimeChangerModule extends Module {
    private static void writeDayTime(ClientWorld level, long dayTime) {
       if (level.getTimeOfDay() != dayTime) {
          level.getLevelProperties().setTimeOfDay(dayTime);
-         //? if >=1.21.11
          level.getEnvironmentAttributes().tick();
       }
    }

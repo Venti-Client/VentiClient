@@ -23,18 +23,10 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.ResourceTexture;
 import net.minecraft.client.gl.RenderPipelines;
-//? if >=1.21.9 {
 import net.minecraft.client.render.state.CameraRenderState;
-//?} else {
-/*import net.minecraft.client.render.Camera;
-*///?}
-//? if >=1.21.11 {
 import net.minecraft.client.render.LayeringTransform;
 import net.minecraft.client.render.RenderSetup;
 import net.minecraft.client.texture.MipmapStrategy;
-//?} else {
-/*import net.minecraft.client.render.RenderPhase;
-*///?}
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.util.math.Vec3d;
@@ -238,19 +230,11 @@ public final class JumpCirclesModule extends Module {
          && !player.isInvisible();
    }
 
-   //? if >=1.21.9 {
    public static void renderLevel(CameraRenderState camera) {
       JumpCirclesModule module = active;
       if (module != null && module.count > 0 && camera.initialized) {
          module.render(camera.pos);
       }
-   //?} else {
-   /*public static void renderLevel(Camera camera) {
-      JumpCirclesModule module = active;
-      if (module != null && module.count > 0 && camera.isReady()) {
-         module.render(camera.getPos());
-      }
-   *///?}
    }
 
    private void render(Vec3d camera) {
@@ -422,7 +406,6 @@ public final class JumpCirclesModule extends Module {
          .withCull(false)
          .withVertexFormat(VertexFormats.POSITION_TEXTURE_COLOR, DrawMode.QUADS)
          .build();
-      //? if >=1.21.11 {
       static final RenderLayer TYPE = RenderLayer.of(
          "venti_jump_circle_logo",
          RenderSetup.builder(PIPELINE).texture("Sampler0", JumpCirclesModule.LOGO_TEXTURE).layeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).build()
@@ -431,26 +414,6 @@ public final class JumpCirclesModule extends Module {
          "venti_jump_circle_logo_glow",
          RenderSetup.builder(PIPELINE).texture("Sampler0", JumpCirclesModule.LOGO_GLOW_TEXTURE).layeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).build()
       );
-      //?} else {
-      /*static final RenderLayer TYPE = RenderLayer.of(
-         "venti_jump_circle_logo",
-         1536,
-         PIPELINE,
-         RenderLayer.MultiPhaseParameters.builder()
-            .texture(new RenderPhase.Texture(JumpCirclesModule.LOGO_TEXTURE, true))
-            .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
-            .build(false)
-      );
-      static final RenderLayer GLOW_TYPE = RenderLayer.of(
-         "venti_jump_circle_logo_glow",
-         1536,
-         PIPELINE,
-         RenderLayer.MultiPhaseParameters.builder()
-            .texture(new RenderPhase.Texture(JumpCirclesModule.LOGO_GLOW_TEXTURE, true))
-            .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
-            .build(false)
-      );
-      *///?}
 
       static {
          MinecraftClient.getInstance().getTextureManager().registerTexture(JumpCirclesModule.LOGO_TEXTURE, new JumpCirclesModule.LogoTexture(JumpCirclesModule.LOGO_TEXTURE));
@@ -468,17 +431,9 @@ public final class JumpCirclesModule extends Module {
 
       // $VF: Could not verify finally blocks. A semaphore variable has been added to preserve control flow.
       // Please report this to the Vineflower issue tracker, at https://github.com/Vineflower/vineflower/issues with a copy of the class file (if you have the rights to distribute it!)
-      //? if >=1.21.11 {
       protected void load(NativeImage image) {
-      //?} else {
-      /*protected void load(NativeImage image, boolean blur, boolean clamp) {
-      *///?}
          int levels = 32 - Integer.numberOfLeadingZeros(Math.min(image.getWidth(), image.getHeight()));
-         //? if >=1.21.11 {
          NativeImage[] mips = MipmapHelper.getMipmapLevelsImages(this.getId(), new NativeImage[]{image}, levels - 1, MipmapStrategy.MEAN, 0.0F);
-         //?} else {
-         /*NativeImage[] mips = MipmapHelper.getMipmapLevelsImages(new NativeImage[]{image}, levels - 1);
-         *///?}
          boolean var11 = false /* VF: Semaphore variable */;
 
          try {
@@ -507,25 +462,14 @@ public final class JumpCirclesModule extends Module {
             mips[level].close();
          }
 
-         //? if >=1.21.11 {
          this.sampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR, true);
-         //?} else {
-         /*this.setClamp(true);
-         this.setFilter(true, true);
-         *///?}
       }
    }
 
    @Environment(EnvType.CLIENT)
    private static final class Ring {
-      //? if >=1.21.11 {
       static final RenderLayer TYPE = RenderLayer.of(
          "venti_jump_circles", RenderSetup.builder(RenderPipelines.DEBUG_QUADS).layeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).build()
       );
-      //?} else {
-      /*static final RenderLayer TYPE = RenderLayer.of(
-         "venti_jump_circles", 1536, RenderPipelines.DEBUG_QUADS, RenderLayer.MultiPhaseParameters.builder().layering(RenderPhase.VIEW_OFFSET_Z_LAYERING).build(false)
-      );
-      *///?}
    }
 }

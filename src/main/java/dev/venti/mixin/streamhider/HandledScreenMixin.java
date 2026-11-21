@@ -32,11 +32,7 @@ public abstract class HandledScreenMixin {
    public abstract ScreenHandler getScreenHandler();
 
    @WrapOperation(
-      //? if >=1.21.11 {
       method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;II)V",
-      //?} else {
-      /*method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;)V",
-      *///?}
       at = @At(value = "INVOKE", target = "Lnet/minecraft/screen/slot/Slot;getStack()Lnet/minecraft/item/ItemStack;")
    )
    private ItemStack venti$noInvLeakSlot(Slot slot, Operation<ItemStack> original, @Local(argsOnly = true) DrawContext context) {
@@ -51,11 +47,7 @@ public abstract class HandledScreenMixin {
    }
 
    @WrapOperation(
-      //? if >=1.21.11 {
       method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;II)V",
-      //?} else {
-      /*method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;)V",
-      *///?}
       at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;copyWithCount(I)Lnet/minecraft/item/ItemStack;")
    )
    private ItemStack venti$noInvLeakDragPreview(ItemStack stack, int count, Operation<ItemStack> original) {
@@ -63,11 +55,7 @@ public abstract class HandledScreenMixin {
    }
 
    @WrapOperation(
-      //? if >=1.21.11 {
       method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;II)V",
-      //?} else {
-      /*method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;)V",
-      *///?}
       at = @At(value = "INVOKE", target = "Lnet/minecraft/screen/slot/Slot;getBackgroundSprite()Lnet/minecraft/util/Identifier;")
    )
    private Identifier venti$noInvLeakSilhouette(Slot slot, Operation<Identifier> original) {

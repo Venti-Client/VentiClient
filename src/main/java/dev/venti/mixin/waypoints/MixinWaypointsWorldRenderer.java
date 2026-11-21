@@ -5,11 +5,7 @@ import dev.venti.modules.waypoints.WaypointRenderer;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.WorldRenderer;
-//? if >=1.21.11 {
 import net.minecraft.client.util.memory.ObjectAllocator;
-//?} else {
-/*import net.minecraft.client.util.ObjectAllocator;
-*///?}
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,14 +23,9 @@ public abstract class MixinWaypointsWorldRenderer {
       boolean renderBlockOutline,
       Camera camera,
       Matrix4f positionMatrix,
-      //? if >=1.21.9 {
       Matrix4f projectionMatrix,
       Matrix4f matrix4f,
       GpuBufferSlice fog,
-      //?} else {
-      /*Matrix4f projectionMatrix,
-      GpuBufferSlice fog,
-      *///?}
       Vector4f fogColor,
       boolean renderSky,
       CallbackInfo ci

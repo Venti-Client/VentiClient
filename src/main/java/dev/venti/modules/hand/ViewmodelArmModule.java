@@ -5,11 +5,7 @@ import dev.venti.config.ModeSetting;
 import dev.venti.mixin.hand.AccessorHandPlayerModel;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-//? if >=1.21.9 {
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-//?} else {
-/*import net.minecraft.client.render.VertexConsumerProvider;
-*///?}
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
@@ -57,7 +53,6 @@ public final class ViewmodelArmModule extends Module {
          || stack.isIn(ItemTags.PICKAXES)
          || stack.isIn(ItemTags.SHOVELS)
          || stack.isIn(ItemTags.HOES)
-         //? if >=1.21.11
          || stack.isIn(ItemTags.SPEARS)
          || stack.isOf(Items.MACE)
          || stack.isOf(Items.FISHING_ROD)
@@ -68,20 +63,12 @@ public final class ViewmodelArmModule extends Module {
          || stack.isOf(Items.WARPED_FUNGUS_ON_A_STICK);
    }
 
-   //? if >=1.21.9 {
    public static void shoulder(MatrixStack pose, boolean right, PlayerEntityRenderer<?> renderer) {
-   //?} else {
-   /*public static void shoulder(MatrixStack pose, boolean right, PlayerEntityRenderer renderer) {
-   *///?}
       FirstPersonArm.shoulder(pose, right, ((AccessorHandPlayerModel)renderer.getModel()).venti$handSlim());
    }
 
    public static void renderArm(
-      //? if >=1.21.9 {
       MatrixStack pose, LivingEntity holder, ItemStack stack, ItemDisplayContext context, OrderedRenderCommandQueue collector, int light, boolean mainHand
-      //?} else {
-      /*MatrixStack pose, LivingEntity holder, ItemStack stack, ItemDisplayContext context, VertexConsumerProvider collector, int light, boolean mainHand
-      *///?}
    ) {
       if (covers(stack, mainHand)) {
          FirstPersonArm.Arm arm = FirstPersonArm.arm();

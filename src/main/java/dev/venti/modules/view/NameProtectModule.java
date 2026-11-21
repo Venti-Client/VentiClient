@@ -34,11 +34,7 @@ import net.minecraft.client.session.Session;
 import net.minecraft.text.StringVisitable;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
-//? if >=1.21.9 {
 import net.minecraft.entity.player.SkinTextures;
-//?} else {
-/*import net.minecraft.client.util.SkinTextures;
-*///?}
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket.Action;
 
 public final class NameProtectModule extends Module {
@@ -441,11 +437,7 @@ public final class NameProtectModule extends Module {
       if (connection != null) {
          for (PlayerListEntry info : connection.getPlayerList()) {
             GameProfile gameProfile = info.getProfile();
-            //? if >=1.21.9 {
             String name = NameMatcher.nameCore(gameProfile != null ? gameProfile.name() : null);
-            //?} else {
-            /*String name = NameMatcher.nameCore(gameProfile != null ? gameProfile.getName() : null);
-            *///?}
             if (name != null && !name.equalsIgnoreCase(accountName) && !name.equalsIgnoreCase(profile)) {
                String skeleton = AliasPolicy.skeleton(name);
                this.seenSkeletons.remove(skeleton);
@@ -468,13 +460,8 @@ public final class NameProtectModule extends Module {
 
          for (PlayerListEntry info : connection.getListedPlayerListEntries()) {
             GameProfile profile = info.getProfile();
-            //? if >=1.21.9 {
             if (profile != null && (profile.id() == null || profile.id().version() != 2)) {
                String name = NameMatcher.nameCore(profile.name());
-            //?} else {
-            /*if (profile != null && (profile.getId() == null || profile.getId().version() != 2)) {
-               String name = NameMatcher.nameCore(profile.getName());
-            *///?}
                if (isLikelyPlayer(name) && !isOwn(name, own)) {
                   String key = name.toLowerCase(Locale.ROOT);
                   this.knownOthers.remove(key);
@@ -526,11 +513,7 @@ public final class NameProtectModule extends Module {
    }
 
    private static String profileName(MinecraftClient mc) {
-      //? if >=1.21.9 {
       return mc != null && mc.player != null ? mc.player.getGameProfile().name() : null;
-      //?} else {
-      /*return mc != null && mc.player != null ? mc.player.getGameProfile().getName() : null;
-      *///?}
    }
 
    private static int listSize(ClientPlayNetworkHandler connection) {

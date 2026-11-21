@@ -11,11 +11,7 @@ public final class ViewKeys {
     * VentiClient already registered this category via {@code KeyBinding.Category.create} (which throws on a second call),
     * so the modules build an equal record instead of registering it again.
     */
-   //? if >=1.21.9 {
    private static final KeyBinding.Category CATEGORY = new KeyBinding.Category(Identifier.of("venti", "keys"));
-   //?} else {
-   /*private static final String CATEGORY = "key.category.venti.keys"; // categories are translation keys before 1.21.9
-   *///?}
 
    private ViewKeys() {
    }

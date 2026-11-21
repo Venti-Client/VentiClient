@@ -6,11 +6,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.venti.modules.view.NameProtectModule;
 import net.minecraft.client.gui.hud.PlayerListHud;
 import net.minecraft.client.network.PlayerListEntry;
-//? if >=1.21.9 {
 import net.minecraft.entity.player.SkinTextures;
-//?} else {
-/*import net.minecraft.client.util.SkinTextures;
-*///?}
 import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
@@ -36,18 +32,10 @@ public abstract class ViewNameProtectTabMixin {
 
    @WrapOperation(
       method = "render(Lnet/minecraft/client/gui/DrawContext;ILnet/minecraft/scoreboard/Scoreboard;Lnet/minecraft/scoreboard/ScoreboardObjective;)V",
-      //? if >=1.21.9 {
       at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/PlayerListEntry;getSkinTextures()Lnet/minecraft/entity/player/SkinTextures;")
-      //?} else {
-      /*at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/PlayerListEntry;getSkinTextures()Lnet/minecraft/client/util/SkinTextures;")
-      *///?}
    )
    private SkinTextures venti$protectTabHead(PlayerListEntry entry, Operation<SkinTextures> original) {
       SkinTextures real = original.call(entry);
-      //? if >=1.21.9 {
       return NameProtectModule.hidesName(entry.getProfile().name()) ? NameProtectModule.hiddenHead(entry.getProfile().id(), real) : real;
-      //?} else {
-      /*return NameProtectModule.hidesName(entry.getProfile().getName()) ? NameProtectModule.hiddenHead(entry.getProfile().getId(), real) : real;
-      *///?}
    }
 }

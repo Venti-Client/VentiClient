@@ -32,11 +32,7 @@ final class ColorGradingPass {
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
    private static final RenderPipeline PIPELINE = RenderPipeline.builder(new Snippet[0])
       .withLocation(Identifier.of("venti", "pipeline/color_grading"))
-      //? if >=1.21.9 {
       .withVertexShader("core/screenquad")
-      //?} else {
-      /*.withVertexShader("core/blit_screen") // full-screen quad shader before 1.21.9
-      *///?}
       .withFragmentShader(Identifier.of("venti", "core/color_grading"))
       .withSampler("InSampler")
       .withUniform("ColorGradingConfig", UniformType.UNIFORM_BUFFER)
@@ -44,11 +40,7 @@ final class ColorGradingPass {
       .withColorWrite(true, false)
       .withDepthWrite(false)
       .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-      //? if >=1.21.9 {
       .withVertexFormat(VertexFormats.EMPTY, DrawMode.TRIANGLES)
-      //?} else {
-      /*.withVertexFormat(VertexFormats.POSITION, com.mojang.blaze3d.vertex.VertexFormat.DrawMode.QUADS)
-      *///?}
       .build();
    private static final Supplier<String> PASS_LABEL = () -> "Venti color grading";
    private static final Supplier<String> CONFIG_LABEL = () -> "Venti color grading config";
@@ -94,20 +86,8 @@ final class ColorGradingPass {
             try {
                pass.setPipeline(PIPELINE);
                pass.setUniform("ColorGradingConfig", configSlice);
-               //? if >=1.21.11 {
                pass.bindTexture("InSampler", copy.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.NEAREST));
-               //?} else {
-               /*copy.getColorAttachment().setTextureFilter(FilterMode.NEAREST, false);
-               pass.bindSampler("InSampler", copy.getColorAttachmentView());
-               *///?}
-               //? if >=1.21.9 {
                pass.draw(0, 3);
-               //?} else {
-               /*pass.setVertexBuffer(0, com.mojang.blaze3d.systems.RenderSystem.getQuadVertexBuffer()); // no vertex-less draws before 1.21.9
-               com.mojang.blaze3d.systems.RenderSystem.ShapeIndexBuffer quads = com.mojang.blaze3d.systems.RenderSystem.getSequentialBuffer(com.mojang.blaze3d.vertex.VertexFormat.DrawMode.QUADS);
-               pass.setIndexBuffer(quads.getIndexBuffer(6), quads.getIndexType());
-               pass.drawIndexed(0, 0, 6, 1);
-               *///?}
             } catch (Throwable var15) {
                if (pass != null) {
                   try {
@@ -143,11 +123,7 @@ final class ColorGradingPass {
 
    private static void allocate(int width, int height) {
       copy = new SimpleFramebuffer("Venti color grading copy", width, height, false);
-      //? if >=1.21.11 {
       config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, 32L);
-      //?} else {
-      /*config = RenderSystem.getDevice().createBuffer(CONFIG_LABEL, 136, 32);
-      *///?}
       configSlice = config.slice();
       configData = BufferUtils.createByteBuffer(32);
    }

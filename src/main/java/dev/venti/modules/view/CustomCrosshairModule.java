@@ -10,15 +10,10 @@ import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-//? if >=1.21.9 {
 import net.minecraft.client.gui.hud.debug.DebugHudEntries;
-//?} else {
-/*
-*///?}
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.AttackIndicator;
 import net.minecraft.component.DataComponentTypes;
-//? if >=1.21.11
 import net.minecraft.component.type.AttackRangeComponent;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.screen.NamedScreenHandlerFactory;
@@ -80,11 +75,7 @@ public final class CustomCrosshairModule extends Module {
    public boolean render(DrawContext graphics) {
       MinecraftClient mc = MinecraftClient.getInstance();
       ClientPlayerEntity player = mc.player;
-      //? if >=1.21.9 {
       if (mc.debugHudEntryList.isEntryVisible(DebugHudEntries.THREE_DIMENSIONAL_CROSSHAIR)) {
-      //?} else {
-      /*if (player != null && mc.inGameHud.shouldRenderCrosshair()) { // vanilla's debug 3D crosshair is showing
-      *///?}
          return false;
       } else if (player != null && isVisible(mc)) {
          long now = System.nanoTime();
@@ -347,12 +338,8 @@ public final class CustomCrosshairModule extends Module {
       } else if (player.getAttackCooldownProgressPerTick() <= 5.0F) {
          return false;
       } else {
-         //? if >=1.21.11 {
          AttackRangeComponent range = player.getActiveOrMainHandStack().get(DataComponentTypes.ATTACK_RANGE);
          return range == null || mc.crosshairTarget == null || range.isWithinRange(player, mc.crosshairTarget.getPos());
-         //?} else {
-         /*return true; // no per-item attack range before 1.21.11: a targeted entity is always in reach
-         *///?}
       }
    }
 

@@ -61,11 +61,7 @@ import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public final class VentiClient implements ClientModInitializer {
-   //? if >=1.21.9 {
    private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("venti", "keys"));
-   //?} else {
-   /*private static final String CATEGORY = "key.category.venti.keys"; // categories are translation keys before 1.21.9
-   *///?}
    private KeyBinding openGui;
    private KeyBinding playPause;
    private KeyBinding next;

@@ -13,13 +13,7 @@ import dev.venti.modules.character.kit.CharacterModel;
 import dev.venti.modules.character.kit.Detail;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-//? if >=1.21.9 {
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
-//?} else {
-/*import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.minecraft.resource.ResourceManager;
-*///?}
 import net.minecraft.util.Identifier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.resource.ResourceType;
@@ -48,22 +42,8 @@ final class CharacterCache {
    static void listen() {
       if (!listening) {
          listening = true;
-         //? if >=1.21.9 {
          ResourceLoader.get(ResourceType.CLIENT_RESOURCES)
             .registerReloader(Identifier.of("venti", "character_textures"), (SynchronousResourceReloader)manager -> releaseTextures());
-         //?} else {
-         /*ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
-            @Override
-            public Identifier getFabricId() {
-               return Identifier.of("venti", "character_textures");
-            }
-
-            @Override
-            public void reload(ResourceManager manager) {
-               releaseTextures();
-            }
-         });
-         *///?}
       }
    }
 

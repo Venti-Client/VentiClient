@@ -160,11 +160,7 @@ public final class EffectParticlesModule extends Module {
 
    private void burst(LivingEntity entity) {
       MinecraftClient mc = MinecraftClient.getInstance();
-      //? if >=1.21.9 {
       if (this.bind(mc.world) && entity.getEntityWorld() == mc.world) {
-      //?} else {
-      /*if (this.bind(mc.world) && entity.getWorld() == mc.world) {
-      *///?}
          if (entity != mc.player || this.ownPops.get()) {
             this.refreshPalette();
             Box box = entity.getBoundingBox();

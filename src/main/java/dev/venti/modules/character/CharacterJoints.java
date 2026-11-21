@@ -4,7 +4,6 @@ import dev.venti.modules.character.kit.Bone;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-//? if >=1.21.11
 import net.minecraft.util.SwingAnimationType;
 import net.minecraft.util.Arm;
 import net.minecraft.util.math.MathHelper;
@@ -73,11 +72,7 @@ final class CharacterJoints {
             }
 
             Arm arm = right ? Arm.RIGHT : Arm.LEFT;
-            //? if >=1.21.11 {
             if (state.handSwingProgress > 0.0F && state.preferredArm == arm && state.swingAnimationType == SwingAnimationType.WHACK) {
-            //?} else {
-            /*if (state.handSwingProgress > 0.0F && state.preferredArm == arm) { // every swing is a whack before 1.21.11
-            *///?}
                flex += 0.6F * MathHelper.sin(state.handSwingProgress * (float) Math.PI);
             }
 

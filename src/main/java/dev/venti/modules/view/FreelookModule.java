@@ -117,11 +117,7 @@ public final class FreelookModule extends Module {
    }
 
    private static boolean held(MinecraftClient mc, int key) {
-      //? if >=1.21.9 {
       return InputUtil.isKeyPressed(mc.getWindow(), key);
-      //?} else {
-      /*return InputUtil.isKeyPressed(mc.getWindow().getHandle(), key);
-      *///?}
    }
 
    /** The running freelook, or null when the camera follows the player as usual. */

@@ -21,13 +21,9 @@ import java.util.concurrent.CompletableFuture;
 import net.minecraft.client.texture.PlayerSkinTextureDownloader;
 import net.minecraft.util.Identifier;
 import net.minecraft.client.MinecraftClient;
-//? if >=1.21.9 {
 import net.minecraft.entity.player.PlayerSkinType;
 import net.minecraft.entity.player.SkinTextures;
 import net.minecraft.util.AssetInfo.TextureAsset;
-//?} else {
-/*import net.minecraft.client.util.SkinTextures;
-*///?}
 
 public final class SkinChangeModule extends Module {
    private final StringSetting selfPlayerSetting = this.add("self-player", new StringSetting("Self Player", ""));
@@ -149,17 +145,11 @@ public final class SkinChangeModule extends Module {
       }
    }
 
-   //? if >=1.21.9 {
    private static CompletableFuture<TextureAsset> registerSkin(Identifier id, Path cachePath, String url) {
       MinecraftClient mc = MinecraftClient.getInstance();
       PlayerSkinTextureDownloader downloader = new PlayerSkinTextureDownloader(mc.getNetworkProxy(), mc.getTextureManager(), mc);
       return downloader.downloadAndRegisterTexture(id, cachePath, url, true);
    }
-   //?} else {
-   /*private static CompletableFuture<Identifier> registerSkin(Identifier id, Path cachePath, String url) {
-      return PlayerSkinTextureDownloader.downloadAndRegisterTexture(id, cachePath, url, true);
-   }
-   *///?}
 
    private static String fetchUUID(String username) throws Exception {
       if (!username.matches("[A-Za-z0-9_]{1,16}")) {
@@ -219,11 +209,7 @@ public final class SkinChangeModule extends Module {
                JsonObject skin = textures.getAsJsonObject("SKIN");
                JsonObject metadata = skin.has("metadata") ? skin.getAsJsonObject("metadata") : null;
                String model = metadata != null && metadata.has("model") ? metadata.get("model").getAsString() : null;
-               //? if >=1.21.9 {
                return new SkinChangeModule.SkinSource(skin.get("url").getAsString(), PlayerSkinType.byModelMetadata(model));
-               //?} else {
-               /*return new SkinChangeModule.SkinSource(skin.get("url").getAsString(), SkinTextures.Model.fromName(model));
-               *///?}
             }
          }
 
@@ -254,19 +240,11 @@ public final class SkinChangeModule extends Module {
       return custom == null ? original : (isSelf ? this.selfSwaps : this.othersSwaps).swap(original, custom);
    }
 
-      //? if >=1.21.9 {
       private record CustomSkin(TextureAsset body, PlayerSkinType model) {
    }
 
       private record SkinSource(String url, PlayerSkinType model) {
    }
-      //?} else {
-      /*private record CustomSkin(Identifier body, SkinTextures.Model model) {
-   }
-
-      private record SkinSource(String url, SkinTextures.Model model) {
-   }
-      *///?}
 
       private static final class SwapCache {
       private static final int MAX = 256;
@@ -281,11 +259,7 @@ public final class SkinChangeModule extends Module {
 
          SkinTextures skin = this.swapped.get(original);
          if (skin == null) {
-            //? if >=1.21.9 {
             skin = new SkinTextures(custom.body(), original.cape(), original.elytra(), custom.model(), original.secure());
-            //?} else {
-            /*skin = new SkinTextures(custom.body(), null, original.capeTexture(), original.elytraTexture(), custom.model(), original.secure());
-            *///?}
             this.swapped.put(original, skin);
          }
 

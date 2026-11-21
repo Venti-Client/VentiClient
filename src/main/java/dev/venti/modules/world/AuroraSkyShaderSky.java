@@ -100,11 +100,7 @@ final class AuroraSkyShaderSky {
                }
 
                if (this.uniforms == null) {
-                  //? if >=1.21.11 {
                   this.uniforms = device.createBuffer(() -> "Venti sky theme settings", 136, 112L);
-                  //?} else {
-                  /*this.uniforms = device.createBuffer(() -> "Venti sky theme settings", 136, 112);
-                  *///?}
                   this.uniformData = BufferUtils.createByteBuffer(112);
                }
 
@@ -118,11 +114,7 @@ final class AuroraSkyShaderSky {
                CommandEncoder encoder = device.createCommandEncoder();
                encoder.writeToBuffer(this.uniforms.slice(), this.uniformData);
                GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
-                  //? if >=1.21.11 {
                   .write(RenderSystem.getModelViewStack(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
-                  //?} else {
-                  /*.write(RenderSystem.getModelViewStack(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f(), 0.0F);
-                  *///?}
                ShapeIndexBuffer indices = RenderSystem.getSequentialBuffer(DrawMode.QUADS);
                RenderPass pass = encoder.createRenderPass(
                   () -> "Venti sky theme", target.getColorAttachmentView(), OptionalInt.empty(), target.getDepthAttachmentView(), OptionalDouble.empty()

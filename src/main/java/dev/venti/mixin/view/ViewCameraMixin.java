@@ -14,11 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(Camera.class)
 public abstract class ViewCameraMixin {
    @WrapOperation(
-      //? if >=1.21.11 {
       method = "update(Lnet/minecraft/world/World;Lnet/minecraft/entity/Entity;ZZF)V",
-      //?} else {
-      /*method = "update(Lnet/minecraft/world/BlockView;Lnet/minecraft/entity/Entity;ZZF)V",
-      *///?}
       at = {
          @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V", ordinal = 0),
          @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V", ordinal = 1)

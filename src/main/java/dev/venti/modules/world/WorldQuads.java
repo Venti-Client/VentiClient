@@ -29,10 +29,6 @@ import net.minecraft.client.render.BuiltBuffer;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
-//? if <1.21.11 {
-/*import net.minecraft.client.render.Camera;
-import org.joml.Vector3fc;
-*///?}
 
 @Environment(EnvType.CLIENT)
 public final class WorldQuads {
@@ -73,76 +69,6 @@ public final class WorldQuads {
       return onTop ? TOP : TESTED;
    }
 
-   //? if <1.21.11 {
-   /*// Minecraft before 1.21.11 has no gizmos, so world lines are drawn here as camera-facing ribbons instead.
-   private static final double RIBBON_NEAR = 0.05;
-   private static double pixel;
-   private static double lookX;
-   private static double lookY;
-   private static double lookZ;
-
-   // Called with beginFrame: remembers the view direction and the size of one framebuffer pixel per block of view depth.
-   public static void beginLines(Camera camera, Matrix4f projection) {
-      int height = MinecraftClient.getInstance().getFramebuffer().textureHeight;
-      pixel = height > 0 && projection.m11() != 0.0F ? 2.0 / (projection.m11() * height) : 0.0;
-      Vector3fc forward = camera.getHorizontalPlane();
-      lookX = forward.x();
-      lookY = forward.y();
-      lookZ = forward.z();
-   }
-
-   // A line `width` framebuffer pixels wide, like a 1.21.11 gizmo line.
-   public void line(double ax, double ay, double az, double bx, double by, double bz, int argb, float width) {
-      if (argb >>> 24 < 3 || pixel <= 0.0) {
-         return;
-      }
-
-      double depthA = (ax - originX) * lookX + (ay - originY) * lookY + (az - originZ) * lookZ;
-      double depthB = (bx - originX) * lookX + (by - originY) * lookY + (bz - originZ) * lookZ;
-      if (depthA < RIBBON_NEAR && depthB < RIBBON_NEAR) {
-         return;
-      }
-
-      if (depthA < RIBBON_NEAR) {
-         double t = (RIBBON_NEAR - depthA) / (depthB - depthA);
-         ax += (bx - ax) * t;
-         ay += (by - ay) * t;
-         az += (bz - az) * t;
-         depthA = RIBBON_NEAR;
-      } else if (depthB < RIBBON_NEAR) {
-         double t = (RIBBON_NEAR - depthB) / (depthA - depthB);
-         bx += (ax - bx) * t;
-         by += (ay - by) * t;
-         bz += (az - bz) * t;
-         depthB = RIBBON_NEAR;
-      }
-
-      double fx = ax - originX;
-      double fy = ay - originY;
-      double fz = az - originZ;
-      double ex = bx - ax;
-      double ey = by - ay;
-      double ez = bz - az;
-      double sx = fy * ez - fz * ey;
-      double sy = fz * ex - fx * ez;
-      double sz = fx * ey - fy * ex;
-      double length = Math.sqrt(sx * sx + sy * sy + sz * sz);
-      if (length < 1.0E-9) {
-         return;
-      }
-
-      double scale = width * 0.5 * pixel / length;
-      double ka = scale * depthA;
-      double kb = scale * depthB;
-      this.quad(
-         ax + sx * ka, ay + sy * ka, az + sz * ka,
-         bx + sx * kb, by + sy * kb, bz + sz * kb,
-         bx - sx * kb, by - sy * kb, bz - sz * kb,
-         ax - sx * ka, ay - sy * ka, az - sz * ka,
-         argb
-      );
-   }
-   *///?}
 
    public static void beginFrame(Vec3d camera) {
       originX = camera.x;
@@ -271,11 +197,7 @@ public final class WorldQuads {
                ShapeIndexBuffer indices = RenderSystem.getSequentialBuffer(DrawMode.QUADS);
                int indexCount = mesh.getDrawParameters().indexCount();
                GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
-                  //? if >=1.21.11 {
                   .write(viewRotation, new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
-                  //?} else {
-                  /*.write(viewRotation, new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f(), 0.0F);
-                  *///?}
                Framebuffer target = MinecraftClient.getInstance().getFramebuffer();
                RenderPass pass = RenderSystem.getDevice()
                   .createCommandEncoder()

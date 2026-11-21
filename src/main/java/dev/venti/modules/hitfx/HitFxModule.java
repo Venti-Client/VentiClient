@@ -47,7 +47,6 @@ public final class HitFxModule extends Module {
       SoundEvents.ENTITY_PLAYER_ATTACK_STRONG,
       SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
       SoundEvents.ENTITY_PLAYER_ATTACK_WEAK,
-      //? if >=1.21.11
       SoundEvents.ITEM_SPEAR_HIT.value(),
       SoundEvents.ENTITY_PLAYER_HURT
    );

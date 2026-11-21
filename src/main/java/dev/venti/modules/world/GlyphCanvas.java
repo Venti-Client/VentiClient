@@ -3,12 +3,10 @@ package dev.venti.modules.world;
 import java.util.Arrays;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-//? if >=1.21.11 {
 import net.minecraft.world.debug.gizmo.Gizmo;
 import net.minecraft.world.debug.gizmo.GizmoDrawer;
 import net.minecraft.world.debug.gizmo.VisibilityConfigurable;
 import net.minecraft.world.debug.gizmo.GizmoDrawing;
-//?}
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.client.render.Camera;
@@ -16,11 +14,7 @@ import net.minecraft.util.math.ColorHelper;
 import org.joml.Vector3fc;
 
 @Environment(EnvType.CLIENT)
-//? if >=1.21.11 {
 public final class GlyphCanvas implements Gizmo {
-//?} else {
-/*public final class GlyphCanvas {
-*///?}
    public static final int MAX_QUADS = 12000;
    private static final int MAX_LINES = 4000;
    private static final int MIN_ALPHA = 3;
@@ -75,19 +69,10 @@ public final class GlyphCanvas implements Gizmo {
 
       this.quads = 0;
       if (this.lines != 0) {
-         //? if >=1.21.11 {
          VisibilityConfigurable properties = GizmoDrawing.collect(this);
          if (onTop) {
             properties.ignoreOcclusion();
          }
-         //?} else {
-         /*// No gizmos before 1.21.11: the lines become ribbons in the world quad batch.
-         WorldQuads out = WorldQuads.layer(onTop);
-         double[] l = this.linePos;
-         for (int i = 0, p = 0; i < this.lines; i++, p += 6) {
-            out.line(l[p], l[p + 1], l[p + 2], l[p + 3], l[p + 4], l[p + 5], this.lineColor[i], this.lineWidth[i]);
-         }
-         *///?}
       }
    }
 
@@ -319,7 +304,6 @@ public final class GlyphCanvas implements Gizmo {
       this.band(x, y, z, inner, outer, 0.0F, (float) (Math.PI * 2), segments, argb);
    }
 
-   //? if >=1.21.11 {
    public void draw(GizmoDrawer out, float alpha) {
       boolean faded = alpha < 1.0F;
       double[] l = this.linePos;
@@ -331,7 +315,6 @@ public final class GlyphCanvas implements Gizmo {
          i++;
       }
    }
-   //?}
 
    private Vec3d vertex(double x, double y, double z) {
       long hash = Double.doubleToRawLongBits(x) * -7046029254386353131L

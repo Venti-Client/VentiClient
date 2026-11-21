@@ -20,7 +20,6 @@ public abstract class ViewWorldRendererMixin {
       }
    }
 
-   //? if >=1.21.9 {
    @Inject(
       method = "getAndUpdateRenderState(Lnet/minecraft/entity/Entity;F)Lnet/minecraft/client/render/entity/state/EntityRenderState;",
       at = @At("RETURN")
@@ -31,6 +30,5 @@ public abstract class ViewWorldRendererMixin {
          state.onFire = false;
       }
    }
-   //?}
    // (before 1.21.9 entity fire is hidden from ViewNameProtectEntityRendererMixin, on EntityRenderer.getAndUpdateRenderState)
 }

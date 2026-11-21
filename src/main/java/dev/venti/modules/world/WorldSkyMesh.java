@@ -78,18 +78,10 @@ final class WorldSkyMesh {
             }
 
             if (this.buffer == null) {
-               //? if >=1.21.11 {
                this.buffer = RenderSystem.getDevice().createBuffer(() -> this.label, 40, this.maxQuads * 4L * VERTEX_SIZE);
-               //?} else {
-               /*this.buffer = RenderSystem.getDevice().createBuffer(() -> this.label, 40, this.maxQuads * 4 * VERTEX_SIZE);
-               *///?}
             }
 
-            //? if >=1.21.11 {
             RenderSystem.getDevice().createCommandEncoder().writeToBuffer(this.buffer.slice(0L, mesh.getBuffer().remaining()), mesh.getBuffer());
-            //?} else {
-            /*RenderSystem.getDevice().createCommandEncoder().writeToBuffer(this.buffer.slice(0, mesh.getBuffer().remaining()), mesh.getBuffer());
-            *///?}
             this.indexCount = mesh.getDrawParameters().indexCount();
          } catch (Throwable var6) {
             if (mesh != null) {
@@ -128,11 +120,7 @@ final class WorldSkyMesh {
          try {
             modelView.mul(pose.peek().getPositionMatrix());
             GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
-               //? if >=1.21.11 {
                .write(modelView, new Vector4f(1.0F, 1.0F, 1.0F, alpha), new Vector3f(), new Matrix4f());
-               //?} else {
-               /*.write(modelView, new Vector4f(1.0F, 1.0F, 1.0F, alpha), new Vector3f(), new Matrix4f(), 0.0F);
-               *///?}
             Framebuffer target = MinecraftClient.getInstance().getFramebuffer();
             RenderPass pass = RenderSystem.getDevice()
                .createCommandEncoder()
