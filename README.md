@@ -80,4 +80,6 @@ Settings are saved automatically to `.minecraft/config/venti/`. Pictures you pic
 
 ## License
 
+Full guide: [Wiki](docs/WIKI.md).
+
 Venti Client is free software, released under the [GNU General Public License v3.0](LICENSE). See [NOTICE](NOTICE.md) for third-party components.
