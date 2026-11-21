@@ -1,8 +1,10 @@
 // Shared build script: Stonecutter evaluates it once per Minecraft version (versions/<mc>/),
 // reading that version's versions/<mc>/gradle.properties.
-plugins {
-    id 'fabric-loom'
-}
+// versions/<mc>/gradle.properties picks the Loom plugin: 'net.fabricmc.fabric-loom-remap' for obfuscated
+// versions (1.21.11, Mojang mappings) and 'net.fabricmc.fabric-loom' for unobfuscated ones (26.x).
+apply plugin: project.loom_plugin
+def remapped = project.loom_plugin == 'net.fabricmc.fabric-loom-remap'
+def javaVersion = project.java_version as int
 
 version = "${project.mod_version}+mc${project.minecraft_version}"
 group = project.maven_group
@@ -19,9 +21,13 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    if (remapped) {
+        mappings loom.officialMojangMappings()
+    }
+    // Mods are remapped on obfuscated versions (modImplementation) and used as-is on 26.x.
+    def modImpl = remapped ? 'modImplementation' : 'implementation'
+    add(modImpl, "net.fabricmc:fabric-loader:${project.loader_version}")
+    add(modImpl, "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}")
 
     implementation "io.github.spair:imgui-java-binding:${project.imgui_version}"
     implementation("io.github.spair:imgui-java-lwjgl3:${project.imgui_version}") { transitive = false }
@@ -46,19 +52,20 @@ loom {
 }
 
 processResources {
-    def props = [version: project.version, minecraft: project.mc_dep]
+    def props = [version: project.version, minecraft: project.mc_dep, java: javaVersion]
     inputs.properties props
     filesMatching("fabric.mod.json") { expand props }
+    filesMatching("*.mixins.json") { expand props }
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = javaVersion
     it.options.encoding = 'UTF-8'
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.toVersion(javaVersion)
+    targetCompatibility = JavaVersion.toVersion(javaVersion)
 }
 
 jar {
