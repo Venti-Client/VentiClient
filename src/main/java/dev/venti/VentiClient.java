@@ -13,6 +13,7 @@ import dev.venti.modules.hand.ViewmodelModule;
 import dev.venti.modules.hand.SwingSpeedModule;
 import dev.venti.modules.hand.SwingAnimationModule;
 import dev.venti.modules.discord.DiscordPresenceModule;
+import dev.venti.modules.emoji.EmojiModule;
 import dev.venti.modules.hitfx.HitFxModule;
 import dev.venti.modules.hud.FpsCounterModule;
 import dev.venti.modules.hud.HotkeysModule;
@@ -115,6 +116,7 @@ public final class VentiClient implements ClientModInitializer {
       Modules.register(new NameProtectModule());
       Modules.register(new SkinChangeModule());
       Modules.register(new WaypointsModule());
+      Modules.register(new EmojiModule());
       // VENTI-MODULES: further modules are registered here.
       this.openGui = register("key.venti.gui", GLFW.GLFW_KEY_RIGHT_SHIFT);
       this.playPause = register("key.venti.play_pause", GLFW.GLFW_KEY_UNKNOWN);
