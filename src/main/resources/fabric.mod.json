@@ -32,8 +32,8 @@
     "java": ">=21"
   },
   "contact": {
-    "homepage": "https://github.com/mishoassenov10-prog/VentiClient",
-    "sources": "https://github.com/mishoassenov10-prog/VentiClient",
-    "issues": "https://github.com/mishoassenov10-prog/VentiClient/issues"
+    "homepage": "https://github.com/Venti-Client/VentiClient",
+    "sources": "https://github.com/Venti-Client/VentiClient",
+    "issues": "https://github.com/Venti-Client/VentiClient/issues"
   }
 }

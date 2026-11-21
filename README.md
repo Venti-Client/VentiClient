@@ -48,7 +48,7 @@ Nametags follow vanilla visibility rules: they show name, held item, ping and di
 Requires JDK 21 or newer.
 
 ```bash
-git clone https://github.com/mishoassenov10-prog/VentiClient.git
+git clone https://github.com/Venti-Client/VentiClient.git
 cd VentiClient
 ./gradlew buildAll
 ```

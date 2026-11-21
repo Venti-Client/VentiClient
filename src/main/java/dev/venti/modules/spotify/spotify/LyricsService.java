@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 public final class LyricsService implements AutoCloseable {
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
    private static final String MOD_ID = "venti";
-   private static final String HOMEPAGE = "https://github.com/mishoassenov10-prog/VentiClient";
+   private static final String HOMEPAGE = "https://github.com/Venti-Client/VentiClient";
    private static final URI LRCLIB = URI.create("https://lrclib.net/");
    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8L);
    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(12L);
@@ -473,7 +473,7 @@ public final class LyricsService implements AutoCloseable {
          version = version.substring(0, build);
       }
 
-      return "Venti/" + version + " (+https://github.com/mishoassenov10-prog/VentiClient)";
+      return "Venti/" + version + " (+https://github.com/Venti-Client/VentiClient)";
    }
 
    @Environment(EnvType.CLIENT)
