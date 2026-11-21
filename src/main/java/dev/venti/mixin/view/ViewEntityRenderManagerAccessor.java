@@ -1,30 +1,16 @@
 package dev.venti.mixin.view;
 
 import java.util.Map;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-//? if >=1.21.9 {
-import net.minecraft.client.render.entity.EntityRenderManager;
-import net.minecraft.client.render.entity.PlayerEntityRenderer;
-import net.minecraft.entity.player.PlayerSkinType;
-//?} else {
-/*import net.minecraft.client.render.entity.EntityRenderDispatcher;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.util.SkinTextures;
-import net.minecraft.entity.player.PlayerEntity;
-*///?}
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.world.entity.player.PlayerModelType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /** Skin Change: pick the wide/slim player renderer that matches the worn skin for the first-person arm. */
-//? if >=1.21.9 {
-@Mixin(EntityRenderManager.class)
+@Mixin(EntityRenderDispatcher.class)
 public interface ViewEntityRenderManagerAccessor {
    @Accessor("playerRenderers")
-   Map<PlayerSkinType, PlayerEntityRenderer<AbstractClientPlayerEntity>> venti$playerRenderers();
-//?} else {
-/*@Mixin(EntityRenderDispatcher.class)
-public interface ViewEntityRenderManagerAccessor {
-   @Accessor("modelRenderers")
-   Map<SkinTextures.Model, EntityRenderer<? extends PlayerEntity, ?>> venti$playerRenderers();
-*///?}
+   Map<PlayerModelType, AvatarRenderer<AbstractClientPlayer>> venti$playerRenderers();
 }

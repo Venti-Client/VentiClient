@@ -1,10 +1,10 @@
 package dev.venti.mixin.view;
 
 import dev.venti.modules.view.SprintModule;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.input.Input;
-import net.minecraft.client.input.KeyboardInput;
-import net.minecraft.util.PlayerInput;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.ClientInput;
+import net.minecraft.client.player.KeyboardInput;
+import net.minecraft.world.entity.player.Input;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -15,11 +15,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ViewKeyboardInputMixin {
    @Inject(method = "tick()V", at = @At("TAIL"))
    private void venti$holdSprint(CallbackInfo ci) {
-      Input input = (Input)(Object)this;
-      MinecraftClient mc = MinecraftClient.getInstance();
-      PlayerInput keys = input.playerInput;
+      ClientInput input = (ClientInput)(Object)this;
+      Minecraft mc = Minecraft.getInstance();
+      Input keys = input.keyPresses;
       if (SprintModule.holding() && mc.player != null && mc.player.input == input && !keys.sprint()) {
-         input.playerInput = new PlayerInput(keys.forward(), keys.backward(), keys.left(), keys.right(), keys.jump(), keys.sneak(), true);
+         input.keyPresses = new Input(keys.forward(), keys.backward(), keys.left(), keys.right(), keys.jump(), keys.shift(), true);
       }
    }
 }

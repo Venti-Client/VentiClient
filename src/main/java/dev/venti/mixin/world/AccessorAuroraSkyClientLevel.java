@@ -2,13 +2,13 @@ package dev.venti.mixin.world;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.world.ClientWorld;
+import net.minecraft.client.multiplayer.ClientLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Environment(EnvType.CLIENT)
-@Mixin({ClientWorld.class})
+@Mixin({ClientLevel.class})
 public interface AccessorAuroraSkyClientLevel {
-   @Accessor("lightningTicksLeft")
+   @Accessor("skyFlashTime")
    int venti$atmosphereSkyFlash();
 }

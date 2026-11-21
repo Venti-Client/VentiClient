@@ -1,7 +1,7 @@
 package dev.venti.modules.streamhider;
 
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 /** The Random style's item pools, ported from Anubis. */
 final class FakeLoadout {

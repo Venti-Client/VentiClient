@@ -3,25 +3,21 @@ package dev.venti.mixin.streamhider;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.venti.modules.streamhider.StreamHiderModule;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.entity.LivingEntity;
-//? if <1.21.11 {
-/*import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.entity.Entity;
-*///?}
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 /** The inventory's player model is drawn without the items it holds or wears. */
+//? if >=26.2 {
 @Mixin(InventoryScreen.class)
 public abstract class InventoryScreenModelMixin {
-   //? if >=1.21.11 {
    @WrapOperation(
-      method = "drawEntity(Lnet/minecraft/client/gui/DrawContext;IIIIIFFFLnet/minecraft/entity/LivingEntity;)V",
+      method = "extractEntityInInventoryFollowsMouse(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIIIIFFFLnet/minecraft/world/entity/LivingEntity;)V",
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/gui/screen/ingame/InventoryScreen;drawEntity(Lnet/minecraft/entity/LivingEntity;)Lnet/minecraft/client/render/entity/state/EntityRenderState;"
+         target = "Lnet/minecraft/client/gui/screens/inventory/InventoryScreen;extractRenderState(Lnet/minecraft/world/entity/LivingEntity;)Lnet/minecraft/client/renderer/entity/state/EntityRenderState;"
       )
    )
    private static EntityRenderState venti$noInvLeakModel(LivingEntity entity, Operation<EntityRenderState> original) {
@@ -36,28 +32,28 @@ public abstract class InventoryScreenModelMixin {
          StreamHiderModule.bareModel(false);
       }
    }
-   //?} else {
-   /*// Before 1.21.11 the render state is extracted inline in the drawEntity overload that takes the camera rotation.
+}
+//?} else {
+/*@Mixin(InventoryScreen.class)
+public abstract class InventoryScreenModelMixin {
    @WrapOperation(
-      method = "drawEntity(Lnet/minecraft/client/gui/DrawContext;IIIIFLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/entity/LivingEntity;)V",
+      method = "renderEntityInInventoryFollowsMouse(Lnet/minecraft/client/gui/GuiGraphics;IIIIIFFFLnet/minecraft/world/entity/LivingEntity;)V",
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/entity/EntityRenderer;getAndUpdateRenderState(Lnet/minecraft/entity/Entity;F)Lnet/minecraft/client/render/entity/state/EntityRenderState;"
+         target = "Lnet/minecraft/client/gui/screens/inventory/InventoryScreen;extractRenderState(Lnet/minecraft/world/entity/LivingEntity;)Lnet/minecraft/client/renderer/entity/state/EntityRenderState;"
       )
    )
-   private static EntityRenderState venti$noInvLeakModel(
-      EntityRenderer<?, ?> renderer, Entity entity, float tickProgress, Operation<EntityRenderState> original
-   ) {
-      if (!(entity instanceof LivingEntity living) || !StreamHiderModule.hidesModelOf(living)) {
-         return original.call(renderer, entity, tickProgress);
+   private static EntityRenderState venti$noInvLeakModel(LivingEntity entity, Operation<EntityRenderState> original) {
+      if (!StreamHiderModule.hidesModelOf(entity)) {
+         return original.call(entity);
       }
 
       StreamHiderModule.bareModel(true);
       try {
-         return original.call(renderer, entity, tickProgress);
+         return original.call(entity);
       } finally {
          StreamHiderModule.bareModel(false);
       }
    }
-   *///?}
 }
+*///?}

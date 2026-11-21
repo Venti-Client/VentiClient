@@ -1,7 +1,7 @@
 package dev.venti.modules.spotify.spotify;
 
-import java.text.Normalizer;
 import java.text.Normalizer.Form;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;

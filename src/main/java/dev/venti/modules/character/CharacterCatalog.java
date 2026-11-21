@@ -1,13 +1,13 @@
 package dev.venti.modules.character;
 
-import java.util.ArrayList;
-import java.util.List;
 import dev.venti.modules.character.designs.Aoi;
 import dev.venti.modules.character.designs.Luna;
 import dev.venti.modules.character.designs.Mika;
 import dev.venti.modules.character.designs.Sakura;
 import dev.venti.modules.character.kit.BakedDesign;
 import dev.venti.modules.character.kit.CharacterDesign;
+import java.util.ArrayList;
+import java.util.List;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 

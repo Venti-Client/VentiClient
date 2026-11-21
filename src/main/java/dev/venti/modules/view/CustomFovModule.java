@@ -3,7 +3,7 @@ package dev.venti.modules.view;
 import dev.venti.config.NumberSetting;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 public final class CustomFovModule extends Module {
    public static volatile CustomFovModule active;
@@ -55,12 +55,17 @@ public final class CustomFovModule extends Module {
    }
 
    private static void scheduleTerrainUpdate() {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (mc != null) {
-         if (!mc.isOnThread()) {
+         if (!mc.isSameThread()) {
             mc.execute(CustomFovModule::scheduleTerrainUpdate);
-         } else if (mc.world != null && mc.worldRenderer != null) {
-            mc.worldRenderer.scheduleTerrainUpdate();
+         } else if (mc.level != null && mc.levelRenderer != null) {
+            //? if >=26.2 {
+            mc.levelRenderer.sectionOcclusionGraph().invalidate();
+            mc.levelRenderer.cloudRenderer().markForRebuild();
+            //?} else {
+            /*mc.levelRenderer.needsUpdate();
+            *///?}
          }
       }
    }

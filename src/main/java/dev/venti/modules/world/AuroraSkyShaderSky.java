@@ -4,28 +4,24 @@ import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.systems.RenderSystem.ShapeIndexBuffer;
-import com.mojang.blaze3d.vertex.VertexFormat.DrawMode;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.MeshData;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.OptionalDouble;
-import java.util.OptionalInt;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.gl.UniformType;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.util.Identifier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.BufferAllocator;
-import net.minecraft.client.render.BuiltBuffer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
@@ -42,16 +38,15 @@ final class AuroraSkyShaderSky {
    static final String BLACK_HOLE = "Black Hole";
    private static final List<String> THEMES = List.of("Space", "Northern Lights", "Ringed Planet", "Black Hole");
    private static final Logger LOGGER = LoggerFactory.getLogger("Venti");
-   private static final RenderPipeline PIPELINE = RenderPipeline.builder(new Snippet[]{RenderPipelines.TRANSFORMS_AND_PROJECTION_SNIPPET})
-      .withLocation(Identifier.of("venti", "pipeline/sky_theme"))
-      .withVertexShader(Identifier.of("venti", "core/sky_theme"))
-      .withFragmentShader(Identifier.of("venti", "core/sky_theme"))
-      .withUniform("VentiSky", UniformType.UNIFORM_BUFFER)
-      .withDepthWrite(false)
-      .withCull(false)
-      .withVertexFormat(VertexFormats.POSITION, DrawMode.QUADS)
-      .withBlend(BlendFunction.TRANSLUCENT)
-      .build();
+   private static final RenderPipeline PIPELINE = Gpu.pipeline("sky_theme")
+         .shaders(Identifier.fromNamespaceAndPath("venti", "core/sky_theme"), Identifier.fromNamespaceAndPath("venti", "core/sky_theme"))
+         .matrices()
+         .uniform("VentiSky")
+         .blend(BlendFunction.TRANSLUCENT)
+         .depth(true, false)
+         .cull(false)
+         .vertices(DefaultVertexFormat.POSITION, Gpu.Topology.QUADS)
+         .build();
    private static final int UNIFORM_SIZE = 112;
    private static final float CUBE = 10.0F;
    private static final int CUBE_INDICES = 36;
@@ -93,18 +88,14 @@ final class AuroraSkyShaderSky {
 
             return false;
          } else {
-            Framebuffer target = MinecraftClient.getInstance().getFramebuffer();
-            if (target.textureWidth > 0 && target.textureHeight > 0) {
+            RenderTarget target = Mc.mainTarget();
+            if (target.width > 0 && target.height > 0) {
                if (this.cube == null) {
                   this.cube = buildCube(device);
                }
 
                if (this.uniforms == null) {
-                  //? if >=1.21.11 {
                   this.uniforms = device.createBuffer(() -> "Venti sky theme settings", 136, 112L);
-                  //?} else {
-                  /*this.uniforms = device.createBuffer(() -> "Venti sky theme settings", 136, 112);
-                  *///?}
                   this.uniformData = BufferUtils.createByteBuffer(112);
                }
 
@@ -118,18 +109,11 @@ final class AuroraSkyShaderSky {
                CommandEncoder encoder = device.createCommandEncoder();
                encoder.writeToBuffer(this.uniforms.slice(), this.uniformData);
                GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
-                  //? if >=1.21.11 {
-                  .write(RenderSystem.getModelViewStack(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
-                  //?} else {
-                  /*.write(RenderSystem.getModelViewStack(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f(), 0.0F);
-                  *///?}
-               ShapeIndexBuffer indices = RenderSystem.getSequentialBuffer(DrawMode.QUADS);
-               RenderPass pass = encoder.createRenderPass(
-                  () -> "Venti sky theme", target.getColorAttachmentView(), OptionalInt.empty(), target.getDepthAttachmentView(), OptionalDouble.empty()
-               );
+                  .writeTransform(RenderSystem.getModelViewStack(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
+               RenderPass pass = Gpu.pass(encoder, () -> "Venti sky theme", target.getColorTextureView(), target.getDepthTextureView());
 
                try {
-                  this.drawSky(pass, PIPELINE, transforms, indices);
+                  this.drawSky(pass, PIPELINE, transforms);
                } catch (Throwable var26) {
                   if (pass != null) {
                      try {
@@ -156,14 +140,12 @@ final class AuroraSkyShaderSky {
       }
    }
 
-   private void drawSky(RenderPass pass, RenderPipeline pipeline, GpuBufferSlice transforms, ShapeIndexBuffer indices) {
+   private void drawSky(RenderPass pass, RenderPipeline pipeline, GpuBufferSlice transforms) {
       pass.setPipeline(pipeline);
       RenderSystem.bindDefaultUniforms(pass);
       pass.setUniform("DynamicTransforms", transforms);
       pass.setUniform("VentiSky", this.uniforms.slice());
-      pass.setVertexBuffer(0, this.cube);
-      pass.setIndexBuffer(indices.getIndexBuffer(36), indices.getIndexType());
-      pass.drawIndexed(0, 0, 36, 1);
+      Gpu.drawQuads(pass, this.cube, 36);
    }
 
    void close() {
@@ -194,11 +176,11 @@ final class AuroraSkyShaderSky {
    }
 
    private static GpuBuffer buildCube(GpuDevice device) {
-      BufferAllocator bytes = new BufferAllocator(24 * VertexFormats.POSITION.getVertexSize());
+      ByteBufferBuilder bytes = new ByteBufferBuilder(24 * DefaultVertexFormat.POSITION.getVertexSize());
 
       GpuBuffer var5;
       try {
-         BufferBuilder builder = new BufferBuilder(bytes, DrawMode.QUADS, VertexFormats.POSITION);
+         BufferBuilder builder = Gpu.builder(bytes, DefaultVertexFormat.POSITION, Gpu.Topology.QUADS);
          float s = 10.0F;
          face(builder, s, -s, -s, s, s, -s, s, s, s, s, -s, s);
          face(builder, -s, -s, s, -s, s, s, -s, s, -s, -s, -s, -s);
@@ -206,10 +188,10 @@ final class AuroraSkyShaderSky {
          face(builder, -s, -s, s, -s, -s, -s, s, -s, -s, s, -s, s);
          face(builder, s, -s, s, s, s, s, -s, s, s, -s, -s, s);
          face(builder, -s, -s, -s, -s, s, -s, s, s, -s, s, -s, -s);
-         BuiltBuffer mesh = builder.end();
+         MeshData mesh = builder.buildOrThrow();
 
          try {
-            var5 = device.createBuffer(() -> "Venti sky theme cube", 32, mesh.getBuffer());
+            var5 = device.createBuffer(() -> "Venti sky theme cube", 32, mesh.vertexBuffer());
          } catch (Throwable var9) {
             if (mesh != null) {
                try {
@@ -242,9 +224,9 @@ final class AuroraSkyShaderSky {
    private static void face(
       BufferBuilder builder, float ax, float ay, float az, float bx, float by, float bz, float cx, float cy, float cz, float dx, float dy, float dz
    ) {
-      builder.vertex(ax, ay, az);
-      builder.vertex(bx, by, bz);
-      builder.vertex(cx, cy, cz);
-      builder.vertex(dx, dy, dz);
+      builder.addVertex(ax, ay, az);
+      builder.addVertex(bx, by, bz);
+      builder.addVertex(cx, cy, cz);
+      builder.addVertex(dx, dy, dz);
    }
 }

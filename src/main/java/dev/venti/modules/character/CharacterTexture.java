@@ -1,21 +1,21 @@
 package dev.venti.modules.character;
 
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.TextureFormat;
+import dev.venti.compat.Gpu;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.AbstractTexture;
 
 @Environment(EnvType.CLIENT)
 final class CharacterTexture extends AbstractTexture {
    CharacterTexture(String label, int width, int height, int[][] mips) {
       GpuDevice device = RenderSystem.getDevice();
-      this.glTexture = device.createTexture(() -> label, 5, TextureFormat.RGBA8, width, height, 1, mips.length);
-      this.glTextureView = device.createTextureView(this.glTexture);
+      this.texture = Gpu.texture(() -> label, 5, false, width, height, mips.length);
+      this.textureView = device.createTextureView(this.texture);
       CommandEncoder encoder = device.createCommandEncoder();
       int w = width;
       int h = height;
@@ -27,11 +27,11 @@ final class CharacterTexture extends AbstractTexture {
          try {
             for (int y = 0; y < h; y++) {
                for (int x = 0; x < w; x++) {
-                  image.setColorArgb(x, y, pixels[y * w + x]);
+                  image.setPixel(x, y, pixels[y * w + x]);
                }
             }
 
-            encoder.writeToTexture(this.glTexture, image, level, 0, 0, 0, w, h, 0, 0);
+            Gpu.write(encoder, this.texture, image, level, 0, 0);
          } catch (Throwable var15) {
             try {
                image.close();
@@ -47,11 +47,6 @@ final class CharacterTexture extends AbstractTexture {
          h = Math.max(1, h / 2);
       }
 
-      //? if >=1.21.11 {
-      this.sampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR, true);
-      //?} else {
-      /*this.setClamp(true);
-      this.setFilter(true, true);
-      *///?}
+      this.sampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR, true);
    }
 }

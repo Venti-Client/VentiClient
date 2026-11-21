@@ -1,11 +1,11 @@
 package dev.venti.modules.world;
 
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
 
 @Environment(EnvType.CLIENT)
 final class AuroraSkyAurora {
@@ -19,7 +19,7 @@ final class AuroraSkyAurora {
    private final float[] z = new float[this.x.length];
    private final int[] color = new int[this.x.length];
 
-   void render(MatrixStack pose, float intensity, float time, int low, int high) {
+   void render(PoseStack pose, float intensity, float time, int low, int high) {
       BufferBuilder builder = this.mesh.begin();
 
       for (int i = 0; i < CURTAINS.length; i++) {
@@ -39,25 +39,25 @@ final class AuroraSkyAurora {
       for (int c = 0; c <= 64; c++) {
          float t = c / 64.0F;
          float az = azimuth + (t - 0.5F) * width + 3.0F * wave(t * 2.1F + time * 0.05F + seed);
-         float base = elevation + 5.0F * MathHelper.sin((float) Math.PI * t) + 3.0F * wave(t * 3.7F - time * 0.07F + seed * 2.0F);
+         float base = elevation + 5.0F * Mth.sin((float) Math.PI * t) + 3.0F * wave(t * 3.7F - time * 0.07F + seed * 2.0F);
          float ends = smoothstep(t / 0.25F) * smoothstep((1.0F - t) / 0.25F);
          float glow = ends * (0.55F + 0.45F * wave01(t * 5.3F + time * 0.11F + seed * 1.3F));
          float rays = 0.72F + 0.28F * wave01(t * 23.0F + time * 0.35F + seed);
          float top = height * (0.8F + 0.35F * wave01(t * 4.1F + time * 0.06F + seed * 3.0F));
-         float cosAz = MathHelper.cos(az * (float) (Math.PI / 180.0));
-         float sinAz = MathHelper.sin(az * (float) (Math.PI / 180.0));
+         float cosAz = Mth.cos(az * (float) (Math.PI / 180.0));
+         float sinAz = Mth.sin(az * (float) (Math.PI / 180.0));
 
          for (int r = 0; r <= 6; r++) {
             float v = r / 6.0F;
             float el = (base + v * top) * (float) (Math.PI / 180.0);
-            float cosEl = MathHelper.cos(el);
+            float cosEl = Mth.cos(el);
             int i = c * 7 + r;
             this.x[i] = 100.0F * cosEl * sinAz;
-            this.y[i] = 100.0F * MathHelper.sin(el);
+            this.y[i] = 100.0F * Mth.sin(el);
             this.z[i] = -100.0F * cosEl * cosAz;
             float profile = v < 0.12F ? smoothstep(v / 0.12F) : (float)Math.pow(1.0F - (v - 0.12F) / 0.88F, 1.5);
-            float alpha = MathHelper.clamp(glow * rays * profile * 0.8F, 0.0F, 1.0F);
-            int rgb = ColorHelper.lerp((float)Math.pow(v, 0.7), low, high) & 16777215;
+            float alpha = Mth.clamp(glow * rays * profile * 0.8F, 0.0F, 1.0F);
+            int rgb = ARGB.srgbLerp((float)Math.pow(v, 0.7), low, high) & 16777215;
             this.color[i] = Math.round(alpha * 255.0F) << 24 | rgb;
          }
       }
@@ -79,7 +79,7 @@ final class AuroraSkyAurora {
    }
 
    static float wave(float s) {
-      return 0.5F * MathHelper.sin(s) + 0.3F * MathHelper.sin(s * 2.13F + 1.3F) + 0.2F * MathHelper.sin(s * 4.37F + 2.9F);
+      return 0.5F * Mth.sin(s) + 0.3F * Mth.sin(s * 2.13F + 1.3F) + 0.2F * Mth.sin(s * 4.37F + 2.9F);
    }
 
    static float wave01(float s) {
@@ -87,7 +87,7 @@ final class AuroraSkyAurora {
    }
 
    static float smoothstep(float x) {
-      x = MathHelper.clamp(x, 0.0F, 1.0F);
+      x = Mth.clamp(x, 0.0F, 1.0F);
       return x * x * (3.0F - 2.0F * x);
    }
 

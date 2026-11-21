@@ -1,11 +1,11 @@
 package dev.venti.mixin.hand;
 
-import net.minecraft.client.render.entity.model.PlayerEntityModel;
+import net.minecraft.client.model.player.PlayerModel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(PlayerEntityModel.class)
+@Mixin(PlayerModel.class)
 public interface AccessorHandPlayerModel {
-   @Accessor("thinArms")
+   @Accessor("slim")
    boolean venti$handSlim();
 }

@@ -1,17 +1,35 @@
 package dev.venti.modules.streamhider;
 
+import com.mojang.blaze3d.ProjectionType;
+import dev.venti.compat.Gpu;
+//? if >=26.2 {
+import net.minecraft.client.renderer.Projection;
+import net.minecraft.client.renderer.ProjectionMatrixBuffer;
+import net.minecraft.world.level.block.BeaconBeamBlock;
+import net.minecraft.world.level.block.HalfTransparentBlock;
+import net.minecraft.world.level.block.NetherPortalBlock;
+//?} else {
+/*import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+*///?}
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.buffers.GpuFence;
-import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
 import com.mojang.blaze3d.opengl.GlConst;
 import com.mojang.blaze3d.opengl.GlStateManager;
+import com.mojang.blaze3d.opengl.GlTexture;
+import com.mojang.blaze3d.platform.Lighting.Entry;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.imgui.ImGuiManager;
 import imgui.ImDrawList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -24,41 +42,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import com.mojang.blaze3d.systems.ProjectionType;
-import net.minecraft.client.render.item.ItemRenderState;
-//? if >=1.21.9 {
-import net.minecraft.util.Atlases;
-//?} else {
-/*import net.minecraft.client.texture.SpriteAtlasTexture;
-*///?}
-import net.minecraft.client.texture.GlTexture;
-import net.minecraft.client.render.ProjectionMatrix2;
-import net.minecraft.client.render.BlockRenderLayer;
-//? if >=1.21.9 {
-import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl;
-import net.minecraft.client.render.command.RenderDispatcher;
-//?} else {
-/*
-*///?}
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.OverlayTexture;
-//? if >=1.21.11 {
-import net.minecraft.client.render.BlockRenderLayers;
-//?} else {
-/*import net.minecraft.client.render.RenderLayers;
-*///?}
-import net.minecraft.item.ItemDisplayContext;
-import net.minecraft.client.util.BufferAllocator;
-import net.minecraft.client.texture.NativeImage.Format;
-import net.minecraft.client.render.DiffuseLighting.Type;
-import net.minecraft.client.render.VertexConsumerProvider.Immediate;
-import net.minecraft.client.render.fog.FogRenderer.FogType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.fog.FogRenderer.FogMode;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.data.AtlasIds;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4fStack;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -86,14 +78,15 @@ public final class ItemIcons {
    private static final int[] VIEWPORT = new int[4];
    private static GpuTexture depth;
    private static GpuTextureView depthView;
-   private static ProjectionMatrix2 projection;
-   //? if >=1.21.9 {
-   private static OrderedRenderCommandQueueImpl submits;
-   private static RenderDispatcher features;
+   private static SubmitNodeStorage submits;
+   //? if >=26.2 {
+   private static ProjectionMatrixBuffer projection;
+   private static final Projection ORTHO = new Projection();
    //?} else {
-/*
+   /*private static CachedOrthoProjectionMatrixBuffer projection;
+   private static FeatureRenderDispatcher features;
+   private static BufferSource buffers;
    *///?}
-   private static Immediate buffers;
    private static GpuBuffer readback;
    private static ByteBuffer straightened;
    private static boolean straightenFailed;
@@ -210,13 +203,7 @@ public final class ItemIcons {
 
    private static GpuTexture currentAtlas() {
       try {
-         //? if >=1.21.11 {
-         return MinecraftClient.getInstance().getAtlasManager().getAtlasTexture(Atlases.ITEMS).getGlTexture();
-         //?} elif >=1.21.9 {
-         /*return MinecraftClient.getInstance().getAtlasManager().getAtlasTexture(Atlases.BLOCKS).getGlTexture(); // items share the block atlas before 1.21.11
-         *///?} else {
-         /*return MinecraftClient.getInstance().getTextureManager().getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlTexture(); // no atlas manager before 1.21.9
-         *///?}
+         return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS).getTexture();
       } catch (RuntimeException var1) {
          return null;
       }
@@ -307,10 +294,13 @@ public final class ItemIcons {
    }
 
    private static boolean seeThrough(Item item) {
-      //? if >=1.21.11 {
-      return item instanceof BlockItem block ? BlockRenderLayers.getBlockLayer(block.getBlock().getDefaultState()) == BlockRenderLayer.TRANSLUCENT : false;
+      //? if >=26.2 {
+      // 26.x picks render layers per model quad; translucent block items are the glass-like blocks
+      // (straightening an icon that is opaque after all changes nothing).
+      return item instanceof BlockItem block
+         && (block.getBlock() instanceof BeaconBeamBlock || block.getBlock() instanceof HalfTransparentBlock || block.getBlock() instanceof NetherPortalBlock);
       //?} else {
-      /*return item instanceof BlockItem block ? RenderLayers.getBlockLayer(block.getBlock().getDefaultState()) == BlockRenderLayer.TRANSLUCENT : false;
+      /*return item instanceof BlockItem block ? ItemBlockRenderTypes.getChunkRenderType(block.getBlock().defaultBlockState()) == ChunkSectionLayer.TRANSLUCENT : false;
       *///?}
    }
 
@@ -335,7 +325,7 @@ public final class ItemIcons {
             }
 
             ItemIcons.Cell cell = new ItemIcons.Cell();
-            cell.texture = ((GlTexture)sheet.color).getGlId();
+            cell.texture = ((GlTexture)sheet.color).glId();
             cell.u0 = left / 512.0F;
             cell.u1 = (left + px) / 512.0F;
             cell.v0 = (512 - top) / 512.0F;
@@ -352,33 +342,33 @@ public final class ItemIcons {
    private static void allocate(ItemIcons.Sheet sheet) {
       GpuDevice device = RenderSystem.getDevice();
       if (depth == null) {
-         depth = create("Venti HUD icon depth", 8, TextureFormat.DEPTH32, 512);
+         depth = create("Venti HUD icon depth", 8, true, 512);
          depthView = device.createTextureView(depth);
       }
 
-      sheet.color = create("Venti HUD icons " + sheet.px, 15, TextureFormat.RGBA8, 512);
+      sheet.color = create("Venti HUD icons " + sheet.px, 15, false, 512);
       sheet.colorView = device.createTextureView(sheet.color);
-      device.createCommandEncoder().clearColorAndDepthTextures(sheet.color, 0, depth, 1.0);
+      Gpu.clearColorAndDepth(device.createCommandEncoder(), sheet.color, depth);
    }
 
    public static void render(
-      ItemRenderState model, GpuTexture target, GpuTextureView targetView, GpuTexture targetDepth, GpuTextureView targetDepthView, int x, int y, int cell
+      ItemStackRenderState model, GpuTexture target, GpuTextureView targetView, GpuTexture targetDepth, GpuTextureView targetDepthView, int x, int y, int cell
    ) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       int side = target.getWidth(0);
       int glY = side - y - cell;
-      RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(target, 0, targetDepth, 1.0, x, glY, cell, cell);
-      //? if >=1.21.9 {
-      if (features == null) {
-         buffers = VertexConsumerProvider.immediate(new BufferAllocator(262144));
-         submits = new OrderedRenderCommandQueueImpl();
-         features = new RenderDispatcher(
-            submits, mc.getBlockRenderManager(), buffers, mc.getAtlasManager(), mc.getBufferBuilders().getOutlineVertexConsumers(), mc.getBufferBuilders().getEffectVertexConsumers(), mc.textRenderer
-         );
+      Gpu.clearColorAndDepth(RenderSystem.getDevice().createCommandEncoder(), target, targetDepth, x, glY, cell, cell);
+      //? if >=26.2 {
+      if (submits == null) {
+         submits = new SubmitNodeStorage();
       }
       //?} else {
-      /*if (buffers == null) {
-         buffers = VertexConsumerProvider.immediate(new BufferAllocator(262144));
+      /*if (features == null) {
+         buffers = MultiBufferSource.immediate(new ByteBufferBuilder(262144));
+         submits = new SubmitNodeStorage();
+         features = new FeatureRenderDispatcher(
+            submits, mc.getBlockRenderer(), buffers, mc.getAtlasManager(), mc.renderBuffers().outlineBufferSource(), mc.renderBuffers().crumblingBufferSource(), mc.font
+         );
       }
       *///?}
 
@@ -397,34 +387,43 @@ public final class ItemIcons {
       try {
          RenderSystem.outputColorTextureOverride = targetView;
          RenderSystem.outputDepthTextureOverride = targetDepthView;
+         //? if >=26.2 {
          if (projection == null) {
-            projection = new ProjectionMatrix2("Venti icons", -1000.0F, 1000.0F, true);
+            projection = new ProjectionMatrixBuffer("Venti icons");
          }
 
-         RenderSystem.setProjectionMatrix(projection.set(side, side), ProjectionType.ORTHOGRAPHIC);
-         Type light = model.isSideLit() ? Type.ITEMS_3D : Type.ITEMS_FLAT;
-         mc.gameRenderer.getDiffuseLighting().setShaderLights(light);
-         RenderSystem.setShaderFog(((dev.venti.mixin.streamhider.GameRendererAccessor)mc.gameRenderer).venti$noInvLeakFogRenderer().getFogBuffer(FogType.NONE));
+         ORTHO.setupOrtho(-1000.0F, 1000.0F, side, side, true);
+         RenderSystem.setProjectionMatrix(projection.getBuffer(ORTHO), ProjectionType.ORTHOGRAPHIC);
+         Entry light = model.usesBlockLight() ? Entry.ITEMS_3D : Entry.ITEMS_FLAT;
+         mc.gameRenderer.lighting().setupFor(light);
+         //?} else {
+         /*if (projection == null) {
+            projection = new CachedOrthoProjectionMatrixBuffer("Venti icons", -1000.0F, 1000.0F, true);
+         }
+
+         RenderSystem.setProjectionMatrix(projection.getBuffer(side, side), ProjectionType.ORTHOGRAPHIC);
+         Entry light = model.usesBlockLight() ? Entry.ITEMS_3D : Entry.ITEMS_FLAT;
+         mc.gameRenderer.getLighting().setupFor(light);
+         *///?}
+         RenderSystem.setShaderFog(((dev.venti.mixin.streamhider.GameRendererAccessor)mc.gameRenderer).venti$noInvLeakFogRenderer().getBuffer(FogMode.NONE));
          RenderSystem.enableScissorForRenderTypeDraws(x, glY, cell, cell);
-         MatrixStack pose = new MatrixStack();
+         PoseStack pose = new PoseStack();
          pose.translate(x + cell * 0.5F, y + cell * 0.5F, 0.0F);
          pose.scale(cell, -cell, cell);
 
-         //? if >=1.21.9 {
          try {
-            model.render(pose, submits, 15728880, OverlayTexture.DEFAULT_UV, 0);
-            features.render();
+            model.submit(pose, submits, 15728880, OverlayTexture.NO_OVERLAY, 0);
+            //? if >=26.2 {
+            mc.gameRenderer.featureRenderDispatcher().renderAllFeatures(submits);
+            //?} else {
+            /*features.renderAllFeatures();
+            *///?}
          } finally {
-            submits.clear();
-            buffers.draw();
+            //? if <26.2 {
+            /*submits.clear();
+            buffers.endBatch();
+            *///?}
          }
-         //?} else {
-         /*try {
-            model.render(pose, buffers, 15728880, OverlayTexture.DEFAULT_UV);
-         } finally {
-            buffers.draw();
-         }
-         *///?}
       } finally {
          RenderSystem.disableScissorForRenderTypeDraws();
          RenderSystem.outputColorTextureOverride = colorBefore;
@@ -449,11 +448,7 @@ public final class ItemIcons {
                   readback.close();
                }
 
-               //? if >=1.21.11 {
                readback = device.createBuffer(() -> "Venti icon readback", 9, whole);
-               //?} else {
-               /*readback = device.createBuffer(() -> "Venti icon readback", 9, (int)whole);
-               *///?}
             }
 
             if (straightened == null || straightened.capacity() < bytes) {
@@ -461,11 +456,7 @@ public final class ItemIcons {
             }
 
             CommandEncoder encoder = device.createCommandEncoder();
-            //? if >=1.21.11 {
             encoder.copyTextureToBuffer(page, readback, 0L, () -> {}, 0, x, y, cell, cell);
-            //?} else {
-            /*encoder.copyTextureToBuffer(page, readback, 0, () -> {}, 0, x, y, cell, cell);
-            *///?}
             GpuFence copied = encoder.createFence();
 
             try {
@@ -490,11 +481,7 @@ public final class ItemIcons {
             }
 
             straightened.clear().limit(bytes);
-            //? if >=1.21.11 {
-            MappedView view = encoder.mapBuffer(readback.slice(0L, bytes), true, false);
-            //?} else {
-            /*MappedView view = encoder.mapBuffer(readback.slice(0, bytes), true, false);
-            *///?}
+            Gpu.Mapped view = Gpu.map(encoder, readback.slice(0L, bytes), true, false);
 
             try {
                ByteBuffer read = view.data();
@@ -525,11 +512,7 @@ public final class ItemIcons {
                view.close();
             }
 
-            //? if >=1.21.9 {
-            encoder.writeToTexture(page, straightened, Format.RGBA, 0, 0, x, y, cell, cell);
-            //?} else {
-            /*encoder.writeToTexture(page, straightened.asIntBuffer(), Format.RGBA, 0, 0, x, y, cell, cell);
-            *///?}
+            Gpu.writeRgba(encoder, page, straightened, x, y, cell, cell);
          } catch (RuntimeException var26) {
             straightenFailed = true;
             LOGGER.warn("[Venti] Couldn't read icons back; see-through ones stay darker", var26);
@@ -539,10 +522,10 @@ public final class ItemIcons {
       }
    }
 
-   static GpuTexture create(String label, int usage, TextureFormat format, int side) {
+   static GpuTexture create(String label, int usage, boolean depthFormat, int side) {
       GlStateManager._activeTexture(GL11.glGetInteger(34016));
       GlStateManager._bindTexture(GL11.glGetInteger(32873));
-      GpuTexture texture = RenderSystem.getDevice().createTexture(label, usage, format, side, side, 1, 1);
+      GpuTexture texture = Gpu.texture(() -> label, usage, depthFormat, side, side, 1);
       if (texture instanceof GlTexture gl && !prepare(gl)) {
          texture.close();
          throw new IllegalStateException(label + " got no storage");
@@ -553,14 +536,14 @@ public final class ItemIcons {
 
    private static boolean prepare(GlTexture gl) {
       int bound = GL11.glGetInteger(32873);
-      GL11.glBindTexture(3553, gl.getGlId());
+      GL11.glBindTexture(3553, gl.glId());
 
       boolean held;
       try {
          if (!holds(gl)) {
             int unpack = GL11.glGetInteger(35055);
             GL15.glBindBuffer(35052, 0);
-            TextureFormat format = gl.getFormat();
+            var format = gl.getFormat();
             GL11.glTexImage2D(
                3553,
                0,
@@ -590,12 +573,12 @@ public final class ItemIcons {
       if (texture.isClosed()) {
          return false;
       } else if (texture instanceof GlTexture gl) {
-         if (!GL11.glIsTexture(gl.getGlId())) {
+         if (!GL11.glIsTexture(gl.glId())) {
             return false;
          } else {
             int bound = GL11.glGetInteger(32873);
-            GL11.glBindTexture(3553, gl.getGlId());
-            boolean alive = GL11.glGetInteger(32873) == gl.getGlId() && holds(gl);
+            GL11.glBindTexture(3553, gl.glId());
+            boolean alive = GL11.glGetInteger(32873) == gl.glId() && holds(gl);
             GL11.glBindTexture(3553, bound);
             if (!alive) {
                GlStateManager.clearGlErrors();

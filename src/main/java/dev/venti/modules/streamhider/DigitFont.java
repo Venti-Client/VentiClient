@@ -1,6 +1,6 @@
 package dev.venti.modules.streamhider;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 final class DigitFont {
    private static final byte[][] DIGITS = new byte[][]{
@@ -22,9 +22,9 @@ final class DigitFont {
    }
 
    static void decorations(DigitFont.Sink sink, ItemStack item, int ox, int oy, int scale) {
-      if (item.isItemBarVisible()) {
+      if (item.isBarVisible()) {
          sink.rect(ox + 2 * scale, oy + 13 * scale, 13 * scale, 2 * scale, -16777216);
-         sink.rect(ox + 2 * scale, oy + 13 * scale, item.getItemBarStep() * scale, scale, 0xFF000000 | item.getItemBarColor());
+         sink.rect(ox + 2 * scale, oy + 13 * scale, item.getBarWidth() * scale, scale, 0xFF000000 | item.getBarColor());
       }
 
       if (item.getCount() != 1) {

@@ -1,11 +1,12 @@
 package dev.venti.modules.view;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
 /** Hold the zoom key (default C) to zoom in; the scroll wheel adjusts the zoom while held. */
@@ -21,7 +22,7 @@ public final class ZoomModule extends Module {
    private final BooleanSetting scroll = this.add("scroll", new BooleanSetting("Scroll", true));
    private final BooleanSetting lowerSensitivity = this.add("lower-sensitivity", new BooleanSetting("Lower Sensitivity", true));
    private final BooleanSetting cinematic = this.add("cinematic", new BooleanSetting("Cinematic Camera", false));
-   private final KeyBinding key;
+   private final KeyMapping key;
    private boolean zooming;
    private boolean smoothBefore;
    private boolean smoothPushed;
@@ -41,9 +42,9 @@ public final class ZoomModule extends Module {
       this.zooming = true;
       target = this.zoom.get();
       if (this.cinematic.get()) {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         this.smoothBefore = mc.options.smoothCameraEnabled;
-         mc.options.smoothCameraEnabled = true;
+         Minecraft mc = Minecraft.getInstance();
+         this.smoothBefore = mc.options.smoothCamera;
+         mc.options.smoothCamera = true;
          this.smoothPushed = true;
       }
    }
@@ -52,7 +53,7 @@ public final class ZoomModule extends Module {
       this.zooming = false;
       target = 1.0F;
       if (this.smoothPushed) {
-         MinecraftClient.getInstance().options.smoothCameraEnabled = this.smoothBefore;
+         Minecraft.getInstance().options.smoothCamera = this.smoothBefore;
          this.smoothPushed = false;
       }
    }
@@ -61,8 +62,8 @@ public final class ZoomModule extends Module {
    private static void pollKey() {
       ZoomModule module = instance;
       if (module != null) {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         boolean held = module.isEnabled() && mc.currentScreen == null && module.key.isPressed();
+         Minecraft mc = Minecraft.getInstance();
+         boolean held = module.isEnabled() && Mc.screen() == null && module.key.isDown();
          if (held && !module.zooming) {
             module.startZoom();
          } else if (!held && module.zooming) {

@@ -1,16 +1,17 @@
 package dev.venti.modules.view;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.option.Perspective;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.util.math.MathHelper;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
+import net.minecraft.client.CameraType;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
 /**
@@ -25,11 +26,11 @@ public final class FreelookModule extends Module {
    private final NumberSetting sensitivity = this.add("camera-sensitivity", new NumberSetting("Camera Sensitivity", 8.0F, 0.0F, 10.0F).step(0.1F));
    private final BooleanSetting arrows = this.add("arrows-control-opposite", new BooleanSetting("Arrows Control Opposite", true));
    private final NumberSetting arrowSpeed = this.add("arrow-speed", new NumberSetting("Arrow Speed", 4.0F, 0.0F, 10.0F).step(0.5F));
-   private final KeyBinding key;
+   private final KeyMapping key;
    private boolean looking;
    private float cameraYaw;
    private float cameraPitch;
-   private Perspective previousView;
+   private CameraType previousView;
 
    public FreelookModule() {
       super("freelook", "Freelook", "Hold the freelook key (Controls > Venti) to look around without turning.", ModuleCategory.VISUALS, true);
@@ -46,28 +47,28 @@ public final class FreelookModule extends Module {
 
    @Override
    protected void onTick() {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      ClientPlayerEntity player = mc.player;
+      Minecraft mc = Minecraft.getInstance();
+      LocalPlayer player = mc.player;
       if (player == null) {
          this.stop();
-         while (this.key.wasPressed()) {
+         while (this.key.consumeClick()) {
          }
 
          return;
       }
 
       if (this.keyMode.is("Hold")) {
-         while (this.key.wasPressed()) {
+         while (this.key.consumeClick()) {
          }
 
-         boolean held = this.key.isPressed() && mc.currentScreen == null;
+         boolean held = this.key.isDown() && Mc.screen() == null;
          if (held && !this.looking) {
             this.start(mc, player);
          } else if (!held && this.looking) {
             this.stop();
          }
       } else {
-         while (this.key.wasPressed()) {
+         while (this.key.consumeClick()) {
             if (this.looking) {
                this.stop();
             } else {
@@ -77,7 +78,7 @@ public final class FreelookModule extends Module {
       }
 
       if (this.looking) {
-         if (this.arrows.get() && mc.currentScreen == null) {
+         if (this.arrows.get() && Mc.screen() == null) {
             float turn = this.arrowSpeed.get();
             float yawTurn = (held(mc, GLFW.GLFW_KEY_RIGHT) ? turn : 0.0F) - (held(mc, GLFW.GLFW_KEY_LEFT) ? turn : 0.0F);
             float pitchTurn = (held(mc, GLFW.GLFW_KEY_DOWN) ? turn : 0.0F) - (held(mc, GLFW.GLFW_KEY_UP) ? turn : 0.0F);
@@ -85,43 +86,39 @@ public final class FreelookModule extends Module {
                this.cameraYaw += yawTurn;
                this.cameraPitch += pitchTurn;
             } else if (yawTurn != 0.0F || pitchTurn != 0.0F) {
-               player.setYaw(player.getYaw() + yawTurn);
-               player.setPitch(MathHelper.clamp(player.getPitch() + pitchTurn, -90.0F, 90.0F));
+               player.setYRot(player.getYRot() + yawTurn);
+               player.setXRot(Mth.clamp(player.getXRot() + pitchTurn, -90.0F, 90.0F));
             }
          }
 
-         this.cameraPitch = MathHelper.clamp(this.cameraPitch, -90.0F, 90.0F);
+         this.cameraPitch = Mth.clamp(this.cameraPitch, -90.0F, 90.0F);
       }
    }
 
-   private void start(MinecraftClient mc, ClientPlayerEntity player) {
+   private void start(Minecraft mc, LocalPlayer player) {
       this.looking = true;
-      this.cameraYaw = player.getYaw();
-      this.cameraPitch = player.getPitch();
-      this.previousView = mc.options.getPerspective();
-      if (this.previousView != Perspective.THIRD_PERSON_BACK && this.togglePerspective.get()) {
-         mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+      this.cameraYaw = player.getYRot();
+      this.cameraPitch = player.getXRot();
+      this.previousView = mc.options.getCameraType();
+      if (this.previousView != CameraType.THIRD_PERSON_BACK && this.togglePerspective.get()) {
+         mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
       }
    }
 
    private void stop() {
       if (this.looking) {
          this.looking = false;
-         MinecraftClient mc = MinecraftClient.getInstance();
-         if (this.previousView != null && mc.options.getPerspective() != this.previousView && this.togglePerspective.get()) {
-            mc.options.setPerspective(this.previousView);
+         Minecraft mc = Minecraft.getInstance();
+         if (this.previousView != null && mc.options.getCameraType() != this.previousView && this.togglePerspective.get()) {
+            mc.options.setCameraType(this.previousView);
          }
 
          this.previousView = null;
       }
    }
 
-   private static boolean held(MinecraftClient mc, int key) {
-      //? if >=1.21.9 {
-      return InputUtil.isKeyPressed(mc.getWindow(), key);
-      //?} else {
-      /*return InputUtil.isKeyPressed(mc.getWindow().getHandle(), key);
-      *///?}
+   private static boolean held(Minecraft mc, int key) {
+      return InputConstants.isKeyDown(mc.getWindow(), key);
    }
 
    /** The running freelook, or null when the camera follows the player as usual. */
@@ -138,7 +135,7 @@ public final class FreelookModule extends Module {
       float divisor = Math.max(this.sensitivity.get(), 0.1F);
       this.cameraYaw += (float)(yRot / divisor);
       this.cameraPitch += (float)(xRot / divisor);
-      this.cameraPitch = MathHelper.clamp(this.cameraPitch, -90.0F, 90.0F);
+      this.cameraPitch = Mth.clamp(this.cameraPitch, -90.0F, 90.0F);
    }
 
    public float cameraYaw() {

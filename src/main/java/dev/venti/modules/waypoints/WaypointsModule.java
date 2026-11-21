@@ -1,8 +1,11 @@
 package dev.venti.modules.waypoints;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import dev.venti.compat.Fapi;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.gui.CustomPage;
@@ -17,19 +20,16 @@ import imgui.type.ImString;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 /**
@@ -38,11 +38,7 @@ import org.lwjgl.glfw.GLFW;
  */
 public final class WaypointsModule extends Module implements CustomPage {
    /** Equal to the category VentiClient registered (KeyBinding.Category.create throws on a second call). */
-   //? if >=1.21.9 {
-   private static final KeyBinding.Category CATEGORY = new KeyBinding.Category(Identifier.of("venti", "keys"));
-   //?} else {
-   /*private static final String CATEGORY = "key.category.venti.keys"; // categories are translation keys before 1.21.9
-   *///?}
+   private static final KeyMapping.Category CATEGORY = new KeyMapping.Category(Identifier.fromNamespaceAndPath("venti", "keys"));
    private static final int DEATH_COLOR = 0xFFFF4444;
    private static final int[] PALETTE = {
       0xFF55FFFF, 0xFFFFAA00, 0xFF55FF55, 0xFFFF55FF, 0xFFFFFF55, 0xFF5599FF, 0xFFFF7777, 0xFFAAFFAA, 0xFFFFFFFF, 0xFFB088FF
@@ -58,7 +54,7 @@ public final class WaypointsModule extends Module implements CustomPage {
    private final NumberSetting labelScale = this.add("label-scale", new NumberSetting("Label Scale", 1.0F, 0.5F, 2.0F).step(0.05F));
 
    private final WaypointStore store = new WaypointStore();
-   private final KeyBinding addKey;
+   private final KeyMapping addKey;
    private final ImString nameBuffer = new ImString(128);
    private final ImInt intBuffer = new ImInt();
    private final float[] colorBuffer = new float[4];
@@ -70,19 +66,19 @@ public final class WaypointsModule extends Module implements CustomPage {
       this.coneAngle.visibleWhen(this.viewCone::get);
       this.keepDeaths.onChange(this::trimDeaths);
       this.nameBuffer.inputData.isResizable = true;
-      this.addKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.venti.add_waypoint", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY));
+      this.addKey = Fapi.registerKey(new KeyMapping("key.venti.add_waypoint", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY));
 
-      ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> this.store.load(client, handler.getServerInfo())));
+      ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> this.store.load(client, handler.getServerData())));
       ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(this.store::unload));
       ClientTickEvents.END_CLIENT_TICK.register(client -> this.store.tick());
       ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
-         ClientCommandManager.literal("waypoint")
-            .then(ClientCommandManager.literal("add")
+         Fapi.literal("waypoint")
+            .then(Fapi.literal("add")
                .executes(ctx -> this.commandAdd(ctx, null))
-               .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+               .then(Fapi.argument("name", StringArgumentType.greedyString())
                   .executes(ctx -> this.commandAdd(ctx, StringArgumentType.getString(ctx, "name")))))
-            .then(ClientCommandManager.literal("remove")
-               .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+            .then(Fapi.literal("remove")
+               .then(Fapi.argument("name", StringArgumentType.greedyString())
                   .suggests((ctx, builder) -> {
                      String typed = builder.getRemaining().toLowerCase(Locale.ROOT);
                      for (Waypoint w : this.store.all()) {
@@ -94,7 +90,7 @@ public final class WaypointsModule extends Module implements CustomPage {
                      return builder.buildFuture();
                   })
                   .executes(ctx -> this.commandRemove(ctx, StringArgumentType.getString(ctx, "name")))))
-            .then(ClientCommandManager.literal("list").executes(this::commandList))
+            .then(Fapi.literal("list").executes(this::commandList))
       ));
       ImGuiManager.getInstance().addHudRenderer(() -> WaypointRenderer.renderLabels(this), () -> WaypointRenderer.hasLabelWork(this));
    }
@@ -133,23 +129,23 @@ public final class WaypointsModule extends Module implements CustomPage {
 
    @Override
    protected void onEnable() {
-      while (this.addKey.wasPressed()) {
+      while (this.addKey.consumeClick()) {
       }
    }
 
    @Override
    protected void onTick() {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       boolean pressed = false;
-      while (this.addKey.wasPressed()) {
+      while (this.addKey.consumeClick()) {
          pressed = true;
       }
 
-      if (pressed && mc.currentScreen == null && mc.player != null && this.store.loaded()) {
+      if (pressed && Mc.screen() == null && mc.player != null && this.store.loaded()) {
          Waypoint w = this.addAtPlayer(null);
          if (w != null) {
-            this.chat(Text.literal("added ").formatted(Formatting.GRAY).append(Text.literal(w.name).withColor(w.color & 0xFFFFFF))
-               .append(Text.literal(" at " + w.coords()).formatted(Formatting.GRAY)));
+            this.chat(Component.literal("added ").withStyle(ChatFormatting.GRAY).append(Component.literal(w.name).withColor(w.color & 0xFFFFFF))
+               .append(Component.literal(" at " + w.coords()).withStyle(ChatFormatting.GRAY)));
          }
       }
    }
@@ -161,9 +157,9 @@ public final class WaypointsModule extends Module implements CustomPage {
 
    /** Called on the client thread when the server tells us our player died. */
    public void onPlayerDeath() {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      ClientPlayerEntity player = mc.player;
-      if (!this.isEnabled() || !this.deathWaypoints.get() || player == null || mc.world == null || !this.store.loaded()) {
+      Minecraft mc = Minecraft.getInstance();
+      LocalPlayer player = mc.player;
+      if (!this.isEnabled() || !this.deathWaypoints.get() || player == null || mc.level == null || !this.store.loaded()) {
          return;
       }
 
@@ -174,13 +170,13 @@ public final class WaypointsModule extends Module implements CustomPage {
 
       this.lastDeathAt = now;
       Waypoint w = new Waypoint(
-         "Death", player.getBlockX(), player.getBlockY(), player.getBlockZ(), mc.world.getRegistryKey().getValue().toString(), DEATH_COLOR, true
+         "Death", player.getBlockX(), player.getBlockY(), player.getBlockZ(), mc.level.dimension().identifier().toString(), DEATH_COLOR, true
       );
       this.store.all().add(w);
       this.trimDeaths();
       this.store.changed();
       this.store.saveNow();
-      this.chat(Text.literal("death point saved at " + w.coords()).formatted(Formatting.GRAY));
+      this.chat(Component.literal("death point saved at " + w.coords()).withStyle(ChatFormatting.GRAY));
    }
 
    private void trimDeaths() {
@@ -204,9 +200,9 @@ public final class WaypointsModule extends Module implements CustomPage {
 
    /** Adds a waypoint at the player's feet; a null name picks "Waypoint N". */
    private Waypoint addAtPlayer(String name) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      ClientPlayerEntity player = mc.player;
-      if (player == null || mc.world == null || !this.store.loaded()) {
+      Minecraft mc = Minecraft.getInstance();
+      LocalPlayer player = mc.player;
+      if (player == null || mc.level == null || !this.store.loaded()) {
          return null;
       }
 
@@ -227,7 +223,7 @@ public final class WaypointsModule extends Module implements CustomPage {
       }
 
       Waypoint w = new Waypoint(
-         name.trim(), player.getBlockX(), player.getBlockY(), player.getBlockZ(), mc.world.getRegistryKey().getValue().toString(), PALETTE[normal % PALETTE.length], false
+         name.trim(), player.getBlockX(), player.getBlockY(), player.getBlockZ(), mc.level.dimension().identifier().toString(), PALETTE[normal % PALETTE.length], false
       );
       this.store.all().add(w);
       this.store.changed();
@@ -249,45 +245,45 @@ public final class WaypointsModule extends Module implements CustomPage {
 
    private int commandAdd(CommandContext<FabricClientCommandSource> ctx, String name) {
       if (!this.store.loaded()) {
-         ctx.getSource().sendError(Text.literal("[Venti] Not in a world."));
+         ctx.getSource().sendError(Component.literal("[Venti] Not in a world."));
          return 0;
       }
 
       Waypoint w = this.addAtPlayer(name);
       if (w == null) {
-         ctx.getSource().sendError(Text.literal("[Venti] Could not add a waypoint here."));
+         ctx.getSource().sendError(Component.literal("[Venti] Could not add a waypoint here."));
          return 0;
       }
 
-      ctx.getSource().sendFeedback(prefix().append(Text.literal("Added ").formatted(Formatting.GRAY))
-         .append(Text.literal(w.name).withColor(w.color & 0xFFFFFF))
-         .append(Text.literal(" at " + w.coords() + " (" + w.dimensionTag() + ")").formatted(Formatting.GRAY)));
+      ctx.getSource().sendFeedback(prefix().append(Component.literal("Added ").withStyle(ChatFormatting.GRAY))
+         .append(Component.literal(w.name).withColor(w.color & 0xFFFFFF))
+         .append(Component.literal(" at " + w.coords() + " (" + w.dimensionTag() + ")").withStyle(ChatFormatting.GRAY)));
       return Command.SINGLE_SUCCESS;
    }
 
    private int commandRemove(CommandContext<FabricClientCommandSource> ctx, String name) {
       Waypoint w = this.findByName(name.trim());
       if (w == null) {
-         ctx.getSource().sendError(Text.literal("[Venti] No waypoint named \"" + name + "\"."));
+         ctx.getSource().sendError(Component.literal("[Venti] No waypoint named \"" + name + "\"."));
          return 0;
       }
 
       this.store.all().remove(w);
       this.store.changed();
-      ctx.getSource().sendFeedback(prefix().append(Text.literal("Removed " + w.name).formatted(Formatting.GRAY)));
+      ctx.getSource().sendFeedback(prefix().append(Component.literal("Removed " + w.name).withStyle(ChatFormatting.GRAY)));
       return Command.SINGLE_SUCCESS;
    }
 
    private int commandList(CommandContext<FabricClientCommandSource> ctx) {
       List<Waypoint> all = this.store.all();
       if (all.isEmpty()) {
-         ctx.getSource().sendFeedback(prefix().append(Text.literal("No waypoints in this world.").formatted(Formatting.GRAY)));
+         ctx.getSource().sendFeedback(prefix().append(Component.literal("No waypoints in this world.").withStyle(ChatFormatting.GRAY)));
          return Command.SINGLE_SUCCESS;
       }
 
-      ctx.getSource().sendFeedback(prefix().append(Text.literal(all.size() + " waypoint(s):").formatted(Formatting.GRAY)));
-      ClientPlayerEntity player = MinecraftClient.getInstance().player;
-      String here = MinecraftClient.getInstance().world != null ? MinecraftClient.getInstance().world.getRegistryKey().getValue().toString() : "";
+      ctx.getSource().sendFeedback(prefix().append(Component.literal(all.size() + " waypoint(s):").withStyle(ChatFormatting.GRAY)));
+      LocalPlayer player = Minecraft.getInstance().player;
+      String here = Minecraft.getInstance().level != null ? Minecraft.getInstance().level.dimension().identifier().toString() : "";
       for (Waypoint w : all) {
          String distance = "";
          if (player != null && here.equals(w.dimension)) {
@@ -297,16 +293,16 @@ public final class WaypointsModule extends Module implements CustomPage {
             distance = ", " + WaypointRenderer.formatDistance(Math.sqrt(dx * dx + dy * dy + dz * dz));
          }
 
-         ctx.getSource().sendFeedback(Text.literal(" - ").formatted(Formatting.DARK_GRAY)
-            .append(Text.literal(w.name).withColor(w.color & 0xFFFFFF))
-            .append(Text.literal(" " + w.coords() + " (" + w.dimensionTag() + distance + ")" + (w.visible ? "" : " [hidden]")).formatted(Formatting.GRAY)));
+         ctx.getSource().sendFeedback(Component.literal(" - ").withStyle(ChatFormatting.DARK_GRAY)
+            .append(Component.literal(w.name).withColor(w.color & 0xFFFFFF))
+            .append(Component.literal(" " + w.coords() + " (" + w.dimensionTag() + distance + ")" + (w.visible ? "" : " [hidden]")).withStyle(ChatFormatting.GRAY)));
       }
 
       return Command.SINGLE_SUCCESS;
    }
 
-   private static net.minecraft.text.MutableText prefix() {
-      return Text.literal("[Venti] ").formatted(Formatting.LIGHT_PURPLE);
+   private static net.minecraft.network.chat.MutableComponent prefix() {
+      return Component.literal("[Venti] ").withStyle(ChatFormatting.LIGHT_PURPLE);
    }
 
    // ---- GUI page ----
@@ -396,7 +392,7 @@ public final class WaypointsModule extends Module implements CustomPage {
          }
 
          if (ImGui.button("Copy", copyW, frame)) {
-            MinecraftClient.getInstance().keyboard.setClipboard(w.coords());
+            Minecraft.getInstance().keyboardHandler.setClipboard(w.coords());
          }
 
          ImGui.sameLine();

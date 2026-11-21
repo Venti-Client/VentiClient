@@ -1,53 +1,74 @@
 package dev.venti.mixin.view;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.modules.view.CustomFovModule;
 import dev.venti.modules.view.NoRenderModule;
-import net.minecraft.client.gui.hud.InGameOverlayRenderer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.renderer.ScreenEffectRenderer;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+//? if >=26.2 {
+import net.minecraft.client.renderer.SubmitNodeCollector;
+//?} else {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+*///?}
 
 /** No Render (fire overlay); Custom Fov keeps screen overlays the same size as with the vanilla FOV. */
-@Mixin(InGameOverlayRenderer.class)
+//? if >=26.2 {
+@Mixin(ScreenEffectRenderer.class)
 public abstract class ViewOverlayRendererMixin {
    @ModifyExpressionValue(
-      //? if >=1.21.9 {
-      method = "renderOverlays(ZFLnet/minecraft/client/render/command/OrderedRenderCommandQueue;)V",
-      //?} else {
-      /*method = "renderOverlays(ZF)V",
-      *///?}
-      at = @At(value = "NEW", target = "()Lnet/minecraft/client/util/math/MatrixStack;")
+      method = "submit(ZZFLnet/minecraft/client/renderer/SubmitNodeCollector;Z)V",
+      at = @At(value = "NEW", target = "()Lcom/mojang/blaze3d/vertex/PoseStack;")
    )
-   private MatrixStack venti$undoCustomFov(MatrixStack matrices) {
+   private PoseStack venti$undoCustomFov(PoseStack matrices) {
       float scale = CustomFovModule.screenEffectScale();
       if (scale != 1.0F) {
-         matrices.peek().getPositionMatrix().scale(scale, scale, 1.0F);
+         matrices.last().pose().scale(scale, scale, 1.0F);
       }
 
       return matrices;
    }
 
    @Inject(
-      //? if >=1.21.9 {
-      method = "renderFireOverlay(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/texture/Sprite;)V",
+      method = "submitFire(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/texture/TextureAtlasSprite;)V",
       at = @At("HEAD"),
       cancellable = true
    )
-   private static void venti$hideFireOverlay(MatrixStack matrices, VertexConsumerProvider vertexConsumers, Sprite sprite, CallbackInfo ci) {
-      //?} else {
-      /*method = "renderFireOverlay(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V",
-      at = @At("HEAD"),
-      cancellable = true
-   )
-   private static void venti$hideFireOverlay(MatrixStack matrices, VertexConsumerProvider vertexConsumers, CallbackInfo ci) {
-      *///?}
+   private static void venti$hideFireOverlay(PoseStack matrices, SubmitNodeCollector collector, TextureAtlasSprite sprite, CallbackInfo ci) {
       if (NoRenderModule.hideFireOverlay()) {
          ci.cancel();
       }
    }
 }
+//?} else {
+/*@Mixin(ScreenEffectRenderer.class)
+public abstract class ViewOverlayRendererMixin {
+   @ModifyExpressionValue(
+      method = "renderScreenEffect(ZFLnet/minecraft/client/renderer/SubmitNodeCollector;)V",
+      at = @At(value = "NEW", target = "()Lcom/mojang/blaze3d/vertex/PoseStack;")
+   )
+   private PoseStack venti$undoCustomFov(PoseStack matrices) {
+      float scale = CustomFovModule.screenEffectScale();
+      if (scale != 1.0F) {
+         matrices.last().pose().scale(scale, scale, 1.0F);
+      }
+
+      return matrices;
+   }
+
+   @Inject(
+      method = "renderFire(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/renderer/texture/TextureAtlasSprite;)V",
+      at = @At("HEAD"),
+      cancellable = true
+   )
+   private static void venti$hideFireOverlay(PoseStack matrices, MultiBufferSource vertexConsumers, TextureAtlasSprite sprite, CallbackInfo ci) {
+      if (NoRenderModule.hideFireOverlay()) {
+         ci.cancel();
+      }
+   }
+}
+*///?}

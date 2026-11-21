@@ -1,21 +1,21 @@
 package dev.venti.modules.character.designs;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import dev.venti.modules.character.kit.Bone;
 import dev.venti.modules.character.kit.Canvas;
 import dev.venti.modules.character.kit.CharacterDesign;
 import dev.venti.modules.character.kit.Colors;
 import dev.venti.modules.character.kit.Decal;
 import dev.venti.modules.character.kit.Motion;
-import dev.venti.modules.character.kit.Paint;
 import dev.venti.modules.character.kit.Paint2D;
+import dev.venti.modules.character.kit.Paint;
 import dev.venti.modules.character.kit.Part;
 import dev.venti.modules.character.kit.Rig;
-import dev.venti.modules.character.kit.Shape;
 import dev.venti.modules.character.kit.Shape2D;
+import dev.venti.modules.character.kit.Shape;
 import dev.venti.modules.character.kit.Shapes;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 

@@ -1,6 +1,11 @@
 package dev.venti.imgui;
 
 import com.mojang.blaze3d.opengl.GlStateManager;
+import com.mojang.blaze3d.platform.Window;
+import com.mojang.blaze3d.platform.cursor.CursorType;
+import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import dev.venti.compat.Gfx;
+import dev.venti.compat.Mc;
 import dev.venti.gui.Theme;
 import dev.venti.gui.image.ThemeImages;
 import imgui.ImFont;
@@ -19,15 +24,7 @@ import java.util.function.BooleanSupplier;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-//? if >=1.21.9 {
-import net.minecraft.client.gui.cursor.Cursor;
-import net.minecraft.client.gui.cursor.StandardCursors;
-//?} else {
-/*
-*///?}
-import net.minecraft.client.util.Window;
+import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWMonitorCallback;
@@ -80,7 +77,7 @@ public final class ImGuiManager {
 
       protected void updateMouseData() {
          super.updateMouseData();
-         long handle = MinecraftClient.getInstance().getWindow().getHandle();
+         long handle = Minecraft.getInstance().getWindow().handle();
          if (GLFW.glfwGetWindowAttrib(handle, 131073) != 0) {
             double[] cx = new double[1];
             double[] cy = new double[1];
@@ -142,13 +139,13 @@ public final class ImGuiManager {
    }
 
    private static float pixelsPerPointX() {
-      Window window = MinecraftClient.getInstance().getWindow();
-      return window.getWidth() > 0 ? (float)window.getFramebufferWidth() / window.getWidth() : 1.0F;
+      Window window = Minecraft.getInstance().getWindow();
+      return window.getScreenWidth() > 0 ? (float)window.getWidth() / window.getScreenWidth() : 1.0F;
    }
 
    private static float pixelsPerPointY() {
-      Window window = MinecraftClient.getInstance().getWindow();
-      return window.getHeight() > 0 ? (float)window.getFramebufferHeight() / window.getHeight() : 1.0F;
+      Window window = Minecraft.getInstance().getWindow();
+      return window.getScreenHeight() > 0 ? (float)window.getHeight() / window.getScreenHeight() : 1.0F;
    }
 
    private ImGuiManager() {
@@ -264,28 +261,22 @@ public final class ImGuiManager {
       return this.initialized && ImGui.getIO().getWantTextInput();
    }
 
-   //? if >=1.21.9 {
-   public void requestCursor(DrawContext graphics) {
+   public void requestCursor(Gfx graphics) {
       if (this.initialized) {
-         Cursor cursor = switch (ImGui.getMouseCursor()) {
-            case 1 -> StandardCursors.IBEAM;
-            case 2 -> StandardCursors.RESIZE_ALL;
-            case 3 -> StandardCursors.RESIZE_NS;
-            case 4 -> StandardCursors.RESIZE_EW;
+         CursorType cursor = switch (ImGui.getMouseCursor()) {
+            case 1 -> CursorTypes.IBEAM;
+            case 2 -> CursorTypes.RESIZE_ALL;
+            case 3 -> CursorTypes.RESIZE_NS;
+            case 4 -> CursorTypes.RESIZE_EW;
             default -> null;
-            case 7 -> StandardCursors.POINTING_HAND;
-            case 8 -> StandardCursors.NOT_ALLOWED;
+            case 7 -> CursorTypes.POINTING_HAND;
+            case 8 -> CursorTypes.NOT_ALLOWED;
          };
          if (cursor != null) {
-            graphics.setCursor(cursor);
+            graphics.requestCursor(cursor);
          }
       }
    }
-   //?} else {
-   /*public void requestCursor(DrawContext graphics) {
-      // Minecraft has no cursor shapes before 1.21.9; keep the default arrow.
-   }
-   *///?}
 
    private boolean feedsKeyPress(int keycode, int mods) {
       return this.activeRenderer != null && (keycode != 258 || (mods & 2) == 0);
@@ -345,6 +336,10 @@ public final class ImGuiManager {
    }
 
    public void renderIfActive() {
+      if (!Mc.openGl()) {
+         return;
+      }
+
       boolean hud = this.hudHasWork();
       boolean toasts = this.toastRenderer != null && this.toastHasWork.getAsBoolean();
       boolean overlay = this.overlayRenderer != null && this.overlayHasWork.getAsBoolean();
@@ -366,9 +361,9 @@ public final class ImGuiManager {
             this.idleSkipped = false;
          }
 
-         MinecraftClient mc = MinecraftClient.getInstance();
-         int w = mc.getWindow().getFramebufferWidth();
-         int h = mc.getWindow().getFramebufferHeight();
+         Minecraft mc = Minecraft.getInstance();
+         int w = mc.getWindow().getWidth();
+         int h = mc.getWindow().getHeight();
          GL30.glBindFramebuffer(36160, 0);
          GL11.glViewport(0, 0, w, h);
          GlStateManager._viewport(0, 0, w, h);
@@ -446,7 +441,7 @@ public final class ImGuiManager {
 
    private void initIfNeeded() {
       if (!this.initialized) {
-         long windowHandle = MinecraftClient.getInstance().getWindow().getHandle();
+         long windowHandle = Minecraft.getInstance().getWindow().handle();
          ImGui.createContext();
          ImGuiIO io = ImGui.getIO();
          io.setIniFilename(iniPath());
@@ -494,7 +489,7 @@ public final class ImGuiManager {
    }
 
    private float computeScale(float current) {
-      int height = MinecraftClient.getInstance().getWindow().getFramebufferHeight();
+      int height = Minecraft.getInstance().getWindow().getHeight();
       if (height < 200) {
          return current;
       } else {
@@ -519,9 +514,9 @@ public final class ImGuiManager {
    }
 
    private void updateDisplayMetrics() {
-      MinecraftClient client = MinecraftClient.getInstance();
-      int w = Math.max(1, client.getWindow().getFramebufferWidth());
-      int h = Math.max(1, client.getWindow().getFramebufferHeight());
+      Minecraft client = Minecraft.getInstance();
+      int w = Math.max(1, client.getWindow().getWidth());
+      int h = Math.max(1, client.getWindow().getHeight());
       ImGuiIO io = ImGui.getIO();
       io.setDisplaySize(w, h);
       io.setDisplayFramebufferScale(1.0F, 1.0F);
@@ -552,6 +547,7 @@ public final class ImGuiManager {
    }
 
    private boolean buildFonts(ImGuiIO io, UiFont ui, UiFont hud) {
+      NativeGlyphRanges.beginAtlas();
       float s = this.uiScale;
       this.moduleFont = this.loadFont(io, ui, false, 16.0F * s);
       this.categoryFont = this.loadFont(io, ui, true, 17.0F * s);
@@ -623,7 +619,7 @@ public final class ImGuiManager {
          config.setPixelSnapH(true);
          config.setMergeMode(true);
          config.setFontBuilderFlags(8);
-         io.getFonts().addFontFromMemoryTTF(data, Math.round(size), config, ranges);
+         NativeGlyphRanges.addFont(io, data, Math.round(size), config, ranges);
       } finally {
          config.destroy();
       }
@@ -706,7 +702,7 @@ public final class ImGuiManager {
                config.setFontBuilderFlags(flags);
                config.setGlyphOffset(0.0F, offsetY);
                config.setMergeMode(merge);
-               var10 = io.getFonts().addFontFromMemoryTTF(data, Math.round(sizePixels), config, ranges);
+               var10 = NativeGlyphRanges.addFont(io, data, Math.round(sizePixels), config, ranges);
             } finally {
                config.destroy();
             }

@@ -1,11 +1,12 @@
 package dev.venti.module;
 
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.Setting;
 import dev.venti.config.Settings;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +72,7 @@ public abstract class Module {
          this.settings.save();
          this.sync();
          if (this.notifications.get()) {
-            this.chat(Text.literal(enabled ? "enabled" : "disabled").formatted(enabled ? Formatting.GREEN : Formatting.RED));
+            this.chat(Component.literal(enabled ? "enabled" : "disabled").withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.RED));
          }
       }
    }
@@ -122,11 +123,11 @@ public abstract class Module {
    protected void onTick() {
    }
 
-   protected final void chat(Text message) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (this.notifications.get() && mc.inGameHud != null) {
-         mc.inGameHud.getChatHud().addMessage(
-            Text.literal("[Venti] ").formatted(Formatting.LIGHT_PURPLE).append(Text.literal(this.name + " ").formatted(Formatting.WHITE)).append(message)
+   protected final void chat(Component message) {
+      Minecraft mc = Minecraft.getInstance();
+      if (this.notifications.get() && mc.gui != null) {
+         Mc.chatMessage(
+            Component.literal("[Venti] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(Component.literal(this.name + " ").withStyle(ChatFormatting.WHITE)).append(message)
          );
       }
    }

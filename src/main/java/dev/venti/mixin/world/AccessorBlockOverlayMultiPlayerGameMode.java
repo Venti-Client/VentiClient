@@ -2,17 +2,17 @@ package dev.venti.mixin.world;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.core.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Environment(EnvType.CLIENT)
-@Mixin({ClientPlayerInteractionManager.class})
+@Mixin({MultiPlayerGameMode.class})
 public interface AccessorBlockOverlayMultiPlayerGameMode {
-   @Accessor("currentBreakingProgress")
+   @Accessor("destroyProgress")
    float venti$blockOverlayDestroyProgress();
 
-   @Accessor("currentBreakingPos")
+   @Accessor("destroyBlockPos")
    BlockPos venti$blockOverlayDestroyPos();
 }

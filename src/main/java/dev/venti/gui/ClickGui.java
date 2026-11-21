@@ -1,5 +1,6 @@
 package dev.venti.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.venti.config.ActionSetting;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
@@ -17,9 +18,9 @@ import dev.venti.modules.hud.HotkeysModule;
 import dev.venti.modules.hud.HudModule;
 import dev.venti.modules.spotify.SpotifyHud;
 import imgui.ImDrawList;
-import imgui.flag.ImDrawFlags;
 import imgui.ImFont;
 import imgui.ImGui;
+import imgui.flag.ImDrawFlags;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiColorEditFlags;
 import imgui.flag.ImGuiCond;
@@ -30,8 +31,7 @@ import imgui.type.ImString;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
 /**
@@ -206,7 +206,7 @@ final class ClickGui {
          try {
             java.nio.file.Path dir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("venti");
             java.nio.file.Files.createDirectories(dir);
-            net.minecraft.util.Util.getOperatingSystem().open(dir.toFile());
+            net.minecraft.util.Util.getPlatform().openFile(dir.toFile());
          } catch (java.io.IOException | RuntimeException ignored) {
          }
       }
@@ -705,7 +705,7 @@ final class ClickGui {
    }
 
    private static boolean[] keysDown() {
-      long window = MinecraftClient.getInstance().getWindow().getHandle();
+      long window = Minecraft.getInstance().getWindow().handle();
       boolean[] down = new boolean[GLFW.GLFW_KEY_LAST + 1];
       for (int key = GLFW.GLFW_KEY_SPACE; key <= GLFW.GLFW_KEY_LAST; key++) {
          down[key] = GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS;
@@ -715,7 +715,7 @@ final class ClickGui {
    }
 
    static String keyName(int key) {
-      return key <= 0 ? "None" : InputUtil.Type.KEYSYM.createFromCode(key).getLocalizedText().getString().toUpperCase(Locale.ROOT);
+      return key <= 0 ? "None" : InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString().toUpperCase(Locale.ROOT);
    }
 
    private void takePickedFile() {

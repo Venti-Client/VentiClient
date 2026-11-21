@@ -1,45 +1,43 @@
 package dev.venti.modules.world;
 
-import dev.venti.mixin.world.AccessorWorldGameRenderer;
-import dev.venti.module.Module;
-import dev.venti.module.ModuleCategory;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.mixin.world.AccessorBlockOverlayMultiPlayerGameMode;
-
+import dev.venti.mixin.world.AccessorWorldGameRenderer;
+import dev.venti.module.Module;
+import dev.venti.module.ModuleCategory;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-//? if >=1.21.11 {
-import net.minecraft.world.debug.gizmo.VisibilityConfigurable;
-import net.minecraft.client.render.DrawStyle;
-import net.minecraft.world.debug.gizmo.GizmoDrawing;
-//?}
-import net.minecraft.entity.Entity;
-import net.minecraft.block.BedBlock;
-import net.minecraft.block.ChestBlock;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.shape.VoxelShapes;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.block.BlockState;
-import net.minecraft.state.property.Properties;
-import net.minecraft.block.enums.ChestType;
-import net.minecraft.block.enums.DoubleBlockHalf;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.block.ShapeContext;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.math.ColorHelper;
-import net.minecraft.util.math.Direction.Axis;
-import net.minecraft.util.hit.HitResult.Type;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.Direction;
+import net.minecraft.gizmos.GizmoProperties;
+import net.minecraft.gizmos.GizmoStyle;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 @Environment(EnvType.CLIENT)
 public final class BlockOverlayModule extends Module {
@@ -72,22 +70,22 @@ public final class BlockOverlayModule extends Module {
    private final BooleanSetting miningProgress = this.add("mining-progress", new BooleanSetting("Mining Progress", true));
    private final BooleanSetting faceOnly = this.add("face-only", new BooleanSetting("Face Only", false));
    private final BooleanSetting seeThrough = this.add("see-through", new BooleanSetting("See Through", false));
-   private ClientWorld level;
+   private ClientLevel level;
    private BlockPos pos;
    private BlockState state;
    private BlockPos partner;
    private BlockState partnerState;
    private final List<double[]> edges = new ArrayList<>();
-   private List<Box> boxes = List.of();
-   private Box localBounds;
-   private Box goal;
-   private Box box;
+   private List<AABB> boxes = List.of();
+   private AABB localBounds;
+   private AABB goal;
+   private AABB box;
    private Direction face;
-   private Box faceBox;
+   private AABB faceBox;
    private float presence;
    private float progress;
    private long lastFrame;
-   private Vec3d eye;
+   private Vec3 eye;
    private double time;
    private float fade;
    private double ax;
@@ -114,11 +112,11 @@ public final class BlockOverlayModule extends Module {
    }
 
    public void render3D(float partialTick) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (mc.world != null && mc.player != null) {
-         if (mc.world != this.level) {
+      Minecraft mc = Minecraft.getInstance();
+      if (mc.level != null && mc.player != null) {
+         if (mc.level != this.level) {
             this.reset();
-            this.level = mc.world;
+            this.level = mc.level;
          }
 
          long now = System.nanoTime();
@@ -138,14 +136,14 @@ public final class BlockOverlayModule extends Module {
             this.presence = Math.max(0.0F, this.presence - dt / 0.2F);
             if (this.presence == 0.0F) {
                this.reset();
-               this.level = mc.world;
+               this.level = mc.level;
                return;
             }
          }
 
          if (this.box != null) {
             this.updateProgress(mc, dt, hit != null);
-            this.eye = mc.gameRenderer.getCamera().getCameraPos();
+            this.eye = Mc.camera().position();
             this.time = now % 3600000000000L / 1.0E9;
             this.draw();
          }
@@ -154,19 +152,19 @@ public final class BlockOverlayModule extends Module {
       }
    }
 
-   private static BlockHitResult target(MinecraftClient mc) {
-      if (!(mc.crosshairTarget instanceof BlockHitResult hit && hit.getType() == Type.BLOCK && !hit.isInsideBlock())) {
+   private static BlockHitResult target(Minecraft mc) {
+      if (!(mc.hitResult instanceof BlockHitResult hit && hit.getType() == Type.BLOCK && !hit.isInside())) {
          return null;
       } else if (!((AccessorWorldGameRenderer)mc.gameRenderer).venti$shouldRenderBlockOutline()) {
          return null;
       } else {
          BlockPos at = hit.getBlockPos();
-         return !mc.world.getBlockState(at).isAir() && mc.world.getWorldBorder().contains(at) ? hit : null;
+         return !mc.level.getBlockState(at).isAir() && mc.level.getWorldBorder().isWithinBounds(at) ? hit : null;
       }
    }
 
-   private boolean adopt(MinecraftClient mc, BlockHitResult hit) {
-      ClientWorld world = mc.world;
+   private boolean adopt(Minecraft mc, BlockHitResult hit) {
+      ClientLevel world = mc.level;
       BlockPos at = hit.getBlockPos();
       BlockPos other = partner(world, at, world.getBlockState(at));
       BlockPos ref = other != null && other.compareTo(at) < 0 ? other : at;
@@ -175,13 +173,13 @@ public final class BlockOverlayModule extends Module {
       BlockState secondState = second == null ? null : world.getBlockState(second);
       if (!ref.equals(this.pos) || refState != this.state || secondState != this.partnerState) {
          Entity viewer = mc.getCameraEntity();
-         ShapeContext context = viewer == null ? ShapeContext.absent() : ShapeContext.of(viewer);
-         VoxelShape shape = refState.getOutlineShape(world, ref, context);
+         CollisionContext context = viewer == null ? CollisionContext.empty() : CollisionContext.of(viewer);
+         VoxelShape shape = refState.getShape(world, ref, context);
          if (second != null) {
-            shape = VoxelShapes.union(shape, secondState.getOutlineShape(world, second, context).offset(second.subtract(ref)));
+            shape = Shapes.or(shape, secondState.getShape(world, second, context).move(second.subtract(ref)));
          }
 
-         shape = shape.simplify();
+         shape = shape.optimize();
          if (shape.isEmpty()) {
             return false;
          }
@@ -195,38 +193,34 @@ public final class BlockOverlayModule extends Module {
          this.partner = second;
          this.partnerState = secondState;
          this.edges.clear();
-         shape.forEachEdge((x0, y0, z0, x1, y1, z1) -> this.edges.add(new double[]{x0, y0, z0, x1, y1, z1}));
-         this.boxes = shape.getBoundingBoxes();
-         this.localBounds = shape.getBoundingBox();
-         this.goal = this.localBounds.offset(ref);
+         shape.forAllEdges((x0, y0, z0, x1, y1, z1) -> this.edges.add(new double[]{x0, y0, z0, x1, y1, z1}));
+         this.boxes = shape.toAabbs();
+         this.localBounds = shape.bounds();
+         this.goal = this.localBounds.move(ref);
       }
 
-      this.face = hit.getSide();
-      this.faceBox = this.boxOnFace(hit.getPos().subtract(this.pos.getX(), this.pos.getY(), this.pos.getZ()));
+      this.face = hit.getDirection();
+      this.faceBox = this.boxOnFace(hit.getLocation().subtract(this.pos.getX(), this.pos.getY(), this.pos.getZ()));
       return true;
    }
 
-   private static BlockPos partner(ClientWorld world, BlockPos at, BlockState state) {
+   private static BlockPos partner(ClientLevel world, BlockPos at, BlockState state) {
       BlockPos other = null;
-      if (state.contains(Properties.DOUBLE_BLOCK_HALF)) {
-         other = state.get(Properties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER ? at.up() : at.down();
+      if (state.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)) {
+         other = state.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER ? at.above() : at.below();
       } else if (state.getBlock() instanceof BedBlock) {
-         other = at.offset(BedBlock.getOppositePartDirection(state));
-      } else if (state.getBlock() instanceof ChestBlock && state.get(ChestBlock.CHEST_TYPE) != ChestType.SINGLE) {
-         //? if >=1.21.9 {
-         other = ChestBlock.getPosInFrontOf(at, state);
-         //?} else {
-         /*other = at.offset(ChestBlock.getFacing(state));
-         *///?}
+         other = at.relative(BedBlock.getConnectedDirection(state));
+      } else if (state.getBlock() instanceof ChestBlock && state.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
+         other = ChestBlock.getConnectedBlockPos(at, state);
       }
 
-      return other != null && world.getBlockState(other).isOf(state.getBlock()) ? other : null;
+      return other != null && world.getBlockState(other).is(state.getBlock()) ? other : null;
    }
 
-   private Box boxOnFace(Vec3d local) {
+   private AABB boxOnFace(Vec3 local) {
       double e = 0.001;
 
-      for (Box b : this.boxes) {
+      for (AABB b : this.boxes) {
          boolean onPlane = switch (this.face) {
             case EAST -> Math.abs(local.x - b.maxX) < e;
             case WEST -> Math.abs(local.x - b.minX) < e;
@@ -236,7 +230,7 @@ public final class BlockOverlayModule extends Module {
             case NORTH -> Math.abs(local.z - b.minZ) < e;
             default -> throw new MatchException(null, null);
          };
-         if (onPlane && b.expand(e).contains(local)) {
+         if (onPlane && b.inflate(e).contains(local)) {
             return b;
          }
       }
@@ -244,14 +238,14 @@ public final class BlockOverlayModule extends Module {
       return this.localBounds;
    }
 
-   private void updateProgress(MinecraftClient mc, float dt, boolean targeted) {
+   private void updateProgress(Minecraft mc, float dt, boolean targeted) {
       float want = 0.0F;
-      ClientPlayerInteractionManager gameMode = mc.interactionManager;
-      if (targeted && this.miningProgress.get() && gameMode != null && gameMode.isBreakingBlock()) {
+      MultiPlayerGameMode gameMode = mc.gameMode;
+      if (targeted && this.miningProgress.get() && gameMode != null && gameMode.isDestroying()) {
          AccessorBlockOverlayMultiPlayerGameMode mining = (AccessorBlockOverlayMultiPlayerGameMode)gameMode;
          BlockPos breaking = mining.venti$blockOverlayDestroyPos();
          if (breaking != null && (breaking.equals(this.pos) || breaking.equals(this.partner))) {
-            want = MathHelper.clamp(mining.venti$blockOverlayDestroyProgress(), 0.0F, 1.0F);
+            want = Mth.clamp(mining.venti$blockOverlayDestroyProgress(), 0.0F, 1.0F);
          }
       }
 
@@ -301,7 +295,7 @@ public final class BlockOverlayModule extends Module {
          if (this.faceOnly.get()) {
             this.faceFill(this.faceBox, this.face, fillAlpha, 0.002);
          } else {
-            for (Box b : this.boxes) {
+            for (AABB b : this.boxes) {
                this.boxFill(b, fillAlpha, 0.002);
             }
          }
@@ -329,8 +323,8 @@ public final class BlockOverlayModule extends Module {
       return new double[]{a, scale * pop};
    }
 
-   private Vec3d world(double lx, double ly, double lz) {
-      return new Vec3d(this.ax + this.bx * lx, this.ay + this.by * ly, this.az + this.bz * lz);
+   private Vec3 world(double lx, double ly, double lz) {
+      return new Vec3(this.ax + this.bx * lx, this.ay + this.by * ly, this.az + this.bz * lz);
    }
 
    private void outline(List<double[]> list) {
@@ -340,7 +334,7 @@ public final class BlockOverlayModule extends Module {
 
       for (double[] e : list) {
          double length = Math.sqrt(sq(e[3] - e[0]) + sq(e[4] - e[1]) + sq(e[5] - e[2]));
-         int n = varies ? MathHelper.clamp((int)Math.ceil(length / 0.125), 1, 16) : 1;
+         int n = varies ? Mth.clamp((int)Math.ceil(length / 0.125), 1, 16) : 1;
 
          for (int i = 0; i < n; i++) {
             double t0 = (double)i / n;
@@ -348,15 +342,15 @@ public final class BlockOverlayModule extends Module {
             double tm = (t0 + t1) * 0.5;
             pieces.add(
                new double[]{
-                  MathHelper.lerp(t0, e[0], e[3]),
-                  MathHelper.lerp(t0, e[1], e[4]),
-                  MathHelper.lerp(t0, e[2], e[5]),
-                  MathHelper.lerp(t1, e[0], e[3]),
-                  MathHelper.lerp(t1, e[1], e[4]),
-                  MathHelper.lerp(t1, e[2], e[5])
+                  Mth.lerp(t0, e[0], e[3]),
+                  Mth.lerp(t0, e[1], e[4]),
+                  Mth.lerp(t0, e[2], e[5]),
+                  Mth.lerp(t1, e[0], e[3]),
+                  Mth.lerp(t1, e[1], e[4]),
+                  Mth.lerp(t1, e[2], e[5])
                }
             );
-            colors.add(this.colorAt(MathHelper.lerp(tm, e[0], e[3]), MathHelper.lerp(tm, e[1], e[4]), MathHelper.lerp(tm, e[2], e[5])));
+            colors.add(this.colorAt(Mth.lerp(tm, e[0], e[3]), Mth.lerp(tm, e[1], e[4]), Mth.lerp(tm, e[2], e[5])));
          }
       }
 
@@ -365,106 +359,62 @@ public final class BlockOverlayModule extends Module {
          for (int i = 0; i < pieces.size(); i++) {
             double[] p = pieces.get(i);
             int c = colors.get(i);
-            //? if >=1.21.11 {
-            this.line(p, ColorHelper.scaleAlpha(c, 0.34F * this.fade), w + 3.0F, 0.002);
-            this.line(p, ColorHelper.scaleAlpha(c, 0.13F * this.fade), w + 8.0F, 0.002);
-            //?} else {
-            /*this.line(p, scaleAlpha(c, 0.34F * this.fade), w + 3.0F, 0.002);
-            this.line(p, scaleAlpha(c, 0.13F * this.fade), w + 8.0F, 0.002);
-            *///?}
+            this.line(p, ARGB.multiplyAlpha(c, 0.34F * this.fade), w + 3.0F, 0.002);
+            this.line(p, ARGB.multiplyAlpha(c, 0.13F * this.fade), w + 8.0F, 0.002);
          }
       }
 
       for (int i = 0; i < pieces.size(); i++) {
-         //? if >=1.21.11 {
-         this.line(pieces.get(i), ColorHelper.scaleAlpha(colors.get(i), this.fade), w, 0.004);
-         //?} else {
-         /*this.line(pieces.get(i), scaleAlpha(colors.get(i), this.fade), w, 0.004);
-         *///?}
+         this.line(pieces.get(i), ARGB.multiplyAlpha(colors.get(i), this.fade), w, 0.004);
       }
    }
 
    private void line(double[] p, int argb, float w, double lift) {
-      //? if >=1.21.11 {
-      VisibilityConfigurable drawn = GizmoDrawing.line(this.lift(this.world(p[0], p[1], p[2]), lift), this.lift(this.world(p[3], p[4], p[5]), lift), argb, w);
+      GizmoProperties drawn = Gizmos.line(this.lift(this.world(p[0], p[1], p[2]), lift), this.lift(this.world(p[3], p[4], p[5]), lift), argb, w);
       if (this.seeThrough.get()) {
-         drawn.ignoreOcclusion();
+         drawn.setAlwaysOnTop();
       }
-      //?} else {
-      /*Vec3d a = this.lift(this.world(p[0], p[1], p[2]), lift);
-      Vec3d b = this.lift(this.world(p[3], p[4], p[5]), lift);
-      WorldQuads.layer(this.seeThrough.get()).line(a.x, a.y, a.z, b.x, b.y, b.z, argb, w);
-      *///?}
    }
 
-   //? if <1.21.11 {
-   /*// ColorHelper.scaleAlpha only exists from 1.21.11.
-   private static int scaleAlpha(int argb, float scale) {
-      if (argb == 0 || scale <= 0.0F) {
-         return 0;
-      }
 
-      return scale >= 1.0F ? argb : ColorHelper.withAlpha(ColorHelper.getAlphaFloat(argb) * scale, argb);
-   }
-   *///?}
-
-   private Vec3d lift(Vec3d point, double by) {
-      Vec3d toEye = this.eye.subtract(point);
+   private Vec3 lift(Vec3 point, double by) {
+      Vec3 toEye = this.eye.subtract(point);
       double length = toEye.length();
-      return length < 1.0E-6 ? point : point.add(toEye.multiply(by / length));
+      return length < 1.0E-6 ? point : point.add(toEye.scale(by / length));
    }
 
-   private void boxFill(Box b, float alpha, double inflate) {
+   private void boxFill(AABB b, float alpha, double inflate) {
       for (Direction d : Direction.values()) {
          this.faceFill(b, d, alpha, inflate);
       }
    }
 
-   private void faceFill(Box b, Direction d, float alpha, double inflate) {
-      Vec3d min = this.world(b.minX, b.minY, b.minZ).subtract(inflate, inflate, inflate);
-      Vec3d max = this.world(b.maxX, b.maxY, b.maxZ).add(inflate, inflate, inflate);
-      Vec3d centre = faceCentre(b, d);
+   private void faceFill(AABB b, Direction d, float alpha, double inflate) {
+      Vec3 min = this.world(b.minX, b.minY, b.minZ).subtract(inflate, inflate, inflate);
+      Vec3 max = this.world(b.maxX, b.maxY, b.maxZ).add(inflate, inflate, inflate);
+      Vec3 centre = faceCentre(b, d);
       int c = this.colorAt(centre.x, centre.y, centre.z);
-      int argb = MathHelper.clamp(Math.round(alpha * this.fade * 255.0F), 0, 255) << 24 | c & 16777215;
-      //? if >=1.21.11 {
-      VisibilityConfigurable drawn = GizmoDrawing.face(min, max, d, DrawStyle.filled(argb));
+      int argb = Mth.clamp(Math.round(alpha * this.fade * 255.0F), 0, 255) << 24 | c & 16777215;
+      GizmoProperties drawn = Gizmos.rect(min, max, d, GizmoStyle.fill(argb));
       if (this.seeThrough.get()) {
-         drawn.ignoreOcclusion();
-      }
-      //?} else {
-      /*face(WorldQuads.layer(this.seeThrough.get()), min, max, d, argb);
-      *///?}
-   }
-
-   //? if <1.21.11 {
-   /*// The filled face of the box min..max on side d (what GizmoDrawing.face draws on 1.21.11).
-   private static void face(WorldQuads out, Vec3d min, Vec3d max, Direction d, int argb) {
-      double x0 = min.x, y0 = min.y, z0 = min.z, x1 = max.x, y1 = max.y, z1 = max.z;
-      switch (d) {
-         case DOWN -> out.quad(x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, argb);
-         case UP -> out.quad(x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0, argb);
-         case NORTH -> out.quad(x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0, argb);
-         case SOUTH -> out.quad(x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, argb);
-         case WEST -> out.quad(x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, argb);
-         case EAST -> out.quad(x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, argb);
+         drawn.setAlwaysOnTop();
       }
    }
 
-   *///?}
    private void progressFill(float alpha) {
       double inflate = 0.004;
       if (this.faceOnly.get()) {
-         Box b = this.faceBox;
-         Box part = this.face.getAxis() == Axis.Y
-            ? b.contract(b.getLengthX() * (1.0F - this.progress) * 0.5, 0.0, b.getLengthZ() * (1.0F - this.progress) * 0.5)
-            : new Box(b.minX, b.minY, b.minZ, b.maxX, b.minY + b.getLengthY() * this.progress, b.maxZ);
+         AABB b = this.faceBox;
+         AABB part = this.face.getAxis() == Axis.Y
+            ? b.deflate(b.getXsize() * (1.0F - this.progress) * 0.5, 0.0, b.getZsize() * (1.0F - this.progress) * 0.5)
+            : new AABB(b.minX, b.minY, b.minZ, b.maxX, b.minY + b.getYsize() * this.progress, b.maxZ);
          this.faceFill(part, this.face, alpha, inflate);
       } else {
-         double top = this.localBounds.minY + this.localBounds.getLengthY() * this.progress;
+         double top = this.localBounds.minY + this.localBounds.getYsize() * this.progress;
 
-         for (Box b : this.boxes) {
+         for (AABB b : this.boxes) {
             if (!(b.minY >= top)) {
-               this.boxFill(new Box(b.minX, b.minY, b.minZ, b.maxX, Math.min(b.maxY, top), b.maxZ), alpha, inflate);
+               this.boxFill(new AABB(b.minX, b.minY, b.minZ, b.maxX, Math.min(b.maxY, top), b.maxZ), alpha, inflate);
             }
          }
       }
@@ -485,11 +435,11 @@ public final class BlockOverlayModule extends Module {
          double shift = this.flow.get() ? this.time * 0.35F : 0.0;
          if (this.colorMode.is("Rainbow")) {
             double hue = u * 0.5 - shift;
-            return base & 0xFF000000 | MathHelper.hsvToRgb((float)(hue - Math.floor(hue)), 0.65F, 1.0F) & 16777215;
+            return base & 0xFF000000 | Mth.hsvToRgb((float)(hue - Math.floor(hue)), 0.65F, 1.0F) & 16777215;
          } else {
             double k = this.flow.get() ? 0.5 - 0.5 * Math.cos((Math.PI * 2) * (u - shift)) : u;
-            int second = themed ? ColorHelper.lerp(0.55F, base, -1) : this.secondColor.argb();
-            return ColorHelper.lerp((float)k, base, second);
+            int second = themed ? ARGB.srgbLerp(0.55F, base, -1) : this.secondColor.argb();
+            return ARGB.srgbLerp((float)k, base, second);
          }
       }
    }
@@ -498,21 +448,21 @@ public final class BlockOverlayModule extends Module {
       return max - min < 1.0E-6 ? 0.5 : (v - min) / (max - min);
    }
 
-   private static Vec3d faceCentre(Box b, Direction d) {
-      Vec3d c = b.getCenter();
+   private static Vec3 faceCentre(AABB b, Direction d) {
+      Vec3 c = b.getCenter();
 
       return switch (d) {
-         case EAST -> new Vec3d(b.maxX, c.y, c.z);
-         case WEST -> new Vec3d(b.minX, c.y, c.z);
-         case UP -> new Vec3d(c.x, b.maxY, c.z);
-         case DOWN -> new Vec3d(c.x, b.minY, c.z);
-         case SOUTH -> new Vec3d(c.x, c.y, b.maxZ);
-         case NORTH -> new Vec3d(c.x, c.y, b.minZ);
+         case EAST -> new Vec3(b.maxX, c.y, c.z);
+         case WEST -> new Vec3(b.minX, c.y, c.z);
+         case UP -> new Vec3(c.x, b.maxY, c.z);
+         case DOWN -> new Vec3(c.x, b.minY, c.z);
+         case SOUTH -> new Vec3(c.x, c.y, b.maxZ);
+         case NORTH -> new Vec3(c.x, c.y, b.minZ);
          default -> throw new MatchException(null, null);
       };
    }
 
-   private static List<double[]> faceEdges(Box b, Direction d) {
+   private static List<double[]> faceEdges(AABB b, Direction d) {
       double[][] c = switch (d.getAxis()) {
          case X -> {
             double x = d == Direction.EAST ? b.maxX : b.minX;
@@ -545,14 +495,14 @@ public final class BlockOverlayModule extends Module {
       return edges;
    }
 
-   private static Box lerp(Box from, Box to, float k) {
-      return new Box(
-         MathHelper.lerp(k, from.minX, to.minX),
-         MathHelper.lerp(k, from.minY, to.minY),
-         MathHelper.lerp(k, from.minZ, to.minZ),
-         MathHelper.lerp(k, from.maxX, to.maxX),
-         MathHelper.lerp(k, from.maxY, to.maxY),
-         MathHelper.lerp(k, from.maxZ, to.maxZ)
+   private static AABB lerp(AABB from, AABB to, float k) {
+      return new AABB(
+         Mth.lerp(k, from.minX, to.minX),
+         Mth.lerp(k, from.minY, to.minY),
+         Mth.lerp(k, from.minZ, to.minZ),
+         Mth.lerp(k, from.maxX, to.maxX),
+         Mth.lerp(k, from.maxY, to.maxY),
+         Mth.lerp(k, from.maxZ, to.maxZ)
       );
    }
 

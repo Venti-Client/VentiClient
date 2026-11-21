@@ -1,38 +1,30 @@
-package dev.venti.mixin.world;
+// 26.x renders the level through Fabric's LevelRenderEvents instead: see dev.venti.compat.LevelHooks.
+//? if <26.2 {
+/*package dev.venti.mixin.world;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.venti.modules.world.JumpCirclesModule;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-//? if >=1.21.9 {
-import net.minecraft.client.render.state.WorldRenderState;
-//?} else {
-/*import net.minecraft.client.render.Camera;
-*///?}
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.client.render.VertexConsumerProvider.Immediate;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+import net.minecraft.client.renderer.state.LevelRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Environment(EnvType.CLIENT)
-@Mixin({WorldRenderer.class})
+@Mixin({LevelRenderer.class})
 public abstract class MixinJumpCirclesLevelRenderer {
    @Inject(
-      method = {"renderBlockDamage"},
+      method = {"renderBlockDestroyAnimation"},
       at = {@At("HEAD")}
    )
-   //? if >=1.21.9 {
-   private void venti$jumpCircles(MatrixStack poseStack, Immediate crumblingBuffers, WorldRenderState levelRenderState, CallbackInfo ci) {
+   private void venti$jumpCircles(PoseStack poseStack, BufferSource crumblingBuffers, LevelRenderState levelRenderState, CallbackInfo ci) {
       if (JumpCirclesModule.active != null) {
          JumpCirclesModule.renderLevel(levelRenderState.cameraRenderState);
       }
-   //?} else {
-   /*private void venti$jumpCircles(MatrixStack poseStack, Camera camera, Immediate crumblingBuffers, CallbackInfo ci) {
-      if (JumpCirclesModule.active != null) {
-         JumpCirclesModule.renderLevel(camera);
-      }
-   *///?}
    }
 }
+*///?}

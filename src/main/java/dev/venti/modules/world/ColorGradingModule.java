@@ -1,13 +1,12 @@
 package dev.venti.modules.world;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import dev.venti.config.NumberSetting;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-import dev.venti.config.NumberSetting;
-
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 @Environment(EnvType.CLIENT)
 public final class ColorGradingModule extends Module {
@@ -33,7 +32,7 @@ public final class ColorGradingModule extends Module {
       if (RenderSystem.isOnRenderThread()) {
          ColorGradingPass.release();
       } else {
-         MinecraftClient.getInstance().execute(ColorGradingModule::releaseIfOff);
+         Minecraft.getInstance().execute(ColorGradingModule::releaseIfOff);
       }
    }
 

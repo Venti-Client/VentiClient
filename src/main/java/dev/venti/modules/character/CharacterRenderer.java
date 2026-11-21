@@ -1,5 +1,8 @@
 package dev.venti.modules.character;
 
+import com.mojang.blaze3d.vertex.PoseStack.Pose;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.venti.modules.character.kit.Bone;
 import dev.venti.modules.character.kit.CharacterModel;
 import dev.venti.modules.character.kit.Lights;
@@ -7,23 +10,16 @@ import dev.venti.modules.character.kit.PartMesh;
 import dev.venti.modules.character.kit.Surface;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-//? if >=1.21.9 {
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-//?} else {
-/*import net.minecraft.client.render.VertexConsumerProvider;
-*///?}
-import net.minecraft.util.Arm;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.model.ModelTransform;
-import net.minecraft.client.render.entity.model.PlayerEntityModel;
-import net.minecraft.client.model.ModelPart;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.util.math.MatrixStack.Entry;
-import net.minecraft.client.render.entity.model.BipedEntityModel.ArmPose;
+import net.minecraft.client.model.HumanoidModel.ArmPose;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.PartPose;
+import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.HumanoidArm;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -42,22 +38,18 @@ final class CharacterRenderer {
    private CharacterRenderer() {
    }
 
-   //? if >=1.21.9 {
-   static void submit(WornCharacter worn, PlayerEntityModel pm, MatrixStack stack, OrderedRenderCommandQueue collector, int light, PlayerEntityRenderState state) {
-   //?} else {
-   /*static void submit(WornCharacter worn, PlayerEntityModel pm, MatrixStack stack, VertexConsumerProvider collector, int light, PlayerEntityRenderState state) {
-   *///?}
+   static void submit(WornCharacter worn, PlayerModel pm, PoseStack stack, SubmitNodeCollector collector, int light, AvatarRenderState state) {
       CharacterModel model = worn.model;
       PartMesh[] parts = model.parts;
-      boolean ghost = state.invisible;
-      int overlay = LivingEntityRenderer.getOverlay(state, 0.0F);
+      boolean ghost = state.isInvisible;
+      int overlay = LivingEntityRenderer.getOverlayCoords(state, 0.0F);
       float[] pitch = pitches(state, model, pm);
       float[] joint = joints(state, model);
-      float lookPitch = pm.head.pitch;
-      float lookYaw = -pm.head.yaw;
+      float lookPitch = pm.head.xRot;
+      float lookYaw = -pm.head.yRot;
       float[] angles = CharacterMotion.update(state, model, pm, pitch);
-      stack.push();
-      pm.getRootPart().applyTransform(stack);
+      stack.pushPose();
+      pm.root().translateAndRotate(stack);
       lift(stack, state, model);
 
       for (int i = 0; i < parts.length; i++) {
@@ -76,21 +68,17 @@ final class CharacterRenderer {
                bent = joint[part.bone.ordinal()];
             }
 
-            stack.push();
+            stack.pushPose();
             chain(stack, pm, model, i, angles, !bends, null, pitch);
             submitPart(worn, part, stack, collector, light, overlay, ghost, bends, bendPitch, yaw, roll, bent, turn);
-            stack.pop();
+            stack.popPose();
          }
       }
 
-      stack.pop();
+      stack.popPose();
    }
 
-   //? if >=1.21.9 {
-   static boolean firstPersonHand(PlayerEntityModel pm, MatrixStack stack, OrderedRenderCommandQueue collector, int light, ModelPart arm) {
-   //?} else {
-   /*static boolean firstPersonHand(PlayerEntityModel pm, MatrixStack stack, VertexConsumerProvider collector, int light, ModelPart arm) {
-   *///?}
+   static boolean firstPersonHand(PlayerModel pm, PoseStack stack, SubmitNodeCollector collector, int light, ModelPart arm) {
       WornCharacter worn = AvatarModule.firstPerson();
       if (worn == null) {
          return false;
@@ -99,17 +87,17 @@ final class CharacterRenderer {
          CharacterModel model = worn.model;
          PartMesh main = model.part(bone);
          if (main != null && main.base != null) {
-            arm.resetTransform();
-            arm.roll = bone == Bone.RIGHT_ARM ? 0.1F : -0.1F;
+            arm.resetPose();
+            arm.zRot = bone == Bone.RIGHT_ARM ? 0.1F : -0.1F;
             PartMesh[] parts = model.parts;
 
             for (int i = 0; i < parts.length; i++) {
                PartMesh part = parts[i];
                if (part.bone == bone && (part.base != null || part.outline != null || part.decals != null)) {
-                  stack.push();
+                  stack.pushPose();
                   chain(stack, pm, model, i, null, true, arm, null);
-                  submitPart(worn, part, stack, collector, light, OverlayTexture.DEFAULT_UV, false, false, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
-                  stack.pop();
+                  submitPart(worn, part, stack, collector, light, OverlayTexture.NO_OVERLAY, false, false, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
+                  stack.popPose();
                }
             }
 
@@ -123,16 +111,10 @@ final class CharacterRenderer {
    private static void submitPart(
       WornCharacter worn,
       PartMesh part,
-      MatrixStack stack,
-      //? if >=1.21.9 {
-      OrderedRenderCommandQueue collector,
+      PoseStack stack,
+      SubmitNodeCollector collector,
       int light,
       int overlay,
-      //?} else {
-      /*VertexConsumerProvider collector,
-      int light,
-      int overlay,
-      *///?}
       boolean ghost,
       boolean bends,
       float pitch,
@@ -141,15 +123,14 @@ final class CharacterRenderer {
       float bent,
       float turn
    ) {
-      //? if >=1.21.9 {
       if (ghost) {
          if (part.base != null) {
-            collector.getBatchingQueue(1)
-               .submitCustom(stack, worn.ghost, (pose, out) -> emit(pose, out, part.base, light, overlay, 38, bends, pitch, yaw, roll, part, bent, turn));
+            collector.order(1)
+               .submitCustomGeometry(stack, worn.ghost, (pose, out) -> emit(pose, out, part.base, light, overlay, 38, bends, pitch, yaw, roll, part, bent, turn));
          }
       } else {
          if (part.base != null || part.outline != null) {
-            collector.submitCustom(stack, worn.solid, (pose, out) -> {
+            collector.submitCustomGeometry(stack, worn.solid, (pose, out) -> {
                if (part.base != null) {
                   emit(pose, out, part.base, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn);
                }
@@ -161,74 +142,50 @@ final class CharacterRenderer {
          }
 
          if (part.decals != null) {
-            collector.getBatchingQueue(1)
-               .submitCustom(stack, worn.decal, (pose, out) -> emit(pose, out, part.decals, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn));
+            collector.order(1)
+               .submitCustomGeometry(stack, worn.decal, (pose, out) -> emit(pose, out, part.decals, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn));
          }
       }
-      //?} else {
-      /*// Before 1.21.9 there is no command queue: write straight into the layer buffers.
-      Entry pose = stack.peek();
-      if (ghost) {
-         if (part.base != null) {
-            emit(pose, collector.getBuffer(worn.ghost), part.base, light, overlay, 38, bends, pitch, yaw, roll, part, bent, turn);
-         }
-      } else {
-         if (part.base != null || part.outline != null) {
-            VertexConsumer out = collector.getBuffer(worn.solid);
-            if (part.base != null) {
-               emit(pose, out, part.base, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn);
-            }
-
-            if (part.outline != null) {
-               emit(pose, out, part.outline, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn);
-            }
-         }
-
-         if (part.decals != null) {
-            emit(pose, collector.getBuffer(worn.decal), part.decals, light, overlay, 255, bends, pitch, yaw, roll, part, bent, turn);
-         }
-      }
-      *///?}
    }
 
-   static boolean translateToHand(PlayerEntityModel pm, PlayerEntityRenderState state, Arm arm, MatrixStack stack) {
+   static boolean translateToHand(PlayerModel pm, AvatarRenderState state, HumanoidArm arm, PoseStack stack) {
       WornCharacter worn = AvatarModule.worn(state);
       if (worn == null) {
          return false;
       } else {
          CharacterModel model = worn.model;
-         Bone bone = arm == Arm.RIGHT ? Bone.RIGHT_ARM : Bone.LEFT_ARM;
+         Bone bone = arm == HumanoidArm.RIGHT ? Bone.RIGHT_ARM : Bone.LEFT_ARM;
          PartMesh part = model.part(bone);
          if (part == null) {
             return false;
          } else {
             float s = model.scale;
             ModelPart vp = vanilla(pm, bone);
-            pm.getRootPart().applyTransform(stack);
+            pm.root().translateAndRotate(stack);
             lift(stack, state, model);
-            pivot(stack, vp, part, s, pitch(state, part, vp.pitch));
+            pivot(stack, vp, part, s, pitch(state, part, vp.xRot));
             float bent = part.jointed ? CharacterJoints.angle(state, bone, walk(state, bone) * weight(state, bone)) : 0.0F;
             if (bent != 0.0F) {
                float jy = part.jointY * s / 16.0F;
                float jz = part.jointZ * s / 16.0F;
                stack.translate(0.0F, -jy, -jz);
-               stack.multiply(ROTATION.rotationX(bent));
+               stack.mulPose(ROTATION.rotationX(bent));
                stack.translate(0.0F, jy, jz);
             }
 
             stack.translate((part.gripX - part.pivotX) * s / 16.0F, -(part.gripY - part.pivotY) * s / 16.0F, -(part.gripZ - part.pivotZ) * s / 16.0F);
             stack.scale(s, s, s);
-            stack.translate((arm == Arm.RIGHT ? 1.0F : -1.0F) / 16.0F, -0.625F, 0.125F);
+            stack.translate((arm == HumanoidArm.RIGHT ? 1.0F : -1.0F) / 16.0F, -0.625F, 0.125F);
             return true;
          }
       }
    }
 
-   private static float[] pitches(PlayerEntityRenderState state, CharacterModel model, PlayerEntityModel pm) {
+   private static float[] pitches(AvatarRenderState state, CharacterModel model, PlayerModel pm) {
       float[] out = PITCH;
 
       for (Bone bone : BONES) {
-         float xRot = vanilla(pm, bone).pitch;
+         float xRot = vanilla(pm, bone).xRot;
          PartMesh part = !bone.arm() && !bone.leg() ? null : model.part(bone);
          out[bone.ordinal()] = part == null ? xRot : pitch(state, part, xRot);
       }
@@ -236,16 +193,16 @@ final class CharacterRenderer {
       return out;
    }
 
-   private static float pitch(PlayerEntityRenderState state, PartMesh part, float xRot) {
+   private static float pitch(AvatarRenderState state, PartMesh part, float xRot) {
       float out = part.swingPitch(xRot, walk(state, part.bone), weight(state, part.bone));
-      if (part.jointed && part.bone.leg() && state.isInSneakingPose && !state.hasVehicle) {
-         out -= 0.5F * (1.0F - state.leaningPitch);
+      if (part.jointed && part.bone.leg() && state.isCrouching && !state.isPassenger) {
+         out -= 0.5F * (1.0F - state.swimAmount);
       }
 
       return out;
    }
 
-   private static float[] joints(PlayerEntityRenderState state, CharacterModel model) {
+   private static float[] joints(AvatarRenderState state, CharacterModel model) {
       float[] out = JOINT;
 
       for (Bone bone : BONES) {
@@ -258,25 +215,25 @@ final class CharacterRenderer {
 
    private static float look(float angle, float limitDegrees) {
       float max = limitDegrees * (float) (Math.PI / 180.0);
-      return MathHelper.clamp(angle, -max, max);
+      return Mth.clamp(angle, -max, max);
    }
 
-   private static float walk(PlayerEntityRenderState state, Bone bone) {
-      float phase = state.limbSwingAnimationProgress * 0.6662F;
-      float speed = state.limbSwingAmplitude / state.limbAmplitudeInverse;
+   private static float walk(AvatarRenderState state, Bone bone) {
+      float phase = state.walkAnimationPos * 0.6662F;
+      float speed = state.walkAnimationSpeed / state.speedValue;
 
       return switch (bone) {
-         case RIGHT_LEG -> MathHelper.cos(phase) * 1.4F * speed;
-         case LEFT_LEG -> MathHelper.cos(phase + (float) Math.PI) * 1.4F * speed;
-         case RIGHT_ARM -> MathHelper.cos(phase + (float) Math.PI) * speed;
-         case LEFT_ARM -> MathHelper.cos(phase) * speed;
+         case RIGHT_LEG -> Mth.cos(phase) * 1.4F * speed;
+         case LEFT_LEG -> Mth.cos(phase + (float) Math.PI) * 1.4F * speed;
+         case RIGHT_ARM -> Mth.cos(phase + (float) Math.PI) * speed;
+         case LEFT_ARM -> Mth.cos(phase) * speed;
          default -> 0.0F;
       };
    }
 
-   private static float weight(PlayerEntityRenderState state, Bone bone) {
+   private static float weight(AvatarRenderState state, Bone bone) {
       if (bone.leg()) {
-         return state.hasVehicle ? 0.0F : 1.0F - state.leaningPitch;
+         return state.isPassenger ? 0.0F : 1.0F - state.swimAmount;
       } else if (!bone.arm()) {
          return 0.0F;
       } else {
@@ -287,20 +244,16 @@ final class CharacterRenderer {
          } else {
             float share = switch (pose) {
                case EMPTY -> 1.0F;
-               //? if >=1.21.11 {
                case ITEM, BLOCK, BRUSH, THROW_TRIDENT -> 0.5F;
-               //?} else {
-               /*case ITEM, BLOCK, BRUSH, THROW_SPEAR -> 0.5F;
-               *///?}
                default -> 0.0F;
             };
-            return state.isUsingItem ? share : share * (1.0F - state.leaningPitch);
+            return state.isUsingItem ? share : share * (1.0F - state.swimAmount);
          }
       }
    }
 
-   private static void lift(MatrixStack stack, PlayerEntityRenderState state, CharacterModel model) {
-      if (state.hasVehicle) {
+   private static void lift(PoseStack stack, AvatarRenderState state, CharacterModel model) {
+      if (state.isPassenger) {
          float rise = 12.0F - model.scale * model.hipY;
          if (rise != 0.0F) {
             stack.translate(0.0F, -rise / 16.0F, 0.0F);
@@ -308,16 +261,16 @@ final class CharacterRenderer {
       }
    }
 
-   private static void chain(MatrixStack stack, PlayerEntityModel pm, CharacterModel model, int index, float[] angles, boolean rotate, ModelPart hand, float[] pitch) {
+   private static void chain(PoseStack stack, PlayerModel pm, CharacterModel model, int index, float[] angles, boolean rotate, ModelPart hand, float[] pitch) {
       PartMesh part = model.parts[index];
       float s = model.scale;
       if (!part.extra) {
          if (hand == null) {
             ModelPart vp = vanilla(pm, part.bone);
-            pivot(stack, vp, part, s, pitch == null ? vp.pitch : pitch[part.bone.ordinal()]);
+            pivot(stack, vp, part, s, pitch == null ? vp.xRot : pitch[part.bone.ordinal()]);
          } else {
-            stack.translate(hand.originX / 16.0F, hand.originY / 16.0F, hand.originZ / 16.0F);
-            stack.multiply(ROTATION.rotationZYX(hand.roll, hand.yaw, hand.pitch));
+            stack.translate(hand.x / 16.0F, hand.y / 16.0F, hand.z / 16.0F);
+            stack.mulPose(ROTATION.rotationZYX(hand.zRot, hand.yRot, hand.xRot));
             float side = part.bone == Bone.RIGHT_ARM ? -1.0F : 1.0F;
             stack.translate(
                (side - (part.gripX - part.pivotX) * s) / 16.0F,
@@ -335,21 +288,21 @@ final class CharacterRenderer {
          if (rotate && angles != null && part.motionSlot >= 0) {
             int o = part.motionSlot * 3;
             if (angles[o] != 0.0F || angles[o + 1] != 0.0F || angles[o + 2] != 0.0F) {
-               stack.multiply(ROTATION.rotationZYX(angles[o + 2], angles[o + 1], angles[o]));
+               stack.mulPose(ROTATION.rotationZYX(angles[o + 2], angles[o + 1], angles[o]));
             }
          }
       }
    }
 
-   private static void pivot(MatrixStack stack, ModelPart vp, PartMesh part, float s, float xRot) {
-      ModelTransform rest = vp.getDefaultTransform();
+   private static void pivot(PoseStack stack, ModelPart vp, PartMesh part, float s, float xRot) {
+      PartPose rest = vp.getInitialPose();
       stack.translate(
-         (s * part.pivotX + (vp.originX - rest.x()) * s) / 16.0F,
-         (24.0F - s * part.pivotY + (vp.originY - rest.y()) * s) / 16.0F,
-         (-s * part.pivotZ + (vp.originZ - rest.z()) * s) / 16.0F
+         (s * part.pivotX + (vp.x - rest.x()) * s) / 16.0F,
+         (24.0F - s * part.pivotY + (vp.y - rest.y()) * s) / 16.0F,
+         (-s * part.pivotZ + (vp.z - rest.z()) * s) / 16.0F
       );
-      if (xRot != 0.0F || vp.yaw != 0.0F || vp.roll != 0.0F) {
-         stack.multiply(ROTATION.rotationZYX(vp.roll, vp.yaw, xRot));
+      if (xRot != 0.0F || vp.yRot != 0.0F || vp.zRot != 0.0F) {
+         stack.mulPose(ROTATION.rotationZYX(vp.zRot, vp.yRot, xRot));
       }
 
       if (vp.xScale != 1.0F || vp.yScale != 1.0F || vp.zScale != 1.0F) {
@@ -357,7 +310,7 @@ final class CharacterRenderer {
       }
    }
 
-   private static ModelPart vanilla(PlayerEntityModel pm, Bone bone) {
+   private static ModelPart vanilla(PlayerModel pm, Bone bone) {
       return switch (bone) {
          case RIGHT_LEG -> pm.rightLeg;
          case LEFT_LEG -> pm.leftLeg;
@@ -369,7 +322,7 @@ final class CharacterRenderer {
    }
 
    private static void emit(
-      Entry pose,
+      Pose pose,
       VertexConsumer out,
       Surface s,
       int light,
@@ -389,8 +342,8 @@ final class CharacterRenderer {
       }
 
       float[] buf = scratch;
-      Matrix4f m = pose.getPositionMatrix();
-      Matrix3f nm = pose.getNormalMatrix();
+      Matrix4f m = pose.pose();
+      Matrix3f nm = pose.normal();
       float m00 = m.m00();
       float m01 = m.m10();
       float m02 = m.m20();
@@ -505,7 +458,7 @@ final class CharacterRenderer {
          int ox = v * 6;
          int c = alpha == 255 ? color[v] : color[v] & 16777215 | alpha << 24;
          int lx = glow != null && glow[v] != 0 ? 15728880 : light;
-         out.vertex(buf[ox], buf[ox + 1], buf[ox + 2], c, uv[v * 2], uv[v * 2 + 1], overlay, lx, buf[ox + 3], buf[ox + 4], buf[ox + 5]);
+         out.addVertex(buf[ox], buf[ox + 1], buf[ox + 2], c, uv[v * 2], uv[v * 2 + 1], overlay, lx, buf[ox + 3], buf[ox + 4], buf[ox + 5]);
       }
    }
 }

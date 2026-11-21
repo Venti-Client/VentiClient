@@ -1,12 +1,12 @@
 package dev.venti.modules.world;
 
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import org.joml.Vector3f;
 
 @Environment(EnvType.CLIENT)
@@ -36,7 +36,7 @@ final class AuroraSkyStars {
    private float builtBrightness = -1.0F;
    private int bandTint;
 
-   void renderStars(MatrixStack pose, float alpha, float brightness) {
+   void renderStars(PoseStack pose, float alpha, float brightness) {
       long now = System.nanoTime();
       if (now - this.lastTwinkle > 50000000L || brightness != this.builtBrightness) {
          this.lastTwinkle = now;
@@ -47,7 +47,7 @@ final class AuroraSkyStars {
       this.starMesh.draw(pose, alpha);
    }
 
-   void renderBand(MatrixStack pose, float alpha, int tint) {
+   void renderBand(PoseStack pose, float alpha, int tint) {
       if (!this.bandMesh.isBuilt() || tint != this.bandTint) {
          this.bandTint = tint;
          this.buildBand(tint);
@@ -56,7 +56,7 @@ final class AuroraSkyStars {
       this.bandMesh.draw(pose, alpha);
    }
 
-   void renderNebulae(MatrixStack pose, float alpha) {
+   void renderNebulae(PoseStack pose, float alpha) {
       if (!this.nebulaMesh.isBuilt()) {
          this.buildNebulae();
       }
@@ -65,7 +65,7 @@ final class AuroraSkyStars {
    }
 
    private void place() {
-      Random random = Random.create(10842L);
+      RandomSource random = RandomSource.create(10842L);
       Vector3f a = new Vector3f();
       Vector3f b = new Vector3f();
       bandAxes(a, b);
@@ -77,17 +77,17 @@ final class AuroraSkyStars {
          if (random.nextFloat() < 0.3F) {
             float along = random.nextFloat() * (float) (Math.PI * 2);
             float across = (float)random.nextGaussian() * 9.0F * (float) (Math.PI / 180.0);
-            float cosAcross = MathHelper.cos(across);
-            float sinAcross = MathHelper.sin(across);
-            x = cosAcross * (MathHelper.cos(along) * a.x + MathHelper.sin(along) * b.x) + sinAcross * BAND_NORMAL.x;
-            y = cosAcross * (MathHelper.cos(along) * a.y + MathHelper.sin(along) * b.y) + sinAcross * BAND_NORMAL.y;
-            z = cosAcross * (MathHelper.cos(along) * a.z + MathHelper.sin(along) * b.z) + sinAcross * BAND_NORMAL.z;
+            float cosAcross = Mth.cos(across);
+            float sinAcross = Mth.sin(across);
+            x = cosAcross * (Mth.cos(along) * a.x + Mth.sin(along) * b.x) + sinAcross * BAND_NORMAL.x;
+            y = cosAcross * (Mth.cos(along) * a.y + Mth.sin(along) * b.y) + sinAcross * BAND_NORMAL.y;
+            z = cosAcross * (Mth.cos(along) * a.z + Mth.sin(along) * b.z) + sinAcross * BAND_NORMAL.z;
          } else {
             y = random.nextFloat() * 2.0F - 1.0F;
             float around = random.nextFloat() * (float) (Math.PI * 2);
-            float flat = MathHelper.sqrt(1.0F - y * y);
-            x = flat * MathHelper.cos(around);
-            z = flat * MathHelper.sin(around);
+            float flat = Mth.sqrt(1.0F - y * y);
+            x = flat * Mth.cos(around);
+            z = flat * Mth.sin(around);
          }
 
          this.dir[i * 3] = x;
@@ -95,7 +95,7 @@ final class AuroraSkyStars {
          this.dir[i * 3 + 2] = z;
          float big = (float)Math.pow(random.nextFloat(), 6.0);
          this.size[i] = 0.1F + 0.5F * big;
-         this.light[i] = MathHelper.clamp(0.3F + 0.7F * big + 0.25F * random.nextFloat(), 0.0F, 1.0F);
+         this.light[i] = Mth.clamp(0.3F + 0.7F * big + 0.25F * random.nextFloat(), 0.0F, 1.0F);
          this.roll[i] = random.nextFloat() * (float) (Math.PI * 2);
          this.phase[i] = random.nextFloat() * (float) (Math.PI * 2);
          this.speed[i] = 1.5F + 3.5F * random.nextFloat();
@@ -107,9 +107,9 @@ final class AuroraSkyStars {
 
    private static int starColour(float t) {
       if (t < 0.18F) {
-         return ColorHelper.lerp(t / 0.18F, 16757870, 16774116);
+         return ARGB.srgbLerp(t / 0.18F, 16757870, 16774116);
       } else {
-         return t < 0.75F ? 16775408 : ColorHelper.lerp((t - 0.75F) / 0.25F, 16774134, 11125503);
+         return t < 0.75F ? 16775408 : ARGB.srgbLerp((t - 0.75F) / 0.25F, 16774134, 11125503);
       }
    }
 
@@ -121,8 +121,8 @@ final class AuroraSkyStars {
       BufferBuilder builder = this.starMesh.begin();
 
       for (int i = 0; i < 2600; i++) {
-         float twinkle = 0.62F + 0.38F * MathHelper.sin(time * this.speed[i] + this.phase[i]);
-         float alpha = MathHelper.clamp(this.light[i] * twinkle * brightness, 0.0F, 1.0F);
+         float twinkle = 0.62F + 0.38F * Mth.sin(time * this.speed[i] + this.phase[i]);
+         float alpha = Mth.clamp(this.light[i] * twinkle * brightness, 0.0F, 1.0F);
          this.star(builder, i, this.size[i], alpha);
          if (this.light[i] > 0.8F) {
             this.star(builder, i, this.size[i] * 4.0F, alpha * 0.12F);
@@ -149,15 +149,15 @@ final class AuroraSkyStars {
          uz = y;
       }
 
-      float ul = MathHelper.sqrt(ux * ux + uy * uy + uz * uz);
+      float ul = Mth.sqrt(ux * ux + uy * uy + uz * uz);
       ux /= ul;
       uy /= ul;
       uz /= ul;
       float vx = y * uz - z * uy;
       float vy = z * ux - x * uz;
       float vz = x * uy - y * ux;
-      float c = MathHelper.cos(this.roll[i]) * half;
-      float s = MathHelper.sin(this.roll[i]) * half;
+      float c = Mth.cos(this.roll[i]) * half;
+      float s = Mth.sin(this.roll[i]) * half;
       float ax = ux * c + vx * s;
       float ay = uy * c + vy * s;
       float az = uz * c + vz * s;
@@ -190,18 +190,18 @@ final class AuroraSkyStars {
 
       for (int c = 0; c <= 180; c++) {
          float along = c / 180.0F * (float) (Math.PI * 2);
-         float ax = MathHelper.cos(along) * a.x + MathHelper.sin(along) * b.x;
-         float ay = MathHelper.cos(along) * a.y + MathHelper.sin(along) * b.y;
-         float az = MathHelper.cos(along) * a.z + MathHelper.sin(along) * b.z;
+         float ax = Mth.cos(along) * a.x + Mth.sin(along) * b.x;
+         float ay = Mth.cos(along) * a.y + Mth.sin(along) * b.y;
+         float az = Mth.cos(along) * a.z + Mth.sin(along) * b.z;
          float width = 0.55F + 0.45F * fbm(ax * 1.7F, ay * 1.7F, az * 1.7F);
          float rift = 3.0F * (fbm(ax * 2.3F + 5.0F, ay * 2.3F, az * 2.3F) - 0.5F);
-         float riftDepth = MathHelper.clamp(fbm(ax * 1.4F, ay * 1.4F + 9.0F, az * 1.4F) * 1.6F - 0.35F, 0.0F, 1.0F);
+         float riftDepth = Mth.clamp(fbm(ax * 1.4F, ay * 1.4F + 9.0F, az * 1.4F) * 1.6F - 0.35F, 0.0F, 1.0F);
 
          for (int r = 0; r <= 12; r++) {
             float acrossDeg = (r / 12.0F * 2.0F - 1.0F) * 17.0F;
             float across = acrossDeg * (float) (Math.PI / 180.0);
-            float cosAcross = MathHelper.cos(across);
-            float sinAcross = MathHelper.sin(across);
+            float cosAcross = Mth.cos(across);
+            float sinAcross = Mth.sin(across);
             float x = cosAcross * ax + sinAcross * BAND_NORMAL.x;
             float y = cosAcross * ay + sinAcross * BAND_NORMAL.y;
             float z = cosAcross * az + sinAcross * BAND_NORMAL.z;
@@ -212,8 +212,8 @@ final class AuroraSkyStars {
             float core = (float)Math.exp(-edge * edge * 2.2F);
             float dust = 0.35F + 0.65F * fbm(x * 6.0F, y * 6.0F, z * 6.0F);
             float lane = 1.0F - 0.75F * riftDepth * (float)Math.exp(-sq((acrossDeg - rift) / 2.6F));
-            float glow = MathHelper.clamp(core * dust * lane, 0.0F, 1.0F);
-            int rgb = ColorHelper.lerp(core, 7306440, tint) & 16777215;
+            float glow = Mth.clamp(core * dust * lane, 0.0F, 1.0F);
+            int rgb = ARGB.srgbLerp(core, 7306440, tint) & 16777215;
             colour[c][r] = Math.round(glow * 0.42F * 255.0F) << 24 | rgb;
          }
       }
@@ -243,15 +243,15 @@ final class AuroraSkyStars {
 
          for (int r = 0; r <= 36; r++) {
             float el = (r / 36.0F - 0.5F) * (float) Math.PI;
-            float x = MathHelper.cos(el) * MathHelper.cos(around);
-            float y = MathHelper.sin(el);
-            float z = MathHelper.cos(el) * MathHelper.sin(around);
+            float x = Mth.cos(el) * Mth.cos(around);
+            float y = Mth.sin(el);
+            float z = Mth.cos(el) * Mth.sin(around);
             px[c][r] = x * 100.0F;
             py[c][r] = y * 100.0F;
             pz[c][r] = z * 100.0F;
             float density = AuroraSkyAurora.smoothstep((fbm(x * 2.2F, y * 2.2F, z * 2.2F) - 0.42F) / 0.35F);
             float hue = fbm(x * 1.3F + 11.0F, y * 1.3F, z * 1.3F);
-            int rgb = hue < 0.5F ? ColorHelper.lerp(hue * 2.0F, 8011007, 16732104) : ColorHelper.lerp((hue - 0.5F) * 2.0F, 16732104, 3989712);
+            int rgb = hue < 0.5F ? ARGB.srgbLerp(hue * 2.0F, 8011007, 16732104) : ARGB.srgbLerp((hue - 0.5F) * 2.0F, 16732104, 3989712);
             colour[c][r] = Math.round(density * 0.55F * 255.0F) << 24 | rgb & 16777215;
          }
       }
@@ -288,20 +288,20 @@ final class AuroraSkyStars {
    }
 
    private static float noise(float x, float y, float z) {
-      int ix = MathHelper.floor(x);
-      int iy = MathHelper.floor(y);
-      int iz = MathHelper.floor(z);
+      int ix = Mth.floor(x);
+      int iy = Mth.floor(y);
+      int iz = Mth.floor(z);
       float fx = x - ix;
       float fy = y - iy;
       float fz = z - iz;
       fx = fx * fx * (3.0F - 2.0F * fx);
       fy = fy * fy * (3.0F - 2.0F * fy);
       fz = fz * fz * (3.0F - 2.0F * fz);
-      float x00 = MathHelper.lerp(fx, hash(ix, iy, iz), hash(ix + 1, iy, iz));
-      float x10 = MathHelper.lerp(fx, hash(ix, iy + 1, iz), hash(ix + 1, iy + 1, iz));
-      float x01 = MathHelper.lerp(fx, hash(ix, iy, iz + 1), hash(ix + 1, iy, iz + 1));
-      float x11 = MathHelper.lerp(fx, hash(ix, iy + 1, iz + 1), hash(ix + 1, iy + 1, iz + 1));
-      return MathHelper.lerp(fz, MathHelper.lerp(fy, x00, x10), MathHelper.lerp(fy, x01, x11));
+      float x00 = Mth.lerp(fx, hash(ix, iy, iz), hash(ix + 1, iy, iz));
+      float x10 = Mth.lerp(fx, hash(ix, iy + 1, iz), hash(ix + 1, iy + 1, iz));
+      float x01 = Mth.lerp(fx, hash(ix, iy, iz + 1), hash(ix + 1, iy, iz + 1));
+      float x11 = Mth.lerp(fx, hash(ix, iy + 1, iz + 1), hash(ix + 1, iy + 1, iz + 1));
+      return Mth.lerp(fz, Mth.lerp(fy, x00, x10), Mth.lerp(fy, x01, x11));
    }
 
    private static float hash(int x, int y, int z) {

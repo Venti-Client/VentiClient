@@ -1,52 +1,48 @@
 package dev.venti.modules.world;
 
-import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
-import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.systems.RenderSystem.ShapeIndexBuffer;
-import com.mojang.blaze3d.vertex.VertexFormat.DrawMode;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.MeshData;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import java.util.Arrays;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import com.mojang.blaze3d.systems.ProjectionType;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.render.RawProjectionMatrix;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.util.Identifier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.BufferAllocator;
-import net.minecraft.client.render.BuiltBuffer;
+//? if >=26.2 {
+import net.minecraft.client.renderer.ProjectionMatrixBuffer;
+//?} else {
+/*import net.minecraft.client.renderer.PerspectiveProjectionMatrixBuffer;
+*///?}
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
-//? if <1.21.11 {
-/*import net.minecraft.client.render.Camera;
-import org.joml.Vector3fc;
-*///?}
 
 @Environment(EnvType.CLIENT)
 public final class WorldQuads {
    private static final int MAX_QUADS = 64000;
    private static final int MIN_ALPHA = 3;
-   private static final RenderPipeline DEPTH_TESTED = pipeline("world_quads", DepthTestFunction.LEQUAL_DEPTH_TEST);
-   private static final RenderPipeline ON_TOP = pipeline("world_quads_on_top", DepthTestFunction.NO_DEPTH_TEST);
+   private static final RenderPipeline DEPTH_TESTED = pipeline("world_quads", true);
+   private static final RenderPipeline ON_TOP = pipeline("world_quads_on_top", false);
    private static final WorldQuads TESTED = new WorldQuads(DEPTH_TESTED);
    private static final WorldQuads TOP = new WorldQuads(ON_TOP);
    private static double originX;
    private static double originY;
    private static double originZ;
-   private static BufferAllocator bytes;
-   private static RawProjectionMatrix projectionBuffer;
+   private static ByteBufferBuilder bytes;
+   //? if >=26.2 {
+   private static ProjectionMatrixBuffer projectionBuffer;
+   //?} else {
+   /*private static PerspectiveProjectionMatrixBuffer projectionBuffer;
+   *///?}
    private final RenderPipeline pipeline;
    private float[] corners = new float[3072];
    private int[] colors = new int[256];
@@ -56,16 +52,14 @@ public final class WorldQuads {
       this.pipeline = pipeline;
    }
 
-   private static RenderPipeline pipeline(String name, DepthTestFunction depth) {
-      return RenderPipeline.builder(new Snippet[]{RenderPipelines.TRANSFORMS_AND_PROJECTION_SNIPPET})
-         .withLocation(Identifier.of("venti", "pipeline/world_visuals_" + name))
-         .withVertexShader("core/position_color")
-         .withFragmentShader("core/position_color")
-         .withBlend(BlendFunction.TRANSLUCENT)
-         .withDepthWrite(false)
-         .withDepthTestFunction(depth)
-         .withCull(false)
-         .withVertexFormat(VertexFormats.POSITION_COLOR, DrawMode.QUADS)
+   private static RenderPipeline pipeline(String name, boolean depthTest) {
+      return Gpu.pipeline("world_visuals_" + name)
+         .shaders("core/position_color", "core/position_color")
+         .matrices()
+         .blend(BlendFunction.TRANSLUCENT)
+         .depth(depthTest, false)
+         .cull(false)
+         .vertices(DefaultVertexFormat.POSITION_COLOR, Gpu.Topology.QUADS)
          .build();
    }
 
@@ -73,78 +67,8 @@ public final class WorldQuads {
       return onTop ? TOP : TESTED;
    }
 
-   //? if <1.21.11 {
-   /*// Minecraft before 1.21.11 has no gizmos, so world lines are drawn here as camera-facing ribbons instead.
-   private static final double RIBBON_NEAR = 0.05;
-   private static double pixel;
-   private static double lookX;
-   private static double lookY;
-   private static double lookZ;
 
-   // Called with beginFrame: remembers the view direction and the size of one framebuffer pixel per block of view depth.
-   public static void beginLines(Camera camera, Matrix4f projection) {
-      int height = MinecraftClient.getInstance().getFramebuffer().textureHeight;
-      pixel = height > 0 && projection.m11() != 0.0F ? 2.0 / (projection.m11() * height) : 0.0;
-      Vector3fc forward = camera.getHorizontalPlane();
-      lookX = forward.x();
-      lookY = forward.y();
-      lookZ = forward.z();
-   }
-
-   // A line `width` framebuffer pixels wide, like a 1.21.11 gizmo line.
-   public void line(double ax, double ay, double az, double bx, double by, double bz, int argb, float width) {
-      if (argb >>> 24 < 3 || pixel <= 0.0) {
-         return;
-      }
-
-      double depthA = (ax - originX) * lookX + (ay - originY) * lookY + (az - originZ) * lookZ;
-      double depthB = (bx - originX) * lookX + (by - originY) * lookY + (bz - originZ) * lookZ;
-      if (depthA < RIBBON_NEAR && depthB < RIBBON_NEAR) {
-         return;
-      }
-
-      if (depthA < RIBBON_NEAR) {
-         double t = (RIBBON_NEAR - depthA) / (depthB - depthA);
-         ax += (bx - ax) * t;
-         ay += (by - ay) * t;
-         az += (bz - az) * t;
-         depthA = RIBBON_NEAR;
-      } else if (depthB < RIBBON_NEAR) {
-         double t = (RIBBON_NEAR - depthB) / (depthA - depthB);
-         bx += (ax - bx) * t;
-         by += (ay - by) * t;
-         bz += (az - bz) * t;
-         depthB = RIBBON_NEAR;
-      }
-
-      double fx = ax - originX;
-      double fy = ay - originY;
-      double fz = az - originZ;
-      double ex = bx - ax;
-      double ey = by - ay;
-      double ez = bz - az;
-      double sx = fy * ez - fz * ey;
-      double sy = fz * ex - fx * ez;
-      double sz = fx * ey - fy * ex;
-      double length = Math.sqrt(sx * sx + sy * sy + sz * sz);
-      if (length < 1.0E-9) {
-         return;
-      }
-
-      double scale = width * 0.5 * pixel / length;
-      double ka = scale * depthA;
-      double kb = scale * depthB;
-      this.quad(
-         ax + sx * ka, ay + sy * ka, az + sz * ka,
-         bx + sx * kb, by + sy * kb, bz + sz * kb,
-         bx - sx * kb, by - sy * kb, bz - sz * kb,
-         ax - sx * ka, ay - sy * ka, az - sz * ka,
-         argb
-      );
-   }
-   *///?}
-
-   public static void beginFrame(Vec3d camera) {
+   public static void beginFrame(Vec3 camera) {
       originX = camera.x;
       originY = camera.y;
       originZ = camera.z;
@@ -223,11 +147,15 @@ public final class WorldQuads {
    public static void render(Matrix4f viewRotation, Matrix4f projection) {
       if (TESTED.quads != 0 || TOP.quads != 0) {
          if (projectionBuffer == null) {
-            projectionBuffer = new RawProjectionMatrix("venti world quads");
+            //? if >=26.2 {
+            projectionBuffer = new ProjectionMatrixBuffer("venti world quads");
+            //?} else {
+            /*projectionBuffer = new PerspectiveProjectionMatrixBuffer("venti world quads");
+            *///?}
          }
 
          RenderSystem.backupProjectionMatrix();
-         RenderSystem.setProjectionMatrix(projectionBuffer.set(projection), ProjectionType.PERSPECTIVE);
+         RenderSystem.setProjectionMatrix(projectionBuffer.getBuffer(projection), ProjectionType.PERSPECTIVE);
 
          try {
             TESTED.draw(viewRotation);
@@ -243,87 +171,35 @@ public final class WorldQuads {
    private void draw(Matrix4f viewRotation) {
       if (this.quads != 0) {
          if (bytes == null) {
-            bytes = new BufferAllocator(this.quads * 4 * VertexFormats.POSITION_COLOR.getVertexSize());
+            bytes = new ByteBufferBuilder(this.quads * 4 * DefaultVertexFormat.POSITION_COLOR.getVertexSize());
          }
 
-         BufferBuilder builder = new BufferBuilder(bytes, DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+         BufferBuilder builder = Gpu.builder(bytes, DefaultVertexFormat.POSITION_COLOR, Gpu.Topology.QUADS);
          float[] in = this.corners;
          int i = 0;
 
          for (int p = 0; i < this.quads; p += 12) {
             int color = this.colors[i];
-            builder.vertex(in[p], in[p + 1], in[p + 2]).color(color);
-            builder.vertex(in[p + 3], in[p + 4], in[p + 5]).color(color);
-            builder.vertex(in[p + 6], in[p + 7], in[p + 8]).color(color);
-            builder.vertex(in[p + 9], in[p + 10], in[p + 11]).color(color);
+            builder.addVertex(in[p], in[p + 1], in[p + 2]).setColor(color);
+            builder.addVertex(in[p + 3], in[p + 4], in[p + 5]).setColor(color);
+            builder.addVertex(in[p + 6], in[p + 7], in[p + 8]).setColor(color);
+            builder.addVertex(in[p + 9], in[p + 10], in[p + 11]).setColor(color);
             i++;
          }
 
-         BuiltBuffer mesh = builder.endNullable();
-
-         label78: {
-            try {
-               if (mesh == null) {
-                  break label78;
-               }
-
-               GpuBuffer vertices = VertexFormats.POSITION_COLOR.uploadImmediateVertexBuffer(mesh.getBuffer());
-               ShapeIndexBuffer indices = RenderSystem.getSequentialBuffer(DrawMode.QUADS);
-               int indexCount = mesh.getDrawParameters().indexCount();
+         try (MeshData mesh = builder.build()) {
+            if (mesh != null) {
                GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
-                  //? if >=1.21.11 {
-                  .write(viewRotation, new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
-                  //?} else {
-                  /*.write(viewRotation, new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f(), 0.0F);
-                  *///?}
-               Framebuffer target = MinecraftClient.getInstance().getFramebuffer();
-               RenderPass pass = RenderSystem.getDevice()
-                  .createCommandEncoder()
-                  .createRenderPass(() -> "Venti world quads", target.getColorAttachmentView(), OptionalInt.empty(), target.getDepthAttachmentView(), OptionalDouble.empty());
-
-               try {
+                  .writeTransform(viewRotation, new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
+               Gpu.Mesh vertices = Gpu.upload(mesh);
+               RenderTarget target = Mc.mainTarget();
+               try (RenderPass pass = Gpu.pass(() -> "Venti world quads", target.getColorTextureView(), target.getDepthTextureView())) {
                   pass.setPipeline(this.pipeline);
                   RenderSystem.bindDefaultUniforms(pass);
                   pass.setUniform("DynamicTransforms", transforms);
-                  pass.setVertexBuffer(0, vertices);
-                  pass.setIndexBuffer(indices.getIndexBuffer(indexCount), indices.getIndexType());
-                  pass.drawIndexed(0, 0, indexCount, 1);
-               } catch (Throwable var15) {
-                  if (pass != null) {
-                     try {
-                        pass.close();
-                     } catch (Throwable var14) {
-                        var15.addSuppressed(var14);
-                     }
-                  }
-
-                  throw var15;
+                  vertices.drawAll(pass);
                }
-
-               if (pass != null) {
-                  pass.close();
-               }
-            } catch (Throwable var16) {
-               if (mesh != null) {
-                  try {
-                     mesh.close();
-                  } catch (Throwable var13) {
-                     var16.addSuppressed(var13);
-                  }
-               }
-
-               throw var16;
             }
-
-            if (mesh != null) {
-               mesh.close();
-            }
-
-            return;
-         }
-
-         if (mesh != null) {
-            mesh.close();
          }
       }
    }

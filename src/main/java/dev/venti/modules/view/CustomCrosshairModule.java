@@ -1,5 +1,7 @@
 package dev.venti.modules.view;
 
+import dev.venti.compat.Gfx;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
@@ -8,25 +10,19 @@ import dev.venti.config.Setting;
 import dev.venti.gui.Theme;
 import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-//? if >=1.21.9 {
-import net.minecraft.client.gui.hud.debug.DebugHudEntries;
-//?} else {
-/*
-*///?}
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.option.AttackIndicator;
-import net.minecraft.component.DataComponentTypes;
-//? if >=1.21.11
-import net.minecraft.component.type.AttackRangeComponent;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.screen.NamedScreenHandlerFactory;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.GameMode;
+import net.minecraft.client.AttackIndicatorStatus;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.debug.DebugScreenEntries;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.component.AttackRange;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 
 /** Draws a configurable crosshair in place of the vanilla one (vanilla's own visibility rules still apply). */
 public final class CustomCrosshairModule extends Module {
@@ -77,21 +73,17 @@ public final class CustomCrosshairModule extends Module {
    }
 
    /** Called in place of vanilla's crosshair; returns false to let vanilla draw (e.g. when the debug 3D crosshair is on). */
-   public boolean render(DrawContext graphics) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      ClientPlayerEntity player = mc.player;
-      //? if >=1.21.9 {
-      if (mc.debugHudEntryList.isEntryVisible(DebugHudEntries.THREE_DIMENSIONAL_CROSSHAIR)) {
-      //?} else {
-      /*if (player != null && mc.inGameHud.shouldRenderCrosshair()) { // vanilla's debug 3D crosshair is showing
-      *///?}
+   public boolean render(Gfx graphics) {
+      Minecraft mc = Minecraft.getInstance();
+      LocalPlayer player = mc.player;
+      if (mc.debugEntries.isCurrentlyEnabled(DebugScreenEntries.THREE_DIMENSIONAL_CROSSHAIR)) {
          return false;
       } else if (player != null && isVisible(mc)) {
          long now = System.nanoTime();
          float dt = this.lastFrame == 0L ? 0.0F : Math.min(0.1F, (now - this.lastFrame) / 1.0E9F);
          this.lastFrame = now;
          this.updateMotion(mc, player, dt);
-         Geometry g = this.geometry(graphics.getScaledWindowWidth() / 2, graphics.getScaledWindowHeight() / 2);
+         Geometry g = this.geometry(graphics.guiWidth() / 2, graphics.guiHeight() / 2);
          int fill = this.currentColor();
          float fillAlpha = (fill >>> 24 & 0xFF) / 255.0F;
          int edge = this.outline.get() ? 1 : 0;
@@ -107,36 +99,36 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static boolean isVisible(MinecraftClient mc) {
-      if (mc.world == null || mc.interactionManager == null || mc.options.hudHidden) {
+   private static boolean isVisible(Minecraft mc) {
+      if (mc.level == null || mc.gameMode == null || Mc.hudHidden()) {
          return false;
-      } else if (!mc.options.getPerspective().isFirstPerson()) {
+      } else if (!mc.options.getCameraType().isFirstPerson()) {
          return false;
       } else {
-         return mc.interactionManager.getCurrentGameMode() != GameMode.SPECTATOR || spectatorCanInteract(mc);
+         return mc.gameMode.getPlayerMode() != GameType.SPECTATOR || spectatorCanInteract(mc);
       }
    }
 
-   private static boolean spectatorCanInteract(MinecraftClient mc) {
-      HitResult hit = mc.crosshairTarget;
+   private static boolean spectatorCanInteract(Minecraft mc) {
+      HitResult hit = mc.hitResult;
       if (hit instanceof EntityHitResult entityHit) {
-         return entityHit.getEntity() instanceof NamedScreenHandlerFactory;
+         return entityHit.getEntity() instanceof MenuProvider;
       } else if (hit instanceof BlockHitResult blockHit && hit.getType() == HitResult.Type.BLOCK) {
          BlockPos pos = blockHit.getBlockPos();
-         return mc.world.getBlockState(pos).createScreenHandlerFactory(mc.world, pos) != null;
+         return mc.level.getBlockState(pos).getMenuProvider(mc.level, pos) != null;
       } else {
          return false;
       }
    }
 
-   private void updateMotion(MinecraftClient mc, ClientPlayerEntity player, float dt) {
-      boolean onTarget = this.targetTint.get() && mc.targetedEntity instanceof LivingEntity living && living.isAlive();
+   private void updateMotion(Minecraft mc, LocalPlayer player, float dt) {
+      boolean onTarget = this.targetTint.get() && mc.crosshairPickEntity instanceof LivingEntity living && living.isAlive();
       this.tint = approach(this.tint, onTarget ? 1.0F : 0.0F, 14.0F, dt);
       float wanted = 0.0F;
       if (this.dynamicGap.get()) {
-         double moved = Math.hypot(player.getX() - player.lastX, player.getZ() - player.lastZ);
+         double moved = Math.hypot(player.getX() - player.xo, player.getZ() - player.zo);
          float moving = (float)Math.min(1.0, moved / 0.28);
-         float swing = 1.0F - player.getAttackCooldownProgress(0.0F);
+         float swing = 1.0F - player.getAttackStrengthScale(0.0F);
          wanted = this.spread.get() * Math.max(moving, swing);
       }
 
@@ -207,7 +199,7 @@ public final class CustomCrosshairModule extends Module {
       return (this.style.is("Cross") || this.style.is("T")) && g.open() < 1;
    }
 
-   private void drawShape(DrawContext dc, Geometry g, int color, int grow) {
+   private void drawShape(Gfx dc, Geometry g, int color, int grow) {
       switch (this.style.get()) {
          case "Dot" -> disc(dc, g.cx(), g.cy(), Math.max(1.0F, g.size() * 0.5F) + grow, color);
          case "Circle" -> ring(dc, g.cx(), g.cy(), g.size() + g.open(), g.thick() * 0.5F + grow, color);
@@ -222,7 +214,7 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static void drawArms(DrawContext dc, Geometry g, int color, int grow, boolean top) {
+   private static void drawArms(Gfx dc, Geometry g, int color, int grow, boolean top) {
       int x0 = g.cx() - g.thick() / 2;
       int x1 = x0 + g.thick();
       int y0 = g.cy() - g.thick() / 2;
@@ -245,7 +237,7 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static void drawDiagonals(DrawContext dc, Geometry g, int color, int grow) {
+   private static void drawDiagonals(Gfx dc, Geometry g, int color, int grow) {
       float near = Math.max(0.0F, g.open() - grow) * DIAGONAL;
       float far = (g.open() + g.size() + grow) * DIAGONAL;
       int half = g.thick() / 2 + grow;
@@ -274,7 +266,7 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static void disc(DrawContext dc, int cx, int cy, float radius, int color) {
+   private static void disc(Gfx dc, int cx, int cy, float radius, int color) {
       int r = (int)Math.ceil(radius);
       for (int y = -r; y < r; y++) {
          int start = Integer.MIN_VALUE;
@@ -290,7 +282,7 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static void ring(DrawContext dc, int cx, int cy, float radius, float halfWidth, int color) {
+   private static void ring(Gfx dc, int cx, int cy, float radius, float halfWidth, int color) {
       float inner = Math.max(0.0F, radius - halfWidth);
       float outer = radius + halfWidth;
       int r = (int)Math.ceil(outer);
@@ -313,13 +305,13 @@ public final class CustomCrosshairModule extends Module {
       return d <= outer * outer && d >= inner * inner;
    }
 
-   private static void rect(DrawContext dc, int x0, int y0, int x1, int y1, int color, int grow) {
+   private static void rect(Gfx dc, int x0, int y0, int x1, int y1, int color, int grow) {
       dc.fill(x0 - grow, y0 - grow, x1 + grow, y1 + grow, color);
    }
 
-   private void drawCooldown(DrawContext dc, MinecraftClient mc, ClientPlayerEntity player, Geometry g, int fill, int edge, float dt) {
-      boolean wanted = mc.options.getAttackIndicator().getValue() == AttackIndicator.CROSSHAIR;
-      float charge = player.getAttackCooldownProgress(0.0F);
+   private void drawCooldown(Gfx dc, Minecraft mc, LocalPlayer player, Geometry g, int fill, int edge, float dt) {
+      boolean wanted = mc.options.attackIndicator().get() == AttackIndicatorStatus.CROSSHAIR;
+      float charge = player.getAttackStrengthScale(0.0F);
       boolean ready = wanted && readyOnTarget(mc, player, charge);
       this.barFill = ready ? 1.0F : Math.min(1.0F, charge);
       this.barAlpha = approach(this.barAlpha, !wanted || !ready && !(charge < 1.0F) ? 0.0F : 1.0F, 18.0F, dt);
@@ -341,18 +333,14 @@ public final class CustomCrosshairModule extends Module {
       }
    }
 
-   private static boolean readyOnTarget(MinecraftClient mc, ClientPlayerEntity player, float charge) {
-      if (charge < 1.0F || !(mc.targetedEntity instanceof LivingEntity target && target.isAlive())) {
+   private static boolean readyOnTarget(Minecraft mc, LocalPlayer player, float charge) {
+      if (charge < 1.0F || !(mc.crosshairPickEntity instanceof LivingEntity target && target.isAlive())) {
          return false;
-      } else if (player.getAttackCooldownProgressPerTick() <= 5.0F) {
+      } else if (player.getCurrentItemAttackStrengthDelay() <= 5.0F) {
          return false;
       } else {
-         //? if >=1.21.11 {
-         AttackRangeComponent range = player.getActiveOrMainHandStack().get(DataComponentTypes.ATTACK_RANGE);
-         return range == null || mc.crosshairTarget == null || range.isWithinRange(player, mc.crosshairTarget.getPos());
-         //?} else {
-         /*return true; // no per-item attack range before 1.21.11: a targeted entity is always in reach
-         *///?}
+         AttackRange range = player.getActiveItem().get(DataComponents.ATTACK_RANGE);
+         return range == null || mc.hitResult == null || range.isInRange(player, mc.hitResult.getLocation());
       }
    }
 

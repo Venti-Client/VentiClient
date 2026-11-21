@@ -1,7 +1,8 @@
 {
   "required": true,
   "package": "dev.venti.mixin.hitfx",
-  "compatibilityLevel": "JAVA_21",
+  "plugin": "dev.venti.compat.VentiMixinPlugin",
+  "compatibilityLevel": "JAVA_${java}",
   "client": ["EntityDamageMixin", "PlaySoundMixin", "SoundSystemMixin"],
   "injectors": { "defaultRequire": 1 }
 }

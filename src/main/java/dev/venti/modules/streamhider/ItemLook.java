@@ -2,14 +2,12 @@ package dev.venti.modules.streamhider;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.render.item.ItemRenderState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemDisplayContext;
-import net.minecraft.client.render.item.ItemRenderState.Glint;
-import net.minecraft.client.render.item.ItemRenderState.LayerRenderState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 
-public final class ItemLook extends ItemRenderState {
+public final class ItemLook extends ItemStackRenderState {
    public final List<Object> identity = new ArrayList<>();
    private final List<LayerRenderState> layers = new ArrayList<>();
 
@@ -25,24 +23,24 @@ public final class ItemLook extends ItemRenderState {
       return layer;
    }
 
-   public void addModelKey(Object element) {
-      if (!(element instanceof Glint)) {
+   public void appendModelIdentityElement(Object element) {
+      if (!(element instanceof FoilType)) {
          this.identity.add(element);
       }
    }
 
    public boolean resolve(ItemStack stack) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
 
       try {
-         mc.getItemModelManager().clearAndUpdate(this, stack, ItemDisplayContext.GUI, mc.world, mc.player, 0);
+         mc.getItemModelResolver().updateForTopItem(this, stack, ItemDisplayContext.GUI, mc.level, mc.player, 0);
       } catch (RuntimeException var5) {
          this.clear();
          return false;
       }
 
       for (LayerRenderState layer : this.layers) {
-         layer.setGlint(Glint.NONE);
+         layer.setFoilType(FoilType.NONE);
       }
 
       if (this.identity.isEmpty()) {

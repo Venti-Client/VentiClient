@@ -1,19 +1,22 @@
 package dev.venti;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.Command;
+import dev.venti.compat.Fapi;
+import dev.venti.compat.Mc;
 import dev.venti.gui.ClickGuiScreen;
 import dev.venti.gui.Theme;
 import dev.venti.imgui.ImGuiManager;
 import dev.venti.module.Modules;
 import dev.venti.modules.character.AvatarModule;
-import dev.venti.modules.hand.CustomGlintModule;
-import dev.venti.modules.hand.HandGlowModule;
-import dev.venti.modules.hand.ViewmodelArmModule;
-import dev.venti.modules.hand.ViewmodelModule;
-import dev.venti.modules.hand.SwingSpeedModule;
-import dev.venti.modules.hand.SwingAnimationModule;
 import dev.venti.modules.discord.DiscordPresenceModule;
 import dev.venti.modules.emoji.EmojiModule;
+import dev.venti.modules.hand.CustomGlintModule;
+import dev.venti.modules.hand.HandGlowModule;
+import dev.venti.modules.hand.SwingAnimationModule;
+import dev.venti.modules.hand.SwingSpeedModule;
+import dev.venti.modules.hand.ViewmodelArmModule;
+import dev.venti.modules.hand.ViewmodelModule;
 import dev.venti.modules.hitfx.HitFxModule;
 import dev.venti.modules.hud.FpsCounterModule;
 import dev.venti.modules.hud.HotkeysModule;
@@ -21,8 +24,11 @@ import dev.venti.modules.hud.HudModule;
 import dev.venti.modules.hud.HudRenderer;
 import dev.venti.modules.hud.LowHealthWarningModule;
 import dev.venti.modules.hud.WeatherNotifierModule;
-import dev.venti.modules.streamhider.StreamHiderModule;
 import dev.venti.modules.sky.CustomSkyModule;
+import dev.venti.modules.spotify.SpotifyHud;
+import dev.venti.modules.spotify.hud.SpotifyHudRenderer;
+import dev.venti.modules.spotify.spotify.SpotifyWindow;
+import dev.venti.modules.streamhider.StreamHiderModule;
 import dev.venti.modules.totem.CustomTotemModule;
 import dev.venti.modules.view.CopyCoordsModule;
 import dev.venti.modules.view.CustomCrosshairModule;
@@ -35,41 +41,31 @@ import dev.venti.modules.view.NoRenderModule;
 import dev.venti.modules.view.SkinChangeModule;
 import dev.venti.modules.view.SprintModule;
 import dev.venti.modules.view.ZoomModule;
+import dev.venti.modules.waypoints.WaypointsModule;
 import dev.venti.modules.world.AuroraSkyModule;
 import dev.venti.modules.world.BlockOverlayModule;
 import dev.venti.modules.world.ColorGradingModule;
-import dev.venti.modules.world.OrbitOrbsModule;
+import dev.venti.modules.world.EffectParticlesModule;
 import dev.venti.modules.world.JumpCirclesModule;
 import dev.venti.modules.world.MotionBlurModule;
-import dev.venti.modules.world.EffectParticlesModule;
+import dev.venti.modules.world.OrbitOrbsModule;
 import dev.venti.modules.world.TimeChangerModule;
 import dev.venti.modules.world.TotemGhostModule;
-import dev.venti.modules.waypoints.WaypointsModule;
-import dev.venti.modules.spotify.SpotifyHud;
-import dev.venti.modules.spotify.hud.SpotifyHudRenderer;
-import dev.venti.modules.spotify.spotify.SpotifyWindow;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public final class VentiClient implements ClientModInitializer {
-   //? if >=1.21.9 {
-   private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("venti", "keys"));
-   //?} else {
-   /*private static final String CATEGORY = "key.category.venti.keys"; // categories are translation keys before 1.21.9
-   *///?}
-   private KeyBinding openGui;
-   private KeyBinding playPause;
-   private KeyBinding next;
-   private KeyBinding previous;
+   private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("venti", "keys"));
+   private KeyMapping openGui;
+   private KeyMapping playPause;
+   private KeyMapping next;
+   private KeyMapping previous;
    private boolean openRequested;
    /** Dev runs pass -Dventi.openGui=true to open the GUI on the title screen once, for screenshots. */
    private boolean devOpenPending = Boolean.getBoolean("venti.openGui");
@@ -128,36 +124,44 @@ public final class VentiClient implements ClientModInitializer {
       FpsCounterModule fps = FpsCounterModule.get();
       ImGuiManager.getInstance().addHudRenderer(() -> fps.render(ClickGuiScreen.editingHud()), () -> fps.hasWork(ClickGuiScreen.editingHud()));
       ImGuiManager.getInstance().addHudRenderer(() -> spotify.render(ClickGuiScreen.editingHud()), () -> spotify.hasWork(ClickGuiScreen.editingHud()));
+      //? if >=26.2 {
+      dev.venti.compat.LevelHooks.register();
+      //?}
       ClientLifecycleEvents.CLIENT_STARTED.register(client -> Modules.startAll());
       ClientLifecycleEvents.CLIENT_STOPPING.register(client -> Modules.stopAll());
       ClientTickEvents.END_CLIENT_TICK.register(this::tick);
       // Opening a screen from inside a chat command gets undone when chat closes, so the command only asks for it.
       ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
-         ClientCommandManager.literal("venti").executes(context -> {
+         Fapi.literal("venti").executes(context -> {
             this.openRequested = true;
             return Command.SINGLE_SUCCESS;
          })
       ));
    }
 
-   private static KeyBinding register(String name, int key) {
-      return KeyBindingHelper.registerKeyBinding(new KeyBinding(name, InputUtil.Type.KEYSYM, key, CATEGORY));
+   private static KeyMapping register(String name, int key) {
+      return Fapi.registerKey(new KeyMapping(name, InputConstants.Type.KEYSYM, key, CATEGORY));
    }
 
-   private void tick(MinecraftClient client) {
-      while (this.openGui.wasPressed()) {
+   private void tick(Minecraft client) {
+      while (this.openGui.consumeClick()) {
          this.openRequested = true;
       }
 
-      if (this.devOpenPending && client.currentScreen instanceof net.minecraft.client.gui.screen.TitleScreen) {
+      if (this.devOpenPending && Mc.screen() instanceof net.minecraft.client.gui.screens.TitleScreen) {
          this.devOpenPending = false;
          ImGuiManager.getInstance().requestGlyphs("가나다 あいう 漢字");
-         client.setScreen(new ClickGuiScreen());
+         Mc.setScreen(new ClickGuiScreen());
       }
 
-      if (this.openRequested && client.currentScreen == null) {
+      if (this.openRequested && Mc.screen() == null) {
          this.openRequested = false;
-         client.setScreen(new ClickGuiScreen());
+         if (Mc.openGl()) {
+            Mc.setScreen(new ClickGuiScreen());
+         } else if (client.player != null) {
+            // 26.x on the Vulkan renderer: the ImGui menu needs OpenGL.
+            Mc.chatMessage(net.minecraft.network.chat.Component.literal("[Venti] The menu needs the OpenGL renderer (Video Settings > Graphics API)."));
+         }
       }
 
       press(this.playPause, SpotifyWindow.MediaKey.PLAY_PAUSE);
@@ -167,8 +171,8 @@ public final class VentiClient implements ClientModInitializer {
       CustomTotemModule.get().tickReload();
    }
 
-   private static void press(KeyBinding binding, SpotifyWindow.MediaKey key) {
-      while (binding.wasPressed()) {
+   private static void press(KeyMapping binding, SpotifyWindow.MediaKey key) {
+      while (binding.consumeClick()) {
          SpotifyHud.hudButton(key);
       }
    }

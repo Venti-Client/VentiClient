@@ -2,6 +2,7 @@ package dev.venti.modules.totem;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.NativeImage;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.config.StringSetting;
@@ -16,17 +17,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.resource.DirectoryResourcePack;
-import net.minecraft.resource.ResourcePackInfo;
-import net.minecraft.resource.ResourcePackPosition;
-import net.minecraft.resource.ResourcePackProfile;
-import net.minecraft.resource.ResourcePackSource;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackSelectionConfig;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.PathPackResources;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackSource;
 
 /**
  * Swaps the Totem of Undying texture for a picture or animated GIF. It writes a small resource pack in
@@ -54,12 +54,12 @@ public final class CustomTotemModule extends Module {
    }
 
    /** The always-on pack profile, added to the client's pack list by ResourcePackManagerMixin. */
-   public static ResourcePackProfile profile() {
+   public static Pack profile() {
       Path dir = packDir();
       writeMeta(dir);
-      ResourcePackInfo info = new ResourcePackInfo(PACK_ID, Text.literal("Venti Custom Totem"), ResourcePackSource.BUILTIN, java.util.Optional.empty());
-      ResourcePackPosition position = new ResourcePackPosition(true, ResourcePackProfile.InsertionPosition.TOP, true);
-      return ResourcePackProfile.create(info, new DirectoryResourcePack.DirectoryBackedFactory(dir), ResourceType.CLIENT_RESOURCES, position);
+      PackLocationInfo info = new PackLocationInfo(PACK_ID, Component.literal("Venti Custom Totem"), PackSource.BUILT_IN, java.util.Optional.empty());
+      PackSelectionConfig position = new PackSelectionConfig(true, Pack.Position.TOP, true);
+      return Pack.readMetaAndCreate(info, new PathPackResources.PathResourcesSupplier(dir), PackType.CLIENT_RESOURCES, position);
    }
 
    /** Writes the texture for the saved settings before the first resource load, so no reload is needed at startup. */
@@ -105,11 +105,11 @@ public final class CustomTotemModule extends Module {
          }
       } catch (IOException | RuntimeException e) {
          LOGGER.warn("[Venti] Custom Totem could not build its texture", e);
-         this.chat(Text.literal("couldn't load " + this.image.get()).formatted(Formatting.RED));
+         this.chat(Component.literal("couldn't load " + this.image.get()).withStyle(ChatFormatting.RED));
       }
 
-      if (reload && MinecraftClient.getInstance().getResourceManager() != null) {
-         MinecraftClient.getInstance().reloadResources();
+      if (reload && Minecraft.getInstance().getResourceManager() != null) {
+         Minecraft.getInstance().reloadResourcePacks();
       }
    }
 
@@ -125,12 +125,12 @@ public final class CustomTotemModule extends Module {
             int top = f * side + (side - frame.height()) / 2;
             for (int y = 0; y < frame.height(); y++) {
                for (int x = 0; x < frame.width(); x++) {
-                  sheet.setColorArgb(left + x, top + y, frame.argb()[y * frame.width() + x]);
+                  sheet.setPixel(left + x, top + y, frame.argb()[y * frame.width() + x]);
                }
             }
          }
 
-         sheet.writeTo(texture);
+         sheet.writeToFile(texture);
       }
 
       if (frames.size() > 1) {
@@ -154,7 +154,7 @@ public final class CustomTotemModule extends Module {
    private static void writeMeta(Path dir) {
       try {
          Files.createDirectories(dir);
-         int format = SharedConstants.RESOURCE_PACK_VERSION;
+         int format = SharedConstants.RESOURCE_PACK_FORMAT_MAJOR;
          JsonObject pack = new JsonObject();
          pack.addProperty("description", "Venti custom totem");
          pack.addProperty("pack_format", format);

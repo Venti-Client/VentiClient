@@ -1,5 +1,6 @@
 package dev.venti.modules.waypoints;
 
+import dev.venti.compat.Mc;
 import dev.venti.imgui.ImGuiManager;
 import dev.venti.modules.world.WorldQuads;
 import imgui.ImDrawList;
@@ -8,11 +9,11 @@ import imgui.ImGui;
 import imgui.ImVec2;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
@@ -39,7 +40,7 @@ public final class WaypointRenderer {
    }
 
    /** Called from the waypoints mixin at the start of every world render. */
-   public static void capture(Matrix4f view, Matrix4f projection, Vec3d camera) {
+   public static void capture(Matrix4f view, Matrix4f projection, Vec3 camera) {
       VIEW.set(view);
       PROJECTION.set(projection);
       camX = camera.x;
@@ -53,9 +54,9 @@ public final class WaypointRenderer {
    }
 
    /** The waypoints to draw this frame, in this dimension's coordinates, farthest first. */
-   static List<Visible> collect(WaypointsModule module, ClientWorld world, ClientPlayerEntity player) {
+   static List<Visible> collect(WaypointsModule module, ClientLevel world, LocalPlayer player) {
       SCRATCH.clear();
-      String here = world.getRegistryKey().getValue().toString();
+      String here = world.dimension().identifier().toString();
       double maxDistance = module.maxDistance();
       for (Waypoint w : module.store().all()) {
          if (!w.visible) {
@@ -102,18 +103,18 @@ public final class WaypointRenderer {
    // ---- beam (world pass) ----
 
    static void renderBeams(WaypointsModule module, float partialTick) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      ClientWorld world = mc.world;
-      ClientPlayerEntity player = mc.player;
+      Minecraft mc = Minecraft.getInstance();
+      ClientLevel world = mc.level;
+      LocalPlayer player = mc.player;
       if (world == null || player == null || !module.beam()) {
          return;
       }
 
-      Vec3d cam = mc.gameRenderer.getCamera().getCameraPos();
-      double bottom = world.getBottomY();
-      double top = world.getTopYInclusive() + 1.0;
+      Vec3 cam = Mc.camera().position();
+      double bottom = world.getMinY();
+      double top = world.getMaxY() + 1.0;
       // Keep the beam inside the far plane: anything farther is pulled in along the same direction.
-      double maxDraw = Math.max(48.0, mc.options.getClampedViewDistance() * 16.0 * 0.85);
+      double maxDraw = Math.max(48.0, mc.options.getEffectiveRenderDistance() * 16.0 * 0.85);
       WorldQuads layer = WorldQuads.layer(false);
       for (Visible v : collect(module, world, player)) {
          double dx = v.x - cam.x;
@@ -157,14 +158,14 @@ public final class WaypointRenderer {
    // ---- labels (ImGui HUD layer) ----
 
    static boolean hasLabelWork(WaypointsModule module) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       return module != null
          && module.isEnabled()
          && captured
-         && mc.world != null
+         && mc.level != null
          && mc.player != null
-         && !mc.options.hudHidden
-         && (mc.currentScreen == null || mc.currentScreen instanceof ChatScreen)
+         && !Mc.hudHidden()
+         && (Mc.screen() == null || Mc.screen() instanceof ChatScreen)
          && !module.store().all().isEmpty();
    }
 
@@ -173,7 +174,7 @@ public final class WaypointRenderer {
          return;
       }
 
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       ImDrawList dl = ImGui.getBackgroundDrawList();
       float sw = ImGui.getIO().getDisplaySizeX();
       float sh = ImGui.getIO().getDisplaySizeY();
@@ -182,10 +183,10 @@ public final class WaypointRenderer {
       float scale = imgui.uiScale() * module.labelScale();
       int fontPx = Math.max(8, Math.round(ImGuiManager.HUD_TEXT_FONT_SIZE * scale));
       int smallPx = Math.max(7, Math.round(ImGuiManager.HUD_LABEL_FONT_SIZE * scale));
-      Vec3d look = mc.player.getRotationVec(mc.getRenderTickCounter().getTickProgress(false));
+      Vec3 look = mc.player.getViewVector(mc.getDeltaTracker().getGameTimeDeltaPartialTick(false));
       double cone = Math.cos(Math.toRadians(module.coneAngle()));
 
-      for (Visible v : collect(module, mc.world, mc.player)) {
+      for (Visible v : collect(module, mc.level, mc.player)) {
          double rx = v.x - camX;
          double ry = v.y - camY;
          double rz = v.z - camZ;

@@ -1,9 +1,10 @@
 package dev.venti.module;
 
+import dev.venti.compat.Mc;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
 /** Every module, in GUI order. Register in {@link dev.venti.VentiClient}. */
@@ -44,9 +45,9 @@ public final class Modules {
       ALL.forEach(Module::shutdown);
    }
 
-   public static void tick(MinecraftClient client) {
-      boolean acceptBinds = client.currentScreen == null && client.isWindowFocused();
-      long window = client.getWindow().getHandle();
+   public static void tick(Minecraft client) {
+      boolean acceptBinds = Mc.screen() == null && client.isWindowActive();
+      long window = client.getWindow().handle();
 
       for (int i = 0; i < ALL.size(); i++) {
          Module module = ALL.get(i);

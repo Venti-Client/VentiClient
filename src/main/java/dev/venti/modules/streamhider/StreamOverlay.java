@@ -2,15 +2,16 @@ package dev.venti.modules.streamhider;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuFence;
-import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
 import com.mojang.blaze3d.opengl.GlStateManager;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
 import com.sun.jna.Platform;
+import dev.venti.compat.Gpu;
+import dev.venti.compat.Mc;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -19,16 +20,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import net.minecraft.client.util.Window;
-//? if >=1.21.9 {
-import net.minecraft.util.Atlases;
-//?} else {
-/*import net.minecraft.client.texture.SpriteAtlasTexture;
-*///?}
-import net.minecraft.item.ItemStack;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.data.AtlasIds;
+import net.minecraft.world.item.ItemStack;
 import org.lwjgl.opengl.GL11;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,7 +173,7 @@ public final class StreamOverlay {
    }
 
    private static boolean hotbarVisible() {
-      Screen screen = MinecraftClient.getInstance().currentScreen;
+      Screen screen = Mc.screen();
       return screen == null || screen instanceof ChatScreen;
    }
 
@@ -228,13 +224,13 @@ public final class StreamOverlay {
       selectionSeen = false;
       if (StreamHiderModule.overlayWanted() && usable()) {
          try {
-            MinecraftClient mc = MinecraftClient.getInstance();
+            Minecraft mc = Minecraft.getInstance();
             Window win = mc.getWindow();
-            if (win.hasZeroWidthOrHeight()) {
+            if (win.isMinimized()) {
                fakeMask = 0L;
                hideAll();
             } else {
-               int scale = win.getScaleFactor();
+               int scale = win.getGuiScale();
                int windowX = win.getX();
                int windowY = win.getY();
                boolean opaque = StreamHiderModule.opaqueCells();
@@ -315,7 +311,7 @@ public final class StreamOverlay {
       }
    }
 
-   private static void diagnose(MinecraftClient mc, Window win) {
+   private static void diagnose(Minecraft mc, Window win) {
       if (!diagnosed) {
          diagnosed = true;
          transientFailures = 0;
@@ -335,13 +331,13 @@ public final class StreamOverlay {
             new Object[]{
                OverlayWindow.windowsBuild(),
                mode,
-               win.getWidth(),
-               win.getHeight(),
+               win.getScreenWidth(),
+               win.getScreenHeight(),
                win.getX(),
                win.getY(),
-               mc.getFramebuffer().textureWidth,
-               mc.getFramebuffer().textureHeight,
-               win.getScaleFactor(),
+               Mc.mainTarget().width,
+               Mc.mainTarget().height,
+               win.getGuiScale(),
                renderer,
                slotWindow != null ? slotWindow.describe() : "pending"
             }
@@ -358,7 +354,7 @@ public final class StreamOverlay {
       if (RenderSystem.isOnRenderThread()) {
          release();
       } else {
-         MinecraftClient mc = MinecraftClient.getInstance();
+         Minecraft mc = Minecraft.getInstance();
          if (mc != null) {
             mc.execute(StreamOverlay::release);
          }
@@ -369,7 +365,7 @@ public final class StreamOverlay {
       return slotWindow != null || cursorWindow != null || scratch != null || TextPanels.started();
    }
 
-   private static void layers(MinecraftClient mc, Window win, long frame, int scale, int windowX, int windowY, boolean opaque, boolean selection, int hover) {
+   private static void layers(Minecraft mc, Window win, long frame, int scale, int windowX, int windowY, boolean opaque, boolean selection, int hover) {
       long slotBits = frame & 2199023255551L;
       boolean slotsShown = slotBits != 0L || selection;
       if (!slotsShown && (frame >>> 41 & 1L) == 0L) {
@@ -385,11 +381,11 @@ public final class StreamOverlay {
          }
 
          if (slotWindow == null && slotsShown) {
-            slotWindow = new OverlayWindow(win.getHandle());
+            slotWindow = new OverlayWindow(win.handle());
          }
 
          if (cursorWindow == null && (frame >>> 41 & 1L) != 0L) {
-            cursorWindow = new OverlayWindow(win.getHandle());
+            cursorWindow = new OverlayWindow(win.handle());
          }
 
          boolean layout = slotBits != shownMask
@@ -489,7 +485,7 @@ public final class StreamOverlay {
    }
 
    private static int bar(ItemStack item) {
-      return item.isItemBarVisible() ? item.getItemBarColor() << 5 | item.getItemBarStep() : -1;
+      return item.isBarVisible() ? item.getBarColor() << 5 | item.getBarWidth() : -1;
    }
 
    private static int cellX(int cell, int px) {
@@ -562,23 +558,17 @@ public final class StreamOverlay {
    private static void allocate(int px) {
       int side = 7 * px;
       GpuDevice device = RenderSystem.getDevice();
-      scratch = device.createTexture("Venti overlay icons", 15, TextureFormat.RGBA8, side, side, 1, 1);
+      scratch = Gpu.texture(() -> "Venti overlay icons", 15, false, side, side, 1);
       scratchView = device.createTextureView(scratch);
-      scratchDepth = device.createTexture("Venti overlay icon depth", 8, TextureFormat.DEPTH32, side, side, 1, 1);
+      scratchDepth = Gpu.texture(() -> "Venti overlay icon depth", 8, true, side, side, 1);
       scratchDepthView = device.createTextureView(scratchDepth);
-      device.createCommandEncoder().clearColorAndDepthTextures(scratch, 0, scratchDepth, 1.0);
+      Gpu.clearColorAndDepth(device.createCommandEncoder(), scratch, scratchDepth);
       iconPx = px;
    }
 
-   private static GpuTexture itemAtlas(MinecraftClient mc) {
+   private static GpuTexture itemAtlas(Minecraft mc) {
       try {
-         //? if >=1.21.11 {
-         return mc.getAtlasManager().getAtlasTexture(Atlases.ITEMS).getGlTexture();
-         //?} elif >=1.21.9 {
-         /*return mc.getAtlasManager().getAtlasTexture(Atlases.BLOCKS).getGlTexture(); // items share the block atlas before 1.21.11
-         *///?} else {
-         /*return mc.getTextureManager().getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlTexture(); // no atlas manager before 1.21.9
-         *///?}
+         return mc.getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS).getTexture();
       } catch (RuntimeException var2) {
          return null;
       }
@@ -607,11 +597,7 @@ public final class StreamOverlay {
                readback.close();
             }
 
-            //? if >=1.21.11 {
             readback = device.createBuffer(() -> "Venti overlay readback", 9, needed);
-            //?} else {
-            /*readback = device.createBuffer(() -> "Venti overlay readback", 9, (int)needed);
-            *///?}
          }
 
          CommandEncoder encoder = device.createCommandEncoder();
@@ -619,11 +605,7 @@ public final class StreamOverlay {
 
          try {
             if (pending > 0) {
-               //? if >=1.21.11 {
                encoder.copyTextureToBuffer(scratch, readback, 0L, NOTHING, 0);
-               //?} else {
-               /*encoder.copyTextureToBuffer(scratch, readback, 0, NOTHING, 0);
-               *///?}
             }
 
             if (framed) {
@@ -656,11 +638,7 @@ public final class StreamOverlay {
             view.close();
          }
 
-         //? if >=1.21.11 {
-         MappedView viewx = encoder.mapBuffer(readback.slice(0L, used), true, false);
-         //?} else {
-         /*MappedView viewx = encoder.mapBuffer(readback.slice(0, (int)used), true, false);
-         *///?}
+         Gpu.Mapped viewx = Gpu.map(encoder, readback.slice(0L, used), true, false);
 
          try {
             ByteBuffer data = viewx.data();
@@ -705,11 +683,7 @@ public final class StreamOverlay {
                asyncBuffer.close();
             }
 
-            //? if >=1.21.11 {
             asyncBuffer = device.createBuffer(() -> "Venti overlay background", 9, frameBytes);
-            //?} else {
-            /*asyncBuffer = device.createBuffer(() -> "Venti overlay background", 9, (int)frameBytes);
-            *///?}
          }
 
          CommandEncoder encoder = device.createCommandEncoder();
@@ -747,11 +721,7 @@ public final class StreamOverlay {
          if (usable) {
             long bytes = (long)asyncRegion[2] * asyncRegion[3] * 4L;
             CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-            //? if >=1.21.11 {
-            MappedView view = encoder.mapBuffer(asyncBuffer.slice(0L, bytes), true, false);
-            //?} else {
-            /*MappedView view = encoder.mapBuffer(asyncBuffer.slice(0, (int)bytes), true, false);
-            *///?}
+            Gpu.Mapped view = Gpu.map(encoder, asyncBuffer.slice(0L, bytes), true, false);
 
             try {
                changed = unpackBackground(view.data(), 0, asyncRegion, true, slotBits, scale);
@@ -787,7 +757,7 @@ public final class StreamOverlay {
    }
 
    private static long frameTextureBytes() {
-      GpuTexture frame = MinecraftClient.getInstance().getFramebuffer().getColorAttachment();
+      GpuTexture frame = Mc.mainTarget().getColorTexture();
       return (long)frame.getWidth(0) * frame.getHeight(0) * 4L;
    }
 
@@ -802,7 +772,7 @@ public final class StreamOverlay {
    }
 
    private static boolean region(long slotBits, int scale, int[] out) {
-      GpuTexture target = MinecraftClient.getInstance().getFramebuffer().getColorAttachment();
+      GpuTexture target = Mc.mainTarget().getColorTexture();
       int px = 16 * scale;
       int x0 = Integer.MAX_VALUE;
       int y0 = Integer.MAX_VALUE;
@@ -834,12 +804,8 @@ public final class StreamOverlay {
    }
 
    private static void copyRegion(CommandEncoder encoder, GpuBuffer target, long offset, int[] region) {
-      GpuTexture color = MinecraftClient.getInstance().getFramebuffer().getColorAttachment();
-      //? if >=1.21.11 {
+      GpuTexture color = Mc.mainTarget().getColorTexture();
       encoder.copyTextureToBuffer(color, target, offset, NOTHING, 0, region[0], color.getHeight(0) - region[1] - region[3], region[2], region[3]);
-      //?} else {
-      /*encoder.copyTextureToBuffer(color, target, (int)offset, NOTHING, 0, region[0], color.getHeight(0) - region[1] - region[3], region[2], region[3]);
-      *///?}
    }
 
    private static int[] unpackIcon(ByteBuffer data, int cellX, int cellY, int side, int px) {
@@ -975,7 +941,7 @@ public final class StreamOverlay {
          }
 
          slotWindow.present(windowX + bx, windowY + by, bw, bh);
-         diagnose(MinecraftClient.getInstance(), MinecraftClient.getInstance().getWindow());
+         diagnose(Minecraft.getInstance(), Minecraft.getInstance().getWindow());
 
          for (int ixxx = 0; ixxx < 41; ixxx++) {
             if ((slotBits >>> ixxx & 1L) != 0L) {

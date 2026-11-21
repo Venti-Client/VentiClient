@@ -3,50 +3,36 @@ package dev.venti.modules.hand;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import dev.venti.compat.Gpu;
 import java.nio.ByteBuffer;
-import java.util.OptionalInt;
 import java.util.function.Supplier;
-import net.minecraft.client.gl.SimpleFramebuffer;
-import net.minecraft.client.gl.UniformType;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.BufferUtils;
 
 /** Two-pass separable blur at half resolution that spreads the captured hand into a halo (ported from Anubis). */
 final class AuraBlur {
-   private static final RenderPipeline PIPELINE = RenderPipeline.builder()
-      .withLocation(Identifier.of("venti", "pipeline/aura_spread"))
-      //? if >=1.21.9 {
-      .withVertexShader("core/screenquad")
-      //?} else {
-      /*.withVertexShader("core/blit_screen") // full-screen quad shader before 1.21.9
-      *///?}
-      .withFragmentShader(Identifier.of("venti", "core/aura_spread"))
-      .withSampler("InSampler")
-      .withUniform("AuraSpread", UniformType.UNIFORM_BUFFER)
-      .withoutBlend()
-      .withDepthWrite(false)
-      .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-      //? if >=1.21.9 {
-      .withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES)
-      //?} else {
-      /*.withVertexFormat(VertexFormats.POSITION, com.mojang.blaze3d.vertex.VertexFormat.DrawMode.QUADS)
-      *///?}
-      .build();
+   private static final RenderPipeline PIPELINE = Gpu.pipeline("aura_spread")
+         .shaders(Identifier.withDefaultNamespace("core/screenquad"), Identifier.fromNamespaceAndPath("venti", "core/aura_spread"))
+         .sampler("InSampler")
+         .uniform("AuraSpread")
+         .blend(null)
+         .depth(false, false)
+         .fullScreen()
+         .build();
    private static final int CONFIG_SIZE = 16;
    private static final float TAPS = 6.0F;
    private final String name;
    private final Supplier<String> passLabel;
-   private SimpleFramebuffer across;
-   private SimpleFramebuffer down;
+   private TextureTarget across;
+   private TextureTarget down;
    private GpuBuffer acrossConfig;
    private GpuBuffer downConfig;
    private GpuBufferSlice acrossSlice;
@@ -68,45 +54,33 @@ final class AuraBlur {
       int halfHeight = Math.max(1, (height + divisor - 1) / divisor);
       if (this.across == null) {
          this.allocate(halfWidth, halfHeight);
-      } else if (this.across.textureWidth != halfWidth || this.across.textureHeight != halfHeight) {
+      } else if (this.across.width != halfWidth || this.across.height != halfHeight) {
          this.across.resize(halfWidth, halfHeight);
          this.down.resize(halfWidth, halfHeight);
       }
 
       float step = Math.max(0.75F, reachPx / TAPS);
       this.run(encoder, source, this.across, this.acrossSlice, step / width, 0.0F);
-      this.run(encoder, this.across.getColorAttachmentView(), this.down, this.downSlice, 0.0F, step / height);
-      return this.down.getColorAttachmentView();
+      this.run(encoder, this.across.getColorTextureView(), this.down, this.downSlice, 0.0F, step / height);
+      return this.down.getColorTextureView();
    }
 
-   private void run(CommandEncoder encoder, GpuTextureView from, SimpleFramebuffer into, GpuBufferSlice slice, float du, float dv) {
+   private void run(CommandEncoder encoder, GpuTextureView from, TextureTarget into, GpuBufferSlice slice, float du, float dv) {
       this.configData.putFloat(0, du);
       this.configData.putFloat(4, dv);
       encoder.writeToBuffer(slice, this.configData);
-      try (RenderPass pass = encoder.createRenderPass(this.passLabel, into.getColorAttachmentView(), OptionalInt.empty())) {
+      try (RenderPass pass = Gpu.pass(encoder, this.passLabel, into.getColorTextureView(), null)) {
          pass.setPipeline(PIPELINE);
          pass.setUniform("AuraSpread", slice);
-         //? if >=1.21.11 {
-         pass.bindTexture("InSampler", from, RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
-         //?} else {
-         /*from.texture().setTextureFilter(FilterMode.LINEAR, false);
-         pass.bindSampler("InSampler", from);
-         *///?}
-         //? if >=1.21.9 {
-         pass.draw(0, 3);
-         //?} else {
-         /*pass.setVertexBuffer(0, com.mojang.blaze3d.systems.RenderSystem.getQuadVertexBuffer()); // no vertex-less draws before 1.21.9
-         com.mojang.blaze3d.systems.RenderSystem.ShapeIndexBuffer quads = com.mojang.blaze3d.systems.RenderSystem.getSequentialBuffer(com.mojang.blaze3d.vertex.VertexFormat.DrawMode.QUADS);
-         pass.setIndexBuffer(quads.getIndexBuffer(6), quads.getIndexType());
-         pass.drawIndexed(0, 0, 6, 1);
-         *///?}
+         pass.bindTexture("InSampler", from, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+         Gpu.drawFullScreen(pass);
       }
    }
 
    private void allocate(int width, int height) {
       GpuDevice device = RenderSystem.getDevice();
-      this.across = new SimpleFramebuffer(this.name + " across", width, height, false);
-      this.down = new SimpleFramebuffer(this.name + " down", width, height, false);
+      this.across = Gpu.target(this.name + " across", width, height, false);
+      this.down = Gpu.target(this.name + " down", width, height, false);
       this.acrossConfig = device.createBuffer(() -> this.name + " across config", 136, CONFIG_SIZE);
       this.downConfig = device.createBuffer(() -> this.name + " down config", 136, CONFIG_SIZE);
       this.acrossSlice = this.acrossConfig.slice();
@@ -116,12 +90,12 @@ final class AuraBlur {
 
    void release() {
       if (this.across != null) {
-         this.across.delete();
+         this.across.destroyBuffers();
          this.across = null;
       }
 
       if (this.down != null) {
-         this.down.delete();
+         this.down.destroyBuffers();
          this.down = null;
       }
 

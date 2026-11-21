@@ -1,32 +1,32 @@
 package dev.venti.modules.world;
 
-import dev.venti.modules.sky.CustomSkyModule;
-import dev.venti.module.Module;
-import dev.venti.module.ModuleCategory;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import dev.venti.compat.Mc;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ColorSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
 import dev.venti.mixin.world.AccessorAuroraSkyClientLevel;
+import dev.venti.module.Module;
+import dev.venti.module.ModuleCategory;
 import dev.venti.module.Modules;
-
+import dev.venti.modules.sky.CustomSkyModule;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-//? if >=1.21.9 {
-import net.minecraft.client.render.state.SkyRenderState;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+//? if >=26.2 {
+import net.minecraft.client.renderer.state.level.SkyRenderState;
 //?} else {
-/*
+/*import net.minecraft.client.renderer.state.SkyRenderState;
 *///?}
-import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.math.RotationAxis;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 import org.joml.Vector3fc;
 import org.joml.Vector4f;
 
@@ -80,7 +80,7 @@ public final class AuroraSkyModule extends Module {
    private final AuroraSkyStars starField = new AuroraSkyStars();
    private final AuroraSkyAurora auroraMesh = new AuroraSkyAurora();
    private final AuroraSkyShaderSky shaderSky = new AuroraSkyShaderSky();
-   private final MatrixStack world = new MatrixStack();
+   private final PoseStack world = new PoseStack();
    private float night;
    private float rainBrightness = 1.0F;
    private float auroraHere;
@@ -126,28 +126,15 @@ public final class AuroraSkyModule extends Module {
       this.auroraHere = 0.0F;
    }
 
-   //? if <1.21.9 {
-   /*// Stand-in for 1.21.9's sky render state: the values the sky mixin reads before the dome and feeds back to the sky pass.
-   public static final class SkyRenderState {
-      public float solarAngle;
-      public float rainGradient;
-      public float starBrightness;
-   }
-
-   *///?}
-   public void extract(ClientWorld level, float partialTick, SkyRenderState state) {
+   public void extract(ClientLevel level, float partialTick, SkyRenderState state) {
       this.shaderRendered = false;
-      this.night = MathHelper.clamp(state.starBrightness * 2.0F, 0.0F, 1.0F);
-      float rain = 1.0F - state.rainGradient;
-      float thunder = level.getThunderGradient(partialTick);
+      this.night = Mth.clamp(state.starBrightness * 2.0F, 0.0F, 1.0F);
+      float rain = 1.0F - state.rainBrightness;
+      float thunder = level.getThunderLevel(partialTick);
       if (this.keepInRain.get()) {
-         //? if >=1.21.11 {
          this.night = Math.max(this.night, clearNight(state.sunAngle) * rain);
-         //?} else {
-         /*this.night = Math.max(this.night, clearNight(state.solarAngle) * rain);
-         *///?}
          state.starBrightness = Math.max(state.starBrightness, this.night * 0.5F);
-         state.rainGradient = 1.0F;
+         state.rainBrightness = 1.0F;
          rain = 0.0F;
          thunder = 0.0F;
       }
@@ -157,13 +144,8 @@ public final class AuroraSkyModule extends Module {
       int flashTicks = ((AccessorAuroraSkyClientLevel)level).venti$atmosphereSkyFlash();
       this.sky
          .update(
-            //? if >=1.21.11 {
             state.sunAngle,
             state.moonAngle,
-            //?} else {
-            /*state.solarAngle,
-            state.solarAngle + (float)Math.PI, // the moon sits opposite the sun before 1.21.11
-            *///?}
             rain,
             thunder,
             flashTicks > 0 ? Math.min(1.0F, (flashTicks - partialTick) / 2.0F) : 0.0F,
@@ -178,7 +160,7 @@ public final class AuroraSkyModule extends Module {
    }
 
    private static float clearNight(float sunAngle) {
-      float dark = MathHelper.clamp(0.75F - 2.0F * MathHelper.cos(sunAngle), 0.0F, 1.0F);
+      float dark = Mth.clamp(0.75F - 2.0F * Mth.cos(sunAngle), 0.0F, 1.0F);
       return dark * dark;
    }
 
@@ -235,14 +217,14 @@ public final class AuroraSkyModule extends Module {
    }
 
    private float shaderVisibility() {
-      return MathHelper.lerp(this.night, this.shaderDaytime.get(), 1.0F) * (0.4F + 0.6F * this.rainBrightness);
+      return Mth.lerp(this.night, this.shaderDaytime.get(), 1.0F) * (0.4F + 0.6F * this.rainBrightness);
    }
 
    public boolean replacesSunrise() {
       return this.gradientSky.get() && this.sky.ready();
    }
 
-   public boolean stars(MatrixStack pose) {
+   public boolean stars(PoseStack pose) {
       if (this.shaderRendered) {
          return true;
       } else {
@@ -260,17 +242,17 @@ public final class AuroraSkyModule extends Module {
       }
    }
 
-   public void beforeMoon(MatrixStack pose) {
+   public void beforeMoon(PoseStack pose) {
       this.moonScaled = this.celestialGlow.get();
       if (this.moonScaled) {
-         pose.push();
+         pose.pushPose();
          pose.scale(1.4F, 1.0F, 1.4F);
       }
    }
 
-   public void afterMoon(MatrixStack pose) {
+   public void afterMoon(PoseStack pose) {
       if (this.moonScaled) {
-         pose.pop();
+         pose.popPose();
       }
 
       this.moonScaled = false;
@@ -305,20 +287,20 @@ public final class AuroraSkyModule extends Module {
       } else if (this.aurora.is("Always")) {
          return 1.0F;
       } else {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         if (mc.world == null) {
+         Minecraft mc = Minecraft.getInstance();
+         if (mc.level == null) {
             return 0.0F;
          } else {
-            BlockPos at = BlockPos.ofFloored(mc.gameRenderer.getCamera().getCameraPos());
-            return ((Biome)mc.world.getBiome(at).value()).isCold(at, mc.world.getSeaLevel()) ? 1.0F : 0.0F;
+            BlockPos at = BlockPos.containing(Mc.camera().position());
+            return ((Biome)mc.level.getBiome(at).value()).coldEnoughToSnow(at, mc.level.getSeaLevel()) ? 1.0F : 0.0F;
          }
       }
    }
 
-   public void fog(Camera camera, ClientWorld level, Vector4f color) {
-      if (level.getRegistryKey() == World.OVERWORLD) {
+   public void fog(Camera camera, ClientLevel level, Vector4f color) {
+      if (level.dimension() == Level.OVERWORLD) {
          if (this.gradientSky.get() && this.sky.ready()) {
-            Vector3fc look = camera.getHorizontalPlane();
+            Vector3fc look = camera.forwardVector();
             int rgb = this.sky.horizonToward(look.x(), look.z());
             color.x = (rgb >> 16 & 0xFF) / 255.0F;
             color.y = (rgb >> 8 & 0xFF) / 255.0F;
@@ -328,11 +310,11 @@ public final class AuroraSkyModule extends Module {
          if (this.shaderOn()) {
             this.shaderFog(color);
          }
-      } else if (level.getRegistryKey() == World.NETHER && this.netherColors.get()) {
+      } else if (level.dimension() == Level.NETHER && this.netherColors.get()) {
          float luma = 0.2126F * color.x + 0.7152F * color.y + 0.0722F * color.z;
-         color.x = MathHelper.clamp((luma + (color.x - luma) * 1.45F) * 1.12F, 0.0F, 1.0F);
-         color.y = MathHelper.clamp((luma + (color.y - luma) * 1.45F) * 1.12F, 0.0F, 1.0F);
-         color.z = MathHelper.clamp((luma + (color.z - luma) * 1.45F) * 1.12F, 0.0F, 1.0F);
+         color.x = Mth.clamp((luma + (color.x - luma) * 1.45F) * 1.12F, 0.0F, 1.0F);
+         color.y = Mth.clamp((luma + (color.y - luma) * 1.45F) * 1.12F, 0.0F, 1.0F);
+         color.z = Mth.clamp((luma + (color.z - luma) * 1.45F) * 1.12F, 0.0F, 1.0F);
       }
    }
 
@@ -340,17 +322,17 @@ public final class AuroraSkyModule extends Module {
       int horizon = this.currentTheme().nightHorizon;
       float scale = this.shaderAurora() ? 0.85F : 0.3F;
       float amount = this.shaderVisibility() * 0.85F;
-      color.x = MathHelper.lerp(amount, color.x, (horizon >> 16 & 0xFF) / 255.0F * scale);
-      color.y = MathHelper.lerp(amount, color.y, (horizon >> 8 & 0xFF) / 255.0F * scale);
-      color.z = MathHelper.lerp(amount, color.z, (horizon & 0xFF) / 255.0F * scale);
+      color.x = Mth.lerp(amount, color.x, (horizon >> 16 & 0xFF) / 255.0F * scale);
+      color.y = Mth.lerp(amount, color.y, (horizon >> 8 & 0xFF) / 255.0F * scale);
+      color.z = Mth.lerp(amount, color.z, (horizon & 0xFF) / 255.0F * scale);
    }
 
    public int clouds(int argb) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (this.cloudColors.get() && this.sky.ready() && mc.world != null && mc.world.getRegistryKey() == World.OVERWORLD) {
+      Minecraft mc = Minecraft.getInstance();
+      if (this.cloudColors.get() && this.sky.ready() && mc.level != null && mc.level.dimension() == Level.OVERWORLD) {
          float golden = this.sky.golden();
          float dark = this.sky.nightness();
-         int target = ColorHelper.lerp(golden, ColorHelper.lerp(dark, 16777215, this.currentTheme().nightHorizon), this.sky.twilightGlow());
+         int target = ARGB.srgbLerp(golden, ARGB.srgbLerp(dark, 16777215, this.currentTheme().nightHorizon), this.sky.twilightGlow());
          float amount = Math.max(golden * 0.75F, dark * 0.55F);
          return keepBrightness(argb, target, amount);
       } else {
@@ -364,8 +346,8 @@ public final class AuroraSkyModule extends Module {
       } else {
          long now = System.nanoTime();
          this.sky.renderEndDome(this.world);
-         MatrixStack turning = new MatrixStack();
-         turning.multiply(RotationAxis.POSITIVE_Y.rotationDegrees((float)(now % 1200000000000L) / 1.0E9F * 0.3F));
+         PoseStack turning = new PoseStack();
+         turning.mulPose(Axis.YP.rotationDegrees((float)(now % 1200000000000L) / 1.0E9F * 0.3F));
          this.starField.renderNebulae(turning, 1.0F);
          this.starField.renderStars(turning, 1.0F, 1.2F);
          return true;
@@ -396,9 +378,9 @@ public final class AuroraSkyModule extends Module {
          float tg = (target >> 8 & 0xFF) / 255.0F;
          float tb = (target & 0xFF) / 255.0F;
          float scale = luminance(r, g, b) / Math.max(luminance(tr, tg, tb), 0.001F);
-         r = MathHelper.lerp(amount, r, Math.min(1.0F, tr * scale));
-         g = MathHelper.lerp(amount, g, Math.min(1.0F, tg * scale));
-         b = MathHelper.lerp(amount, b, Math.min(1.0F, tb * scale));
+         r = Mth.lerp(amount, r, Math.min(1.0F, tr * scale));
+         g = Mth.lerp(amount, g, Math.min(1.0F, tg * scale));
+         b = Mth.lerp(amount, b, Math.min(1.0F, tb * scale));
          return argb & 0xFF000000 | channel(r) << 16 | channel(g) << 8 | channel(b);
       }
    }
@@ -408,7 +390,7 @@ public final class AuroraSkyModule extends Module {
    }
 
    private static int channel(float value) {
-      return MathHelper.clamp(Math.round(value * 255.0F), 0, 255);
+      return Mth.clamp(Math.round(value * 255.0F), 0, 255);
    }
 
    @Environment(EnvType.CLIENT)

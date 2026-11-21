@@ -1,5 +1,6 @@
 package dev.venti.modules.hud;
 
+import dev.venti.imgui.ImGuiManager;
 import dev.venti.mixin.hud.CooldownEntryAccessor;
 import dev.venti.mixin.hud.ItemCooldownManagerAccessor;
 import imgui.ImDrawList;
@@ -7,16 +8,15 @@ import imgui.ImFont;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-import dev.venti.imgui.ImGuiManager;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Item;
-import net.minecraft.entity.player.ItemCooldownManager;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.Identifier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.registry.Registries;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemCooldowns;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 final class CooldownTray {
    private static final float PAD = 6.0F;
@@ -43,7 +43,7 @@ final class CooldownTray {
    private final List<CooldownTray.Slot> pool = new ArrayList<>();
    private final CooldownTray.Slot[] samples = new CooldownTray.Slot[]{new CooldownTray.Slot(), new CooldownTray.Slot()};
    private final List<CooldownTray.Slot> sampleView = List.of(this.samples);
-   private ClientPlayerEntity owner;
+   private LocalPlayer owner;
    private boolean sampling;
    private boolean sandbar;
    private float clock;
@@ -75,12 +75,12 @@ final class CooldownTray {
       return this.sampling || !this.slots.isEmpty();
    }
 
-   void update(MinecraftClient mc, HudModule hud, boolean active, boolean editMode, float dt) {
+   void update(Minecraft mc, HudModule hud, boolean active, boolean editMode, float dt) {
       this.clock += dt;
       this.sandbar = hud.cooldownSandbar();
-      float rate = mc.world == null ? 20.0F : mc.world.getTickManager().getTickRate();
+      float rate = mc.level == null ? 20.0F : mc.level.tickRateManager().tickrate();
       this.tickRate = rate > 0.0F ? rate : 20.0F;
-      ClientPlayerEntity player = mc.player;
+      LocalPlayer player = mc.player;
       if (player != this.owner) {
          this.reset();
          this.owner = player;
@@ -132,11 +132,11 @@ final class CooldownTray {
       }
    }
 
-   private void collect(MinecraftClient mc, ClientPlayerEntity player) {
-      ItemCooldownManager cooldowns = player.getItemCooldownManager();
+   private void collect(Minecraft mc, LocalPlayer player) {
+      ItemCooldowns cooldowns = player.getCooldowns();
       ItemCooldownManagerAccessor access = (ItemCooldownManagerAccessor)cooldowns;
       int tick = access.venti$TickCount();
-      float partial = mc.getRenderTickCounter().getTickProgress(true);
+      float partial = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
 
       for (Entry<Identifier, ?> entry : access.venti$Cooldowns().entrySet()) {
          CooldownEntryAccessor span = (CooldownEntryAccessor)entry.getValue();
@@ -180,18 +180,18 @@ final class CooldownTray {
       return slot;
    }
 
-   private static Item resolve(ClientPlayerEntity player, Identifier group) {
-      PlayerInventory inventory = player.getInventory();
-      ItemCooldownManager cooldowns = player.getItemCooldownManager();
+   private static Item resolve(LocalPlayer player, Identifier group) {
+      Inventory inventory = player.getInventory();
+      ItemCooldowns cooldowns = player.getCooldowns();
 
-      for (int i = 0; i < inventory.size(); i++) {
-         ItemStack stack = inventory.getStack(i);
-         if (!stack.isEmpty() && group.equals(cooldowns.getGroup(stack))) {
+      for (int i = 0; i < inventory.getContainerSize(); i++) {
+         ItemStack stack = inventory.getItem(i);
+         if (!stack.isEmpty() && group.equals(cooldowns.getCooldownGroup(stack))) {
             return stack.getItem();
          }
       }
 
-      return Registries.ITEM.containsId(group) ? (Item)Registries.ITEM.get(group) : null;
+      return BuiltInRegistries.ITEM.containsKey(group) ? (Item)BuiltInRegistries.ITEM.getValue(group) : null;
    }
 
    float planWidth(float s) {

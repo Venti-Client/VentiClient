@@ -1,37 +1,32 @@
 package dev.venti.modules.hand;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import dev.venti.mixin.hand.AccessorHandItemLayer;
 import dev.venti.mixin.hand.AccessorHandItemRenderState;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayerEntity;
-//? if >=1.21.9 {
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.entity.EntityRenderManager;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+//? if >=26.2 {
+import net.minecraft.client.resources.model.cuboid.ItemTransform;
 //?} else {
-/*import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.entity.EntityRenderDispatcher;
+/*import net.minecraft.client.renderer.block.model.ItemTransform;
 *///?}
-import net.minecraft.client.render.entity.PlayerEntityRenderer;
-import net.minecraft.client.render.item.ItemRenderState;
-import net.minecraft.client.render.model.json.Transformation;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerModelPart;
-//? if >=1.21.9 {
-import net.minecraft.entity.player.PlayerSkinType;
-import net.minecraft.entity.player.SkinTextures;
-//?} else {
-/*import net.minecraft.client.util.SkinTextures;
-*///?}
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemDisplayContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.RotationAxis;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.PlayerModelPart;
+import net.minecraft.world.entity.player.PlayerModelType;
+import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -46,98 +41,77 @@ final class FirstPersonArm {
    private static final float HANDLE_INSET = 0.1875F;
    private static final float BLOCK_BELOW = 0.17F;
    private static final Vector3f BLOCK_SHIFT = new Vector3f(0.09F, 0.0F, 0.06F);
-   private static final ItemRenderState MODEL = new ItemRenderState();
+   private static final ItemStackRenderState MODEL = new ItemStackRenderState();
 
    private FirstPersonArm() {
    }
 
    static Arm arm() {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      ClientPlayerEntity player = mc.player;
+      Minecraft mc = Minecraft.getInstance();
+      LocalPlayer player = mc.player;
       if (player == null || player.isInvisible()) {
          return null;
       }
 
-      //? if >=1.21.9 {
-      EntityRenderManager dispatcher = mc.getEntityRenderDispatcher();
-      PlayerEntityRenderer<AbstractClientPlayerEntity> renderer = dispatcher.getPlayerRenderer(player);
-      SkinTextures skin = player.getSkin();
+      EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
+      AvatarRenderer<AbstractClientPlayer> renderer = dispatcher.getPlayerRenderer(player);
+      PlayerSkin skin = player.getSkin();
       return new Arm(
          renderer,
          skin.body().texturePath(),
-         player.isModelPartVisible(PlayerModelPart.RIGHT_SLEEVE),
-         player.isModelPartVisible(PlayerModelPart.LEFT_SLEEVE),
-         skin.model() == PlayerSkinType.SLIM
+         player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE),
+         player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE),
+         skin.model() == PlayerModelType.SLIM
       );
-      //?} else {
-      /*EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
-      PlayerEntityRenderer renderer = (PlayerEntityRenderer)dispatcher.getRenderer(player);
-      SkinTextures skin = player.getSkinTextures();
-      return new Arm(
-         renderer,
-         skin.texture(),
-         player.isPartVisible(PlayerModelPart.RIGHT_SLEEVE),
-         player.isPartVisible(PlayerModelPart.LEFT_SLEEVE),
-         skin.model() == SkinTextures.Model.SLIM
-      );
-      *///?}
    }
 
    static void hold(
-      //? if >=1.21.9 {
-      MatrixStack pose, Arm arm, ItemStack stack, ItemDisplayContext context, LivingEntity holder, OrderedRenderCommandQueue collector, int light, float dx, float dy, float dz
-      //?} else {
-      /*MatrixStack pose, Arm arm, ItemStack stack, ItemDisplayContext context, LivingEntity holder, VertexConsumerProvider collector, int light, float dx, float dy, float dz
-      *///?}
+      PoseStack pose, Arm arm, ItemStack stack, ItemDisplayContext context, LivingEntity holder, SubmitNodeCollector collector, int light, float dx, float dy, float dz
    ) {
       Vector3f grip = grip(stack, context, holder);
       if (grip != null) {
          Vector3f elbow = new Vector3f(grip).fma(ELBOW, FOREARM);
          grip.add(dx, dy, dz);
-         boolean left = context.isLeftHand();
-         pose.push();
+         boolean left = context.leftHand();
+         pose.pushPose();
          if (left) {
             pose.scale(-1.0F, 1.0F, 1.0F);
          }
 
          place(pose, grip, elbow, arm.slim(), posed -> arm.draw(posed, left, collector, light));
-         pose.pop();
+         pose.popPose();
       }
    }
 
    static Vector3f grip(ItemStack stack, ItemDisplayContext context, LivingEntity holder) {
       if (stack.isEmpty()
-         || stack.isOf(Items.BOW)
-         || stack.isOf(Items.CROSSBOW)
-         || stack.isOf(Items.SHIELD)
-         || stack.isOf(Items.TRIDENT)
-         || stack.isOf(Items.SPYGLASS)) {
+         || stack.is(Items.BOW)
+         || stack.is(Items.CROSSBOW)
+         || stack.is(Items.SHIELD)
+         || stack.is(Items.TRIDENT)
+         || stack.is(Items.SPYGLASS)) {
          return null;
       }
 
-      //? if >=1.21.9 {
-      MinecraftClient.getInstance().getItemModelManager().clearAndUpdate(MODEL, stack, context, holder.getEntityWorld(), holder, holder.getId() + context.ordinal());
-      //?} else {
-      /*MinecraftClient.getInstance().getItemModelManager().clearAndUpdate(MODEL, stack, context, holder.getWorld(), holder, holder.getId() + context.ordinal());
-      *///?}
+      Minecraft.getInstance().getItemModelResolver().updateForTopItem(MODEL, stack, context, holder.level(), holder, holder.getId() + context.ordinal());
       AccessorHandItemRenderState state = (AccessorHandItemRenderState)MODEL;
       if (state.venti$handLayerCount() <= 0) {
          return null;
       }
 
       AccessorHandItemLayer layer = (AccessorHandItemLayer)state.venti$handLayers()[0];
-      Transformation transform = layer.venti$handTransform();
-      MatrixStack.Entry display = new MatrixStack.Entry();
+      ItemTransform transform = layer.venti$handTransform();
+      PoseStack.Pose display = new PoseStack.Pose();
       if (transform != null) {
-         transform.apply(context.isLeftHand(), display);
+         transform.apply(context.leftHand(), display);
       }
 
-      Matrix4f m = display.getPositionMatrix();
-      if (!MODEL.isSideLit()) {
+      Matrix4f m = display.pose();
+      if (!MODEL.usesBlockLight()) {
          Supplier<Vector3fc[]> extents = layer.venti$handExtents();
          float[] handle = handle(extents != null ? extents.get() : null);
          Vector3f grip = m.transformPosition(handle[0] - 0.5F, handle[1] - 0.5F, 0.0F, new Vector3f());
-         if (context.isLeftHand()) {
+         if (context.leftHand()) {
             grip.x = -grip.x;
          }
 
@@ -146,7 +120,7 @@ final class FirstPersonArm {
          return null;
       } else {
          Vector3f center = m.transformPosition(0.0F, 0.0F, 0.0F, new Vector3f());
-         if (context.isLeftHand()) {
+         if (context.leftHand()) {
             center.x = -center.x;
          }
 
@@ -190,57 +164,52 @@ final class FirstPersonArm {
       return (p.x() < 1.0E-4F || p.x() > 0.9999F) && (p.y() < 1.0E-4F || p.y() > 0.9999F);
    }
 
-   static void place(MatrixStack pose, Vector3f hand, Vector3f elbow, boolean slim, Consumer<MatrixStack> draw) {
+   static void place(PoseStack pose, Vector3f hand, Vector3f elbow, boolean slim, Consumer<PoseStack> draw) {
       Vector3f along = new Vector3f(hand).sub(elbow).normalize();
       Vector3f front = new Vector3f(ARM_UP).fma(-ARM_UP.dot(along), along).normalize();
       Vector3f side = new Vector3f(along).cross(front);
-      pose.push();
+      pose.pushPose();
       pose.translate(hand.x, hand.y, hand.z);
-      pose.multiply(new Quaternionf().setFromNormalized(new Matrix3f(side, along, front)));
+      pose.mulPose(new Quaternionf().setFromNormalized(new Matrix3f(side, along, front)));
       drawPart(pose, slim, draw);
       pose.translate(0.0F, -0.625F, 0.0F);
       pose.scale(-1.0F, -3.0F, 1.0F);
       pose.translate(0.0F, 0.625F, 0.0F);
       drawPart(pose, slim, draw);
-      pose.pop();
+      pose.popPose();
    }
 
-   private static void drawPart(MatrixStack pose, boolean slim, Consumer<MatrixStack> draw) {
-      pose.push();
+   private static void drawPart(PoseStack pose, boolean slim, Consumer<PoseStack> draw) {
+      pose.pushPose();
       pose.translate(slim ? 0.03125F : 0.0625F, -0.5F, 0.0F);
-      pose.multiply(RotationAxis.POSITIVE_Z.rotation(-0.1F));
+      pose.mulPose(Axis.ZP.rotation(-0.1F));
       pose.translate(0.3125F, -0.125F, 0.0F);
       draw.accept(pose);
-      pose.pop();
+      pose.popPose();
    }
 
-   static void shoulder(MatrixStack pose, boolean right, boolean slim) {
+   static void shoulder(PoseStack pose, boolean right, boolean slim) {
       float pivotX = right ? -0.3125F : 0.3125F;
       float pivotY = 0.125F;
       float tilt = right ? 0.1F : -0.1F;
       float middle = (right ? -1.0F : 1.0F) * (slim ? 0.5F : 1.0F) / 16.0F;
       float top = -0.125F;
       pose.translate(pivotX, pivotY, 0.0F);
-      pose.multiply(RotationAxis.POSITIVE_Z.rotation(tilt));
+      pose.mulPose(Axis.ZP.rotation(tilt));
       pose.translate(middle, top, 0.0F);
       pose.scale(-1.0F, -3.0F, 1.0F);
       pose.translate(-middle, -top, 0.0F);
-      pose.multiply(RotationAxis.POSITIVE_Z.rotation(-tilt));
+      pose.mulPose(Axis.ZP.rotation(-tilt));
       pose.translate(-pivotX, -pivotY, 0.0F);
    }
 
-   //? if >=1.21.9 {
-   record Arm(PlayerEntityRenderer<AbstractClientPlayerEntity> renderer, Identifier texture, boolean rightSleeve, boolean leftSleeve, boolean slim) {
-      void draw(MatrixStack pose, boolean left, OrderedRenderCommandQueue collector, int light) {
-   //?} else {
-   /*record Arm(PlayerEntityRenderer renderer, Identifier texture, boolean rightSleeve, boolean leftSleeve, boolean slim) {
-      void draw(MatrixStack pose, boolean left, VertexConsumerProvider collector, int light) {
-   *///?}
+   record Arm(AvatarRenderer<AbstractClientPlayer> renderer, Identifier texture, boolean rightSleeve, boolean leftSleeve, boolean slim) {
+      void draw(PoseStack pose, boolean left, SubmitNodeCollector collector, int light) {
          if (left) {
             pose.scale(-1.0F, 1.0F, 1.0F);
-            this.renderer.renderLeftArm(pose, collector, light, this.texture, this.leftSleeve);
+            this.renderer.renderLeftHand(pose, collector, light, this.texture, this.leftSleeve);
          } else {
-            this.renderer.renderRightArm(pose, collector, light, this.texture, this.rightSleeve);
+            this.renderer.renderRightHand(pose, collector, light, this.texture, this.rightSleeve);
          }
       }
    }

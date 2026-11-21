@@ -2,17 +2,17 @@ package dev.venti.modules.streamhider;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.blaze3d.platform.NativeImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.util.Optional;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.text.Text;
-import net.minecraft.text.Style;
-import net.minecraft.util.Identifier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.resource.Resource;
-import net.minecraft.text.StringVisitable;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.Resource;
 
 final class OverlayArt {
    private static final int GLYPH = 8;
@@ -67,17 +67,17 @@ final class OverlayArt {
    }
 
    private static OverlayArt.Image image(String path) {
-      Resource resource = (Resource)MinecraftClient.getInstance().getResourceManager().getResource(Identifier.ofVanilla(path)).orElse(null);
+      Resource resource = (Resource)Minecraft.getInstance().getResourceManager().getResource(Identifier.withDefaultNamespace(path)).orElse(null);
       if (resource == null) {
          return null;
       } else {
          try {
             OverlayArt.Image var13;
-            try (InputStream in = resource.getInputStream()) {
+            try (InputStream in = resource.open()) {
                NativeImage image = NativeImage.read(in);
 
                try {
-                  int[] abgr = image.copyPixelsAbgr();
+                  int[] abgr = image.getPixelsABGR();
                   int[] out = new int[abgr.length];
 
                   for (int i = 0; i < abgr.length; i++) {
@@ -115,9 +115,9 @@ final class OverlayArt {
       if (image == null) {
          return null;
       } else {
-         Resource meta = (Resource)MinecraftClient.getInstance().getResourceManager().getResource(Identifier.ofVanilla(path + ".mcmeta")).orElse(null);
+         Resource meta = (Resource)Minecraft.getInstance().getResourceManager().getResource(Identifier.withDefaultNamespace(path + ".mcmeta")).orElse(null);
          if (meta != null) {
-            try (Reader reader = meta.getReader()) {
+            try (Reader reader = meta.openAsReader()) {
                JsonObject scaling = JsonParser.parseReader(reader).getAsJsonObject().getAsJsonObject("gui").getAsJsonObject("scaling");
                if (scaling.has("border")) {
                   border = scaling.get("border").getAsInt();
@@ -174,12 +174,12 @@ final class OverlayArt {
       }
    }
 
-   static void text(Canvas canvas, Text text, int x, int y, int scale, int argb, boolean shadow) {
+   static void text(Canvas canvas, Component text, int x, int y, int scale, int argb, boolean shadow) {
       load();
       if (glyphs != null) {
          int[] cursor = new int[]{x};
          text.visit((style, piece) -> {
-            int color = style.getColor() != null ? argb & 0xFF000000 | style.getColor().getRgb() : argb;
+            int color = style.getColor() != null ? argb & 0xFF000000 | style.getColor().getValue() : argb;
             int i = 0;
 
             while (i < piece.length()) {
@@ -211,7 +211,7 @@ final class OverlayArt {
    }
 
    private static int advance(int cp, Style style) {
-      return MinecraftClient.getInstance().textRenderer.getWidth(StringVisitable.styled(new String(Character.toChars(cp)), style));
+      return Minecraft.getInstance().font.width(FormattedText.of(new String(Character.toChars(cp)), style));
    }
 
    private static void glyph(Canvas canvas, int cp, int x, int y, int scale, int argb, Style style) {

@@ -1,7 +1,8 @@
 {
   "required": true,
   "package": "dev.venti.mixin.world",
-  "compatibilityLevel": "JAVA_21",
+  "plugin": "dev.venti.compat.VentiMixinPlugin",
+  "compatibilityLevel": "JAVA_${java}",
   "client": [
     "AccessorAuroraSkyClientLevel",
     "AccessorBlockOverlayMultiPlayerGameMode",
@@ -10,14 +11,11 @@
     "MixinAuroraSkyFogRenderer",
     "MixinAuroraSkyRainFog",
     "MixinAuroraSkySkyRenderer",
-    "MixinBlockOverlayLevelRenderer",
     "MixinColorGradingGameRenderer",
-    "MixinJumpCirclesLevelRenderer",
     "MixinJumpCirclesLivingEntity",
     "MixinMotionBlurGameRenderer",
     "MixinTimeChangerClientLevel",
-    "MixinWorldTotemPops",
-    "MixinWorldVisualsRenderer"
+    "MixinWorldTotemPops"
   ],
   "injectors": { "defaultRequire": 1 }
 }

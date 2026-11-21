@@ -1,7 +1,7 @@
 package dev.venti.modules.spotify.spotify;
 
-import java.text.Normalizer;
 import java.text.Normalizer.Form;
+import java.text.Normalizer;
 import java.util.function.IntPredicate;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;

@@ -1,5 +1,8 @@
 package dev.venti.modules.hud;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
+import dev.venti.compat.Mc;
 import dev.venti.gui.ClickGuiScreen;
 import dev.venti.gui.image.ThemeImages;
 import dev.venti.imgui.ImGuiManager;
@@ -22,21 +25,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.IntStream;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.client.resource.language.I18n;
-import net.minecraft.client.toast.Toast;
-import net.minecraft.client.toast.Toast.Visibility;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.util.Window;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.toasts.Toast.Visibility;
+import net.minecraft.client.gui.components.toasts.Toast;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.Holder;
+import net.minecraft.util.Mth;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.level.Level;
 
 /**
  * The Anubis HUD overlay, cut down to the info bar, coordinates, module list, potions, hotkeys, armor and item cooldowns.
@@ -109,8 +110,8 @@ public final class HudRenderer {
 
    /** True when anything needs drawing, so ImGui can stay idle otherwise. */
    public boolean hasWork() {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client.world == null) {
+      Minecraft client = Minecraft.getInstance();
+      if (client.level == null) {
          this.resetCombatElements();
          return false;
       } else if (editing()) {
@@ -122,13 +123,13 @@ public final class HudRenderer {
    }
 
    public void render() {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       this.hudModule = HudModule.get();
       if (this.hudModule == null) {
          return;
       }
 
-      if (client.world == null) {
+      if (client.level == null) {
          this.resetCombatElements();
          return;
       }
@@ -143,10 +144,10 @@ public final class HudRenderer {
          this.clearSlots();
       }
 
-      boolean guiOpen = client.currentScreen instanceof ClickGuiScreen;
+      boolean guiOpen = Mc.screen() instanceof ClickGuiScreen;
       boolean hudOn = this.hudModule.isEnabled();
       boolean hotkeysOn = HotkeysModule.shouldShowHud();
-      if (!editMode && (guiOpen || client.options.hudHidden || !hudOn && !hotkeysOn)) {
+      if (!editMode && (guiOpen || Mc.hudHidden() || !hudOn && !hotkeysOn)) {
          if (this.draggingId != null || this.layoutDirty) {
             this.saveLayout();
          }
@@ -163,7 +164,7 @@ public final class HudRenderer {
          return;
       }
 
-      boolean chatEditMode = client.currentScreen instanceof ChatScreen;
+      boolean chatEditMode = Mc.screen() instanceof ChatScreen;
       boolean acceptInput = editMode || chatEditMode;
       this.flushLayoutIfIdle();
       boolean showPing = editMode || this.hudModule.ping();
@@ -193,7 +194,7 @@ public final class HudRenderer {
       this.layout.updateBounds(potionTracker.id, potionPlan.width(), potionPlan.height(), screenW, screenH);
       HudRenderer.HotkeyPlan hotkeyPlan = this.planHotkeys(hotkeys, editMode, dt);
       this.layout.updateBounds(hotkeys.id, hotkeyPlan.width(), hotkeyPlan.height(), screenW, screenH);
-      boolean combatHud = hudOn && !client.options.hudHidden;
+      boolean combatHud = hudOn && !Mc.hudHidden();
       boolean armorWanted = combatHud && armor.visible && this.hudModule.armorStatus();
       boolean cooldownWanted = combatHud && cooldowns.visible && this.hudModule.itemCooldowns();
       float armorScale = scaleOf(armor);
@@ -225,11 +226,7 @@ public final class HudRenderer {
       ImGui.popStyleVar();
       if (open) {
          ImDrawList dl = ImGui.getBackgroundDrawList();
-         //? if >=1.21.9 {
-         boolean gameHidden = client.options.hudHidden || client.debugHudEntryList.isF3Enabled();
-         //?} else {
-         /*boolean gameHidden = client.options.hudHidden || client.getDebugHud().shouldShowDebugHud();
-         *///?}
+         boolean gameHidden = Mc.hudHidden() || client.debugEntries.isOverlayVisible();
          boolean infoBarShown = hudOn && infoBar.visible && (this.hudModule.fps() || this.hudModule.clock() || this.hudModule.ping());
          boolean coordsShown = hudOn && coordinates.visible;
          boolean listShown = hudOn && moduleList.visible && this.hudModule.moduleList();
@@ -313,7 +310,7 @@ public final class HudRenderer {
    }
 
    private static String keyName(int key) {
-      return key <= 0 ? "NONE" : InputUtil.Type.KEYSYM.createFromCode(key).getLocalizedText().getString().toUpperCase(Locale.ROOT);
+      return key <= 0 ? "NONE" : InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString().toUpperCase(Locale.ROOT);
    }
 
    private HudRenderer.DrawTransform transform(HudLayoutStore.HudElementState state, boolean editMode, boolean shownInGame) {
@@ -404,12 +401,12 @@ public final class HudRenderer {
       return value < 0L ? "−" + -value : Long.toString(value);
    }
 
-   private List<HudRenderer.InfoItem> buildInfoItems(boolean showFps, boolean showClock, boolean showPing, MinecraftClient client) {
+   private List<HudRenderer.InfoItem> buildInfoItems(boolean showFps, boolean showClock, boolean showPing, Minecraft client) {
       long second = showClock ? System.currentTimeMillis() / 1000L : -1L;
-      int fps = showFps ? Math.max(0, client.getCurrentFps()) : -1;
+      int fps = showFps ? Math.max(0, client.getFps()) : -1;
       int ping = -1;
       if (showPing) {
-         ClientPlayNetworkHandler conn = client.getNetworkHandler();
+         ClientPacketListener conn = client.getConnection();
          int latency = 0;
          if (conn != null && client.player != null) {
             latency = readTabLatency(client, conn);
@@ -638,7 +635,7 @@ public final class HudRenderer {
       };
    }
 
-   private List<HudRenderer.CoordRow> coordinateRows(MinecraftClient client, boolean editMode, float dt) {
+   private List<HudRenderer.CoordRow> coordinateRows(Minecraft client, boolean editMode, float dt) {
       long x = 0L;
       long y = 0L;
       long z = 0L;
@@ -648,8 +645,8 @@ public final class HudRenderer {
          z = (long)Math.floor(client.player.getZ());
       }
 
-      boolean inNether = client.world != null && client.world.getRegistryKey() == World.NETHER;
-      boolean inEnd = client.world != null && client.world.getRegistryKey() == World.END;
+      boolean inNether = client.level != null && client.level.dimension() == Level.NETHER;
+      boolean inEnd = client.level != null && client.level.dimension() == Level.END;
       boolean overworldOn = this.hudModule.coordinates();
       boolean netherOn = this.hudModule.netherCoordinates();
       float k = 1.0F - (float)Math.exp(-12.0F * dt);
@@ -896,7 +893,7 @@ public final class HudRenderer {
       }
    }
 
-   private float updateToastShift(MinecraftClient client, HudLayoutStore.HudElementState state, boolean editMode, float dt) {
+   private float updateToastShift(Minecraft client, HudLayoutStore.HudElementState state, boolean editMode, float dt) {
       float target = !editMode && this.draggingId == null ? toastClearance(client, state) : 0.0F;
       if (!editMode && !(Math.abs(target - this.toastShift) < 0.5F)) {
          this.toastShift = this.toastShift + (target - this.toastShift) * (1.0F - (float)Math.exp(-12.0F * dt));
@@ -907,24 +904,24 @@ public final class HudRenderer {
       return this.toastShift;
    }
 
-   private static float toastClearance(MinecraftClient client, HudLayoutStore.HudElementState state) {
-      if (state.anchorX == 2 && !state.anchorBottom && !client.options.hudHidden) {
+   private static float toastClearance(Minecraft client, HudLayoutStore.HudElementState state) {
+      if (state.anchorX == 2 && !state.anchorBottom && !Mc.hudHidden()) {
          Window window = client.getWindow();
-         int gui = window.getScaleFactor();
-         int guiW = window.getScaledWidth();
+         int gui = window.getGuiScale();
+         int guiW = window.getGuiScaledWidth();
          float bottom = 0.0F;
 
-         for (Object entry : ((ToastManagerAccessor)client.getToastManager()).venti$VisibleToasts()) {
+         for (Object entry : ((ToastManagerAccessor)Mc.toasts()).venti$VisibleToasts()) {
             ToastEntryAccessor instance = (ToastEntryAccessor)entry;
             Toast toast = instance.venti$Toast();
             float shown = instance.venti$Visibility() == Visibility.HIDE ? instance.venti$VisiblePortion() : 1.0F;
-            float left = toast.getXPos(guiW, shown) * gui;
-            if (!(left >= state.x + state.width) && !(left + toast.getWidth() * gui <= state.x)) {
-               bottom = Math.max(bottom, (toast.getYPos(instance.venti$FirstSlot()) + toast.getHeight()) * gui);
+            float left = toast.xPos(guiW, shown) * gui;
+            if (!(left >= state.x + state.width) && !(left + toast.width() * gui <= state.x)) {
+               bottom = Math.max(bottom, (toast.yPos(instance.venti$FirstSlot()) + toast.height()) * gui);
             }
          }
 
-         return bottom <= 0.0F ? 0.0F : MathHelper.clamp(bottom + 10.0F * ImGuiManager.getInstance().uiScale() - state.y, 0.0F, bottom);
+         return bottom <= 0.0F ? 0.0F : Mth.clamp(bottom + 10.0F * ImGuiManager.getInstance().uiScale() - state.y, 0.0F, bottom);
       } else {
          return 0.0F;
       }
@@ -1016,7 +1013,7 @@ public final class HudRenderer {
                if (texture != null) {
                   dl.addImage(texture.id(), ix, iy, ix + icon, iy + icon, 0.0F, 0.0F, 1.0F, 1.0F, HudChrome.scaleAlpha(-1, iconAlpha));
                } else {
-                  int color = HudChrome.abgr(0xFF000000 | ((StatusEffect)row.effect().value()).getColor());
+                  int color = HudChrome.abgr(0xFF000000 | ((MobEffect)row.effect().value()).getColor());
                   dl.addCircleFilled(ix + icon * 0.5F, iy + icon * 0.5F, icon * 0.3F, HudChrome.scaleAlpha(color, iconAlpha), 16);
                }
 
@@ -1197,19 +1194,19 @@ public final class HudRenderer {
    }
 
 
-   private List<HudRenderer.PotionRow> buildPotionRows(MinecraftClient client) {
+   private List<HudRenderer.PotionRow> buildPotionRows(Minecraft client) {
       if (client.player == null) {
          return List.of();
       } else {
          List<HudRenderer.PotionRow> rows = new ArrayList<>();
 
-         for (StatusEffectInstance instance : client.player.getStatusEffects()) {
-            RegistryEntry<StatusEffect> effect = instance.getEffectType();
-            String name = I18n.translate(((StatusEffect)effect.value()).getTranslationKey(), new Object[0]);
+         for (MobEffectInstance instance : client.player.getActiveEffects()) {
+            Holder<MobEffect> effect = instance.getEffect();
+            String name = I18n.get(((MobEffect)effect.value()).getDescriptionId(), new Object[0]);
             int amp = instance.getAmplifier();
             String amplifier = amp > 0 ? toRomanNumeral(amp + 1) : "";
             int ticks = instance.getDuration();
-            if (ticks >= 0 && ticks != Integer.MAX_VALUE && !instance.isInfinite()) {
+            if (ticks >= 0 && ticks != Integer.MAX_VALUE && !instance.isInfiniteDuration()) {
                int seconds = Math.max(0, ticks / 20);
                String formatted = seconds / 60 + ":" + String.format("%02d", seconds % 60);
                rows.add(new HudRenderer.PotionRow(effect, name, amplifier, formatted, false, seconds < 30, ticks));
@@ -1542,52 +1539,25 @@ public final class HudRenderer {
       };
    }
 
-   private static int readTabLatency(MinecraftClient client, ClientPlayNetworkHandler connection) {
-      //? if >=1.21.9 {
-      PlayerListEntry info = connection.getPlayerListEntry(connection.getProfile().id());
+   private static int readTabLatency(Minecraft client, ClientPacketListener connection) {
+      PlayerInfo info = connection.getPlayerInfo(connection.getLocalGameProfile().id());
       if (info == null) {
-         info = connection.getPlayerListEntry(client.player.getUuid());
+         info = connection.getPlayerInfo(client.player.getUUID());
       }
 
       if (info == null) {
-         info = connection.getCaseInsensitivePlayerInfo(connection.getProfile().name());
+         info = connection.getPlayerInfoIgnoreCase(connection.getLocalGameProfile().name());
       }
 
       if (info == null) {
-         info = connection.getCaseInsensitivePlayerInfo(client.player.getName().getString());
+         info = connection.getPlayerInfoIgnoreCase(client.player.getName().getString());
       }
-      //?} else {
-      /*PlayerListEntry info = connection.getPlayerListEntry(connection.getProfile().getId());
-      if (info == null) {
-         info = connection.getPlayerListEntry(client.player.getUuid());
-      }
-
-      if (info == null) {
-         info = caseInsensitivePlayerInfo(connection, connection.getProfile().getName());
-      }
-
-      if (info == null) {
-         info = caseInsensitivePlayerInfo(connection, client.player.getName().getString());
-      }
-      *///?}
 
       return info == null ? 0 : Math.max(0, info.getLatency());
    }
-   //? if <1.21.9 {
-   /*// ClientPlayNetworkHandler.getCaseInsensitivePlayerInfo only exists from 1.21.9.
-   private static PlayerListEntry caseInsensitivePlayerInfo(ClientPlayNetworkHandler connection, String name) {
-      for (PlayerListEntry entry : connection.getPlayerList()) {
-         if (entry.getProfile().getName().equalsIgnoreCase(name)) {
-            return entry;
-         }
-      }
 
-      return null;
-   }
-   *///?}
-
-   private static int readServerPing(ClientPlayNetworkHandler connection) {
-      ServerInfo serverData = connection.getServerInfo();
+   private static int readServerPing(ClientPacketListener connection) {
+      ServerData serverData = connection.getServerData();
       return serverData != null && serverData.ping > 0L && serverData.ping <= 60000L ? (int)serverData.ping : 0;
    }
 
@@ -1652,7 +1622,7 @@ public final class HudRenderer {
    private record PotionPlan(List<HudRenderer.PotionLine> lines, HudRenderer.Type type, float width, float height) {
    }
 
-   private record PotionRow(RegistryEntry<StatusEffect> effect, String name, String amplifier, String duration, boolean infinite, boolean expiringSoon, int ticks) {
+   private record PotionRow(Holder<MobEffect> effect, String name, String amplifier, String duration, boolean infinite, boolean expiringSoon, int ticks) {
    }
 
    private record Segment(HudRenderer.InfoItem item, float valueW, float dimW, float contentW, float slotW) {

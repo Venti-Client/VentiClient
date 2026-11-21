@@ -1,9 +1,9 @@
 package dev.venti.modules.hitfx;
 
 import java.util.concurrent.ThreadLocalRandom;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 
 /**
  * Hit sound packs, ported from LiquidBounce's {@code HitFXRegistry} (GPL-3.0, CCBlueX).
@@ -11,8 +11,8 @@ import net.minecraft.util.Identifier;
  * They are not put into the sound event registry: a client-only {@link SoundEvent} is enough to play them locally.
  */
 public enum HitFxSound {
-   HIT("Hit", SoundEvents.ENTITY_ARROW_HIT),
-   ORB("Orb", SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP),
+   HIT("Hit", SoundEvents.ARROW_HIT),
+   ORB("Orb", SoundEvents.EXPERIENCE_ORB_PICKUP),
    BONK("Bonk", "bonk"),
    BOYKISSER("Boykisser", "boykisser-1", "boykisser-2", "boykisser-3", "boykisser-4", "boykisser-5", "boykisser-6"),
    BRING("Bring", "bring"),
@@ -41,7 +41,7 @@ public enum HitFxSound {
       this.sounds = new SoundEvent[customIds.length];
 
       for (int i = 0; i < customIds.length; i++) {
-         this.sounds[i] = SoundEvent.of(Identifier.of("venti", "hitfx." + customIds[i]));
+         this.sounds[i] = SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath("venti", "hitfx." + customIds[i]));
       }
    }
 

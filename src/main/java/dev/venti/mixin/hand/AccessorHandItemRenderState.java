@@ -1,14 +1,14 @@
 package dev.venti.mixin.hand;
 
-import net.minecraft.client.render.item.ItemRenderState;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ItemRenderState.class)
+@Mixin(ItemStackRenderState.class)
 public interface AccessorHandItemRenderState {
    @Accessor("layers")
-   ItemRenderState.LayerRenderState[] venti$handLayers();
+   ItemStackRenderState.LayerRenderState[] venti$handLayers();
 
-   @Accessor("layerCount")
+   @Accessor("activeLayerCount")
    int venti$handLayerCount();
 }

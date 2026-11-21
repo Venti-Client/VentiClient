@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
@@ -105,7 +105,7 @@ final class FileDialogs {
                   lastFolder = path.getParent();
                }
 
-               MinecraftClient.getInstance().execute(() -> picked.accept(path));
+               Minecraft.getInstance().execute(() -> picked.accept(path));
             }
          }, "Venti file dialog");
          thread.setDaemon(true);

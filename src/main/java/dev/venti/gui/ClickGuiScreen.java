@@ -1,26 +1,31 @@
 package dev.venti.gui;
 
+import dev.venti.compat.Mc;
 import dev.venti.imgui.ImGuiManager;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+//? if >=26.2 {
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//?} else {
+/*import net.minecraft.client.gui.GuiGraphics;
+*///?}
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /** Holds the cursor and game input while the ImGui click GUI is up. */
 public final class ClickGuiScreen extends Screen {
    private final ClickGui gui = new ClickGui();
 
    public ClickGuiScreen() {
-      super(Text.literal("Venti"));
+      super(Component.literal("Venti"));
    }
 
    public static boolean isOpen() {
-      return MinecraftClient.getInstance().currentScreen instanceof ClickGuiScreen;
+      return Mc.screen() instanceof ClickGuiScreen;
    }
 
    /** HUD elements (Spotify card, Venti HUD, Hotkeys) show samples and can be dragged while the Spotify, HUD or Hotkeys page is open. */
    public static boolean editingHud() {
-      return MinecraftClient.getInstance().currentScreen instanceof ClickGuiScreen screen && screen.gui.editingHud();
+      return Mc.screen() instanceof ClickGuiScreen screen && screen.gui.editingHud();
    }
 
    @Override
@@ -31,7 +36,7 @@ public final class ClickGuiScreen extends Screen {
    @Override
    public void tick() {
       if (this.gui.closeRequested()) {
-         this.close();
+         this.onClose();
       }
    }
 
@@ -41,12 +46,18 @@ public final class ClickGuiScreen extends Screen {
       this.gui.saveAll();
    }
 
+   //? if >=26.2 {
    @Override
-   public void renderBackground(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
+   public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
    }
+   //?} else {
+   /*@Override
+   public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
+   }
+   *///?}
 
    @Override
-   public boolean shouldPause() {
+   public boolean isPauseScreen() {
       return false;
    }
 }

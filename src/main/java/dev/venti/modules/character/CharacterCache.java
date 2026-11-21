@@ -1,5 +1,9 @@
 package dev.venti.modules.character;
 
+import dev.venti.modules.character.kit.CharacterBuilder;
+import dev.venti.modules.character.kit.CharacterDesign;
+import dev.venti.modules.character.kit.CharacterModel;
+import dev.venti.modules.character.kit.Detail;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -7,23 +11,13 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
-import dev.venti.modules.character.kit.CharacterBuilder;
-import dev.venti.modules.character.kit.CharacterDesign;
-import dev.venti.modules.character.kit.CharacterModel;
-import dev.venti.modules.character.kit.Detail;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-//? if >=1.21.9 {
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
-//?} else {
-/*import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.minecraft.resource.ResourceManager;
-*///?}
-import net.minecraft.util.Identifier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.resource.SynchronousResourceReloader;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,21 +42,12 @@ final class CharacterCache {
    static void listen() {
       if (!listening) {
          listening = true;
-         //? if >=1.21.9 {
-         ResourceLoader.get(ResourceType.CLIENT_RESOURCES)
-            .registerReloader(Identifier.of("venti", "character_textures"), (SynchronousResourceReloader)manager -> releaseTextures());
+         //? if >=26.2 {
+         ResourceLoader.get(PackType.CLIENT_RESOURCES)
+            .registerReloadListener(Identifier.fromNamespaceAndPath("venti", "character_textures"), (ResourceManagerReloadListener)manager -> releaseTextures());
          //?} else {
-         /*ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
-            @Override
-            public Identifier getFabricId() {
-               return Identifier.of("venti", "character_textures");
-            }
-
-            @Override
-            public void reload(ResourceManager manager) {
-               releaseTextures();
-            }
-         });
+         /*ResourceLoader.get(PackType.CLIENT_RESOURCES)
+            .registerReloader(Identifier.fromNamespaceAndPath("venti", "character_textures"), (ResourceManagerReloadListener)manager -> releaseTextures());
          *///?}
       }
    }
@@ -96,9 +81,9 @@ final class CharacterCache {
          } else if (model == null) {
             return previous();
          } else {
-            MinecraftClient.getInstance()
+            Minecraft.getInstance()
                .getTextureManager()
-               .registerTexture(entry.texture, new CharacterTexture(entry.texture.toString(), model.atlasWidth, model.atlasHeight, model.atlasMips));
+               .register(entry.texture, new CharacterTexture(entry.texture.toString(), model.atlasWidth, model.atlasHeight, model.atlasMips));
             entry.worn = new WornCharacter(model, entry.texture);
             shown = entry;
             return entry.worn;
@@ -151,7 +136,7 @@ final class CharacterCache {
    private static void release(CharacterCache.Entry entry) {
       if (entry.worn != null) {
          entry.worn = null;
-         MinecraftClient.getInstance().getTextureManager().destroyTexture(entry.texture);
+         Minecraft.getInstance().getTextureManager().release(entry.texture);
       }
    }
 
@@ -167,7 +152,7 @@ final class CharacterCache {
       Entry(CharacterDesign design, Detail detail) {
          this.design = design;
          this.detail = detail;
-         this.texture = Identifier.of("venti", "character/" + design.id() + "_" + detail.name().toLowerCase(Locale.ROOT));
+         this.texture = Identifier.fromNamespaceAndPath("venti", "character/" + design.id() + "_" + detail.name().toLowerCase(Locale.ROOT));
       }
    }
 }

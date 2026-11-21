@@ -26,8 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.Util;
 
 /**
@@ -537,13 +537,9 @@ final class PanelsGui {
    // ---- helpers ----
 
    private static String menuKeyName() {
-      for (KeyBinding binding : MinecraftClient.getInstance().options.allKeys) {
-         //? if >=1.21.9 {
-         if ("key.venti.gui".equals(binding.getId())) {
-         //?} else {
-         /*if ("key.venti.gui".equals(binding.getTranslationKey())) {
-         *///?}
-            return binding.getBoundKeyLocalizedText().getString();
+      for (KeyMapping binding : Minecraft.getInstance().options.keyMappings) {
+         if ("key.venti.gui".equals(binding.getName())) {
+            return binding.getTranslatedKeyMessage().getString();
          }
       }
 
@@ -553,7 +549,7 @@ final class PanelsGui {
    private static void open(Path dir) {
       try {
          java.nio.file.Files.createDirectories(dir);
-         Util.getOperatingSystem().open(dir.toFile());
+         Util.getPlatform().openFile(dir.toFile());
       } catch (java.io.IOException | RuntimeException ignored) {
       }
    }

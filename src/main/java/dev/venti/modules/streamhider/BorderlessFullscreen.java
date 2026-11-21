@@ -1,8 +1,8 @@
 package dev.venti.modules.streamhider;
 
+import com.mojang.blaze3d.platform.Window;
 import com.sun.jna.Platform;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.Window;
+import net.minecraft.client.Minecraft;
 
 /** Swaps exclusive fullscreen for a borderless window while Stream Only wants it, so the overlay windows stay visible. */
 public final class BorderlessFullscreen {
@@ -14,7 +14,7 @@ public final class BorderlessFullscreen {
    }
 
    public static void tick() {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (mc == null) {
          return;
       }

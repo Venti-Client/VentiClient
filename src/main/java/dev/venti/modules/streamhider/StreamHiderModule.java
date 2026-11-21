@@ -1,6 +1,7 @@
 package dev.venti.modules.streamhider;
 
 import com.sun.jna.Platform;
+import dev.venti.compat.Gfx;
 import dev.venti.config.BooleanSetting;
 import dev.venti.config.ModeSetting;
 import dev.venti.config.NumberSetting;
@@ -11,16 +12,15 @@ import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
 import dev.venti.module.Modules;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2f;
 
 /**
@@ -114,7 +114,7 @@ public final class StreamHiderModule extends Module {
 
    private static int inventoryIndex(Slot slot) {
       Slot real = slot instanceof CreativeSlotAccessor wrapper ? wrapper.venti$noInvLeakTarget() : slot;
-      return real.getIndex();
+      return real.getContainerSlot();
    }
 
    public static ItemStack dragged(ItemStack stack) {
@@ -127,7 +127,7 @@ public final class StreamHiderModule extends Module {
    }
 
    public static boolean hidesModelOf(LivingEntity entity) {
-      return active != null && entity != null && entity == MinecraftClient.getInstance().player;
+      return active != null && entity != null && entity == Minecraft.getInstance().player;
    }
 
    public static void bareModel(boolean on) {
@@ -135,21 +135,21 @@ public final class StreamHiderModule extends Module {
    }
 
    public static ItemStack modelItem(LivingEntity entity, ItemStack stack) {
-      return bareModel && stack != null && !stack.isEmpty() && entity == MinecraftClient.getInstance().player ? ItemStack.EMPTY : stack;
+      return bareModel && stack != null && !stack.isEmpty() && entity == Minecraft.getInstance().player ? ItemStack.EMPTY : stack;
    }
 
-   public static int screenX(DrawContext context, int localX, int localY, int fallback) {
+   public static int screenX(Gfx context, int localX, int localY, int fallback) {
       if (context != null && active != null) {
-         context.getMatrices().transformPosition(localX, localY, POINT);
+         context.pose().transformPosition(localX, localY, POINT);
          return Math.round(POINT.x);
       } else {
          return fallback;
       }
    }
 
-   public static int screenY(DrawContext context, int localX, int localY, int fallback) {
+   public static int screenY(Gfx context, int localX, int localY, int fallback) {
       if (context != null && active != null) {
-         context.getMatrices().transformPosition(localX, localY, POINT);
+         context.pose().transformPosition(localX, localY, POINT);
          return Math.round(POINT.y);
       } else {
          return fallback;
@@ -201,7 +201,7 @@ public final class StreamHiderModule extends Module {
    }
 
    public static boolean ownSlot(Slot slot) {
-      return active != null && slot != null && slot.inventory instanceof PlayerInventory;
+      return active != null && slot != null && slot.container instanceof Inventory;
    }
 
    public static boolean hidesTooltips() {
@@ -227,7 +227,7 @@ public final class StreamHiderModule extends Module {
    public static void streamNotice(String headline, String detail) {
       StreamHiderModule module = active;
       if (module != null) {
-         module.chat(Text.literal(headline).formatted(Formatting.YELLOW).append(Text.literal(detail).formatted(Formatting.GRAY)));
+         module.chat(Component.literal(headline).withStyle(ChatFormatting.YELLOW).append(Component.literal(detail).withStyle(ChatFormatting.GRAY)));
       }
    }
 
@@ -252,7 +252,7 @@ public final class StreamHiderModule extends Module {
          case FEET -> 36;
          case OFFHAND -> 40;
          case MAINHAND -> {
-            ClientPlayerEntity player = MinecraftClient.getInstance().player;
+            LocalPlayer player = Minecraft.getInstance().player;
             yield player != null ? player.getInventory().getSelectedSlot() : 41;
          }
          default -> 41;
