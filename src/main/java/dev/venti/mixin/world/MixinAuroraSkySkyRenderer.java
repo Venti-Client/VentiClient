@@ -1,3 +1,147 @@
+//? if >=26.3 {
+/*package dev.venti.mixin.world;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.systems.RenderPass;
+import dev.venti.compat.SkyPass;
+import dev.venti.modules.world.AuroraSkyModule;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.Camera;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.SkyRenderer;
+import net.minecraft.client.renderer.state.level.SkyRenderState;
+import net.minecraft.world.level.MoonPhase;
+import net.minecraft.world.level.dimension.DimensionType.Skybox;
+import org.joml.Vector3fc;
+import org.joml.Vector4fc;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At.Shift;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+// 26.3 draws the whole sky in one render pass; Aurora Sky suspends it (SkyPass) before drawing its own passes.
+@Environment(EnvType.CLIENT)
+@Mixin({SkyRenderer.class})
+public abstract class MixinAuroraSkySkyRenderer {
+   private static final String RENDER_MOON =
+      "Lnet/minecraft/client/renderer/SkyRenderer;renderMoon(Lcom/mojang/blaze3d/systems/RenderPass;Lnet/minecraft/world/level/MoonPhase;FLcom/mojang/blaze3d/vertex/PoseStack;)V";
+
+   @Inject(method = "extractRenderState", at = @At("TAIL"))
+   private void venti$readSky(ClientLevel level, float partialTick, Camera camera, SkyRenderState state, CallbackInfo ci) {
+      AuroraSkyModule atmosphere = AuroraSkyModule.get();
+      if (atmosphere != null && state.skybox == Skybox.OVERWORLD) {
+         atmosphere.extract(level, partialTick, state);
+      }
+   }
+
+   @Inject(method = "renderSkyDisc", at = @At("HEAD"), cancellable = true)
+   private void venti$dome(RenderPass pass, Vector3fc color, CallbackInfo ci) {
+      AuroraSkyModule atmosphere = AuroraSkyModule.get();
+      if (atmosphere != null) {
+         SkyPass.suspend();
+         if (atmosphere.skyDisc()) {
+            ci.cancel();
+         }
+      }
+   }
+
+   @Inject(method = "renderSkyDisc", at = @At("TAIL"))
+   private void venti$afterDome(RenderPass pass, Vector3fc color, CallbackInfo ci) {
+      AuroraSkyModule atmosphere = AuroraSkyModule.get();
+      if (atmosphere != null) {
+         SkyPass.suspend();
+         atmosphere.afterSkyDisc();
+      }
+   }
+
+   @Inject(method = "renderSunriseAndSunset", at = @At("HEAD"), cancellable = true)
+   private void venti$noSunriseFan(RenderPass pass, PoseStack pose, float sunAngle, Vector4fc color, CallbackInfo ci) {
+      AuroraSkyModule atmosphere = AuroraSkyModule.get();
+      if (atmosphere != null && atmosphere.replacesSunrise()) {
+         ci.cancel();
+      }
+   }
+
+   @Inject(method = "renderStars", at = @At("HEAD"), cancellable = true)
+   private void venti$stars(RenderPass pass, float starBrightness, PoseStack pose, CallbackInfo ci) {
+      AuroraSkyModule atmosphere = AuroraSkyModule.get();
+      if (atmosphere != null) {
+         SkyPass.suspend();
+         if (atmosphere.stars(pose)) {
+            ci.cancel();
+         }
+      }
+   }
+
+   @Inject(method = "renderSunMoonAndStars", at = @At(value = "INVOKE", target = RENDER_MOON))
+   private void venti$beforeMoon(
+      RenderPass pass,
+      PoseStack pose,
+      float sunAngle,
+      float moonAngle,
+      float starAngle,
+      MoonPhase moonPhase,
+      float rainBrightness,
+      float starBrightness,
+      CallbackInfo ci
+   ) {
+      AuroraSkyModule atmosphere = AuroraSkyModule.get();
+      if (atmosphere != null) {
+         atmosphere.beforeMoon(pose);
+      }
+   }
+
+   @Inject(method = "renderSunMoonAndStars", at = @At(value = "INVOKE", target = RENDER_MOON, shift = Shift.AFTER))
+   private void venti$afterMoon(
+      RenderPass pass,
+      PoseStack pose,
+      float sunAngle,
+      float moonAngle,
+      float starAngle,
+      MoonPhase moonPhase,
+      float rainBrightness,
+      float starBrightness,
+      CallbackInfo ci
+   ) {
+      AuroraSkyModule atmosphere = AuroraSkyModule.get();
+      if (atmosphere != null) {
+         atmosphere.afterMoon(pose);
+      }
+   }
+
+   @Inject(method = "renderSunMoonAndStars", at = @At("TAIL"))
+   private void venti$afterCelestials(
+      RenderPass pass,
+      PoseStack pose,
+      float sunAngle,
+      float moonAngle,
+      float starAngle,
+      MoonPhase moonPhase,
+      float rainBrightness,
+      float starBrightness,
+      CallbackInfo ci
+   ) {
+      AuroraSkyModule atmosphere = AuroraSkyModule.get();
+      if (atmosphere != null) {
+         SkyPass.suspend();
+         atmosphere.afterCelestials();
+      }
+   }
+
+   @Inject(method = "renderEndSky", at = @At("HEAD"), cancellable = true)
+   private void venti$endSky(RenderPass pass, CallbackInfo ci) {
+      AuroraSkyModule atmosphere = AuroraSkyModule.get();
+      if (atmosphere != null) {
+         SkyPass.suspend();
+         if (atmosphere.endSky()) {
+            ci.cancel();
+         }
+      }
+   }
+}
+*///?} else {
 package dev.venti.mixin.world;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -139,3 +283,4 @@ public abstract class MixinAuroraSkySkyRenderer {
       }
    }
 }
+//?}

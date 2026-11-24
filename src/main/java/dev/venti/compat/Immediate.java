@@ -71,7 +71,29 @@ public final class Immediate {
       *///?}
    }
 
-   //? if >=26.2 {
+   //? if >=26.3 {
+   /*private static void draw(PreparedRenderType prepared, MeshData mesh) {
+      Gpu.Mesh vertices = Gpu.upload(mesh);
+      // 26.3 render types no longer carry an output target; Venti's immediate types all draw to the main target.
+      RenderTarget target = Mc.mainTarget();
+      try (RenderPass pass = Gpu.pass(
+         () -> "Venti immediate " + prepared.pipeline(), target.getColorTextureView(), target.hasDepth() ? target.getDepthTextureView() : null
+      )) {
+         Gpu.setPipeline(pass, prepared.pipeline());
+         if (prepared.scissorState().enabled()) {
+            pass.enableScissor(prepared.scissorState().x(), prepared.scissorState().y(), prepared.scissorState().width(), prepared.scissorState().height());
+         }
+
+         RenderSystem.bindDefaultUniforms(pass);
+         pass.setUniform("DynamicTransforms", prepared.dynamicTransforms());
+         for (PreparedRenderType.Texture texture : prepared.textures()) {
+            Gpu.bindTexture(pass, texture.name(), texture.textureView(), texture.sampler());
+         }
+
+         vertices.drawAll(pass);
+      }
+   }
+   *///?} elif >=26.2 {
    private static void draw(PreparedRenderType prepared, MeshData mesh) {
       Gpu.Mesh vertices = Gpu.upload(mesh);
       RenderTarget target = prepared.outputTarget().getRenderTarget();

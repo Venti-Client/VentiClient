@@ -80,10 +80,17 @@ final class AuroraSkyShaderSky {
       this.time = (this.time + dt * speed) % 4096.0F;
       if (mode >= 0 && !(visibility <= 0.002F)) {
          GpuDevice device = RenderSystem.getDevice();
+         //? if >=26.3 {
+         /*if (!Gpu.compiled(PIPELINE)) {
+            if (!this.invalidLogged) {
+               this.invalidLogged = true;
+               LOGGER.warn("[Venti] Aurora Sky sky shader {} did not compile; using the gradient sky", Gpu.fragmentShader(PIPELINE));
+         *///?} else {
          if (!device.precompilePipeline(PIPELINE).isValid()) {
             if (!this.invalidLogged) {
                this.invalidLogged = true;
                LOGGER.warn("[Venti] Aurora Sky sky shader {} did not compile; using the gradient sky", PIPELINE.getFragmentShader());
+         //?}
             }
 
             return false;
@@ -141,7 +148,11 @@ final class AuroraSkyShaderSky {
    }
 
    private void drawSky(RenderPass pass, RenderPipeline pipeline, GpuBufferSlice transforms) {
+      //? if >=26.3 {
+      /*Gpu.setPipeline(pass, pipeline);
+      *///?} else {
       pass.setPipeline(pipeline);
+      //?}
       RenderSystem.bindDefaultUniforms(pass);
       pass.setUniform("DynamicTransforms", transforms);
       pass.setUniform("VentiSky", this.uniforms.slice());

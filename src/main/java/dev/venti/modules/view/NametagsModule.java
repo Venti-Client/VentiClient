@@ -189,7 +189,11 @@ public final class NametagsModule extends Module {
 
       matrices.pushPose();
       matrices.translate(state.nameTagAttachment.x, state.nameTagAttachment.y + 0.5, state.nameTagAttachment.z);
+      //? if >=26.3 {
+      /*matrices.rotate(cameraState.orientation);
+      *///?} else {
       matrices.mulPose(cameraState.orientation);
+      //?}
       matrices.scale(s, -s, s);
       int x = -panelW / 2;
       int y = 9 + PADDING - panelH;
@@ -199,11 +203,18 @@ public final class NametagsModule extends Module {
       matrices.translate(0.0F, 0.0F, -0.5F);
       int panel = Math.round(surface * 255.0F) << 24 | PANEL_RGB;
       int border = scaleAlpha(BORDER, chrome);
+      //? if >=26.3 {
+      /*// 26.3 dropped the text background render type; the panel is drawn as text background quads.
+      Quads quads = (qx1, qy1, qx2, qy2, color) -> queue.submitTextBackground(matrices, qx1, qy1, qx2, qy2, color, DisplayMode.NORMAL, light);
+      roundedRect(quads, x, y, x + panelW, y + panelH, panel);
+      roundedBorder(quads, x, y, x + panelW, y + panelH, border);
+      *///?} else {
       queue.submitCustomGeometry(matrices, RenderTypes.textBackground(), (entry, vc) -> {
          Matrix4f m = entry.pose();
          roundedRect(vc, m, x, y, x + panelW, y + panelH, panel, light);
          roundedBorder(vc, m, x, y, x + panelW, y + panelH, border, light);
       });
+      //?}
       matrices.popPose();
 
       int left = x + PADDING;
@@ -262,6 +273,42 @@ public final class NametagsModule extends Module {
       }
    }
 
+   //? if >=26.3 {
+   /*@FunctionalInterface
+   private interface Quads {
+      void quad(int x1, int y1, int x2, int y2, int color);
+   }
+
+   private static void roundedRect(Quads q, int x1, int y1, int x2, int y2, int color) {
+      if (color >>> 24 != 0) {
+         q.quad(x1 + 4, y1, x2 - 4, y1 + 1, color);
+         q.quad(x1 + 2, y1 + 1, x2 - 2, y1 + 2, color);
+         q.quad(x1 + 1, y1 + 2, x2 - 1, y1 + 4, color);
+         q.quad(x1, y1 + 4, x2, y2 - 4, color);
+         q.quad(x1 + 1, y2 - 4, x2 - 1, y2 - 2, color);
+         q.quad(x1 + 2, y2 - 2, x2 - 2, y2 - 1, color);
+         q.quad(x1 + 4, y2 - 1, x2 - 4, y2, color);
+      }
+   }
+
+   private static void roundedBorder(Quads q, int x1, int y1, int x2, int y2, int color) {
+      if (color >>> 24 != 0) {
+         q.quad(x1 + 4, y1, x2 - 4, y1 + 1, color);
+         q.quad(x1 + 4, y2 - 1, x2 - 4, y2, color);
+         q.quad(x1, y1 + 4, x1 + 1, y2 - 4, color);
+         q.quad(x2 - 1, y1 + 4, x2, y2 - 4, color);
+         q.quad(x1 + 2, y1 + 1, x1 + 4, y1 + 2, color);
+         q.quad(x1 + 1, y1 + 2, x1 + 2, y1 + 4, color);
+         q.quad(x2 - 4, y1 + 1, x2 - 2, y1 + 2, color);
+         q.quad(x2 - 2, y1 + 2, x2 - 1, y1 + 4, color);
+         q.quad(x1 + 1, y2 - 4, x1 + 2, y2 - 2, color);
+         q.quad(x1 + 2, y2 - 2, x1 + 4, y2 - 1, color);
+         q.quad(x2 - 2, y2 - 4, x2 - 1, y2 - 2, color);
+         q.quad(x2 - 4, y2 - 2, x2 - 2, y2 - 1, color);
+      }
+   }
+
+   *///?}
    private static void roundedBorder(VertexConsumer vc, Matrix4f m, int x1, int y1, int x2, int y2, int color, int light) {
       if (color >>> 24 != 0) {
          quad(vc, m, x1 + 4, y1, x2 - 4, y1 + 1, color, light);

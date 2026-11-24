@@ -21,7 +21,11 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 @Mixin(ScreenEffectRenderer.class)
 public abstract class ViewOverlayRendererMixin {
    @ModifyExpressionValue(
+      //? if >=26.3 {
+      /*method = "submit(FLnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/PlayerRenderState;Lnet/minecraft/client/renderer/state/level/CameraRenderState;Z)V",
+      *///?} else {
       method = "submit(ZZFLnet/minecraft/client/renderer/SubmitNodeCollector;Z)V",
+      //?}
       at = @At(value = "NEW", target = "()Lcom/mojang/blaze3d/vertex/PoseStack;")
    )
    private PoseStack venti$undoCustomFov(PoseStack matrices) {

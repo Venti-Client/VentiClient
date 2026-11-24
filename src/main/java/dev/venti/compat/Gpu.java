@@ -153,7 +153,33 @@ public final class Gpu {
       }
 
       public RenderPipeline build() {
-         //? if >=26.2 {
+         //? if >=26.3 {
+         /*RenderPipeline.Builder b = this.matrices
+            ? RenderPipeline.builder()
+               .withBindGroupLayout(BindGroupLayouts.GLOBALS)
+               .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+               .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
+            : RenderPipeline.builder();
+         b.withLocation(this.location).withVertexShader(this.vertex).withFragmentShader(this.fragment);
+         if (!this.samplers.isEmpty() || !this.uniforms.isEmpty()) {
+            BindGroupLayout.Builder layout = BindGroupLayout.builder();
+            // 26.3: samplers are uniforms of the bind group layout.
+            this.samplers.forEach(s -> layout.withUniform(s, UniformType.COMBINED_IMAGE_SAMPLER));
+            this.uniforms.forEach(u -> layout.withUniform(u, UniformType.UNIFORM_BUFFER));
+            b.withBindGroupLayout(layout.build());
+         }
+         b.withColorTargetState(new ColorTargetState(
+            Optional.ofNullable(this.blend), GpuFormat.RGBA8_UNORM, this.writeAlpha ? ColorTargetState.WRITE_ALL : ColorTargetState.WRITE_COLOR
+         ));
+         if (this.format != null) {
+            // 26.x renders with reversed depth: "nearer or equal" is GREATER_THAN_OR_EQUAL.
+            b.withDepthStencilState(new DepthStencilState(this.depthTest ? CompareOp.GREATER_THAN_OR_EQUAL : CompareOp.ALWAYS_PASS, this.depthWrite));
+            b.withVertexBinding(0, this.format);
+         }
+         b.withCull(this.cull);
+         b.withPrimitiveTopology(this.topology == Topology.QUADS ? PrimitiveTopology.QUADS : PrimitiveTopology.TRIANGLES);
+         return b.build();
+         *///?} elif >=26.2 {
          RenderPipeline.Builder b = this.matrices
             ? RenderPipeline.builder(RenderPipelines.GLOBALS_SNIPPET).withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
             : RenderPipeline.builder();
@@ -202,6 +228,28 @@ public final class Gpu {
       }
    }
 
+   //? if >=26.3 {
+   /*// Sets a pipeline on the pass (26.3 compiles it on first use and caches it).
+   public static void setPipeline(RenderPass pass, RenderPipeline pipeline) {
+      pass.setPipeline(RenderSystem.getCompiledPipeline(pipeline));
+   }
+
+   // Binds a texture to a sampler uniform.
+   public static void bindTexture(RenderPass pass, String name, GpuTextureView view, com.mojang.blaze3d.textures.GpuSampler sampler) {
+      pass.setUniform(name, view, sampler);
+   }
+
+   // Whether the pipeline's shaders compiled (compiles it now if needed).
+   public static boolean compiled(RenderPipeline pipeline) {
+      return RenderSystem.getCompiledPipelineNullable(pipeline) != null;
+   }
+
+   // The pipeline's fragment shader, for log messages.
+   public static Identifier fragmentShader(RenderPipeline pipeline) {
+      return pipeline.getShaders().get(com.mojang.renderpearl.api.pipeline.ShaderType.FRAGMENT);
+   }
+
+   *///?}
    public static CommandEncoder encoder() {
       return RenderSystem.getDevice().createCommandEncoder();
    }
@@ -345,7 +393,9 @@ public final class Gpu {
 
    /** Like {@link #clearColorAndDepth(CommandEncoder, GpuTexture, GpuTexture)} for a rectangle (GL window coordinates). */
    public static void clearColorAndDepth(CommandEncoder encoder, GpuTexture color, GpuTexture depth, int x, int y, int width, int height) {
-      //? if >=26.2 {
+      //? if >=26.3 {
+      /*encoder.clearColorAndDepthTextures(color, new Vector4f(0.0F), depth, RenderSystem.DEFAULT_DEPTH_CLEAR_VALUE, x, y, width, height, 0);
+      *///?} elif >=26.2 {
       encoder.clearColorAndDepthTextures(color, new Vector4f(0.0F), depth, RenderSystem.DEFAULT_DEPTH_CLEAR_VALUE, x, y, width, height);
       //?} else {
       /*encoder.clearColorAndDepthTextures(color, 0, depth, 1.0, x, y, width, height);
@@ -388,7 +438,9 @@ public final class Gpu {
 
    /** An RGBA8 off-screen target. */
    public static TextureTarget target(String label, int width, int height, boolean depth) {
-      //? if >=26.2 {
+      //? if >=26.3 {
+      /*return new TextureTarget(label, width, height, GpuFormat.RGBA8_UNORM, depth ? GpuFormat.D32_FLOAT : null);
+      *///?} elif >=26.2 {
       return new TextureTarget(label, width, height, depth, GpuFormat.RGBA8_UNORM);
       //?} else {
       /*return new TextureTarget(label, width, height, depth);

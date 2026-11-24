@@ -54,7 +54,12 @@ final class FirstPersonArm {
       }
 
       EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
+      //? if >=26.3 {
+      /*@SuppressWarnings("unchecked")
+      AvatarRenderer<AbstractClientPlayer> renderer = (AvatarRenderer<AbstractClientPlayer>)dispatcher.getRenderer(player);
+      *///?} else {
       AvatarRenderer<AbstractClientPlayer> renderer = dispatcher.getPlayerRenderer(player);
+      //?}
       PlayerSkin skin = player.getSkin();
       return new Arm(
          renderer,
@@ -170,7 +175,11 @@ final class FirstPersonArm {
       Vector3f side = new Vector3f(along).cross(front);
       pose.pushPose();
       pose.translate(hand.x, hand.y, hand.z);
+      //? if >=26.3 {
+      /*pose.rotate(new Quaternionf().setFromNormalized(new Matrix3f(side, along, front)));
+      *///?} else {
       pose.mulPose(new Quaternionf().setFromNormalized(new Matrix3f(side, along, front)));
+      //?}
       drawPart(pose, slim, draw);
       pose.translate(0.0F, -0.625F, 0.0F);
       pose.scale(-1.0F, -3.0F, 1.0F);

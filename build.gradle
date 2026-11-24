@@ -10,6 +10,57 @@ version = "${project.mod_version}+mc${project.minecraft_version}"
 group = project.maven_group
 base { archivesName = project.archives_base_name }
 
+// 26.3 moved the GPU API out of com.mojang.blaze3d into com.mojang.renderpearl. src/ keeps the 26.2
+// names; Stonecutter rewrites these fully qualified names when it generates the 26.3 sources.
+def renderpearlMoves = [
+    'GpuFormat': 'api.GpuFormat',
+    'IndexType': 'api.pipeline.IndexType',
+    'PrimitiveTopology': 'api.pipeline.PrimitiveTopology',
+    'buffers.GpuBufferSlice': 'api.buffers.GpuBufferSlice',
+    'buffers.GpuBuffer': 'api.buffers.GpuBuffer',
+    'buffers.GpuFence': 'api.commands.GpuFence',
+    'opengl.GlBackend': 'backend.opengl.GlBackend',
+    'opengl.GlConst': 'backend.opengl.GlConst',
+    'opengl.GlStateManager': 'backend.opengl.GlStateManager',
+    'opengl.GlTexture': 'backend.opengl.GlTexture',
+    'pipeline.BindGroupLayout': 'api.pipeline.BindGroupLayout',
+    'pipeline.BlendFunction': 'api.pipeline.BlendFunction',
+    'pipeline.ColorTargetState': 'api.pipeline.ColorTargetState',
+    'pipeline.DepthStencilState': 'api.pipeline.DepthStencilState',
+    'pipeline.RenderPipeline': 'api.pipeline.RenderPipeline',
+    'platform.CompareOp': 'api.pipeline.CompareOp',
+    'shaders.UniformType': 'api.pipeline.UniformType',
+    'systems.CommandEncoder': 'api.commands.CommandEncoder',
+    'systems.GpuDevice': 'api.device.GpuDevice',
+    'systems.GpuSurface': 'api.device.GpuSurface',
+    'systems.RenderPass': 'api.commands.RenderPass',
+    'textures.FilterMode': 'api.textures.FilterMode',
+    'textures.GpuSampler': 'api.textures.GpuSampler',
+    'textures.GpuTextureView': 'api.textures.GpuTextureView',
+    'textures.GpuTexture': 'api.textures.GpuTexture',
+    'vertex.VertexFormat': 'api.vertex.VertexFormat',
+]
+def onRenderpearl = stonecutter.eval(stonecutter.current.version, '>=26.3')
+renderpearlMoves.each { from, to ->
+    stonecutter.replacements.string(onRenderpearl) {
+        replace("com.mojang.blaze3d.${from}", "com.mojang.renderpearl.${to}")
+    }
+    // The same names in mixin target descriptors.
+    stonecutter.replacements.string(onRenderpearl) {
+        replace("com/mojang/blaze3d/${from.replace('.', '/')};", "com/mojang/renderpearl/${to.replace('.', '/')};")
+    }
+}
+// Plain renames in 26.3: PoseStack.mulPose(Quaternionfc) became rotate(...), and the keyboard key type
+// KEYSYM became KEYBOARD (its key codes are now SDL scancodes; see dev.venti.compat.Keys).
+[
+    'mulPose(Axis.': 'rotate(Axis.',
+    'InputConstants.Type.KEYSYM': 'InputConstants.Type.KEYBOARD',
+].each { from, to ->
+    stonecutter.replacements.string(onRenderpearl) {
+        replace(from, to)
+    }
+}
+
 repositories {
     mavenCentral()
     maven {
@@ -56,6 +107,22 @@ processResources {
     inputs.properties props
     filesMatching("fabric.mod.json") { expand props }
     filesMatching("*.mixins.json") { expand props }
+}
+
+// 26.3 compiles shaders with shaderc (Vulkan-style GLSL): stage inputs and outputs need explicit locations and
+// includes are #include. Venti's shaders are written in 26.2's GLSL (one input and one output per stage) and are
+// converted line by line when building 26.3.
+if (onRenderpearl) {
+    processResources {
+        filesMatching('assets/venti/shaders/**') {
+            filter { String line ->
+                if (line.startsWith('#version ')) {
+                    return line + '\n#extension GL_ARB_separate_shader_objects : require'
+                }
+                return line.replaceFirst(/^#moj_import /, '#include ').replaceFirst(/^(in|out) /, 'layout(location = 0) $1 ')
+            }
+        }
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {

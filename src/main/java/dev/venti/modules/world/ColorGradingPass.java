@@ -78,9 +78,15 @@ final class ColorGradingPass {
             RenderPass pass = Gpu.pass(encoder, PASS_LABEL, main.getColorTextureView(), null);
 
             try {
+               //? if >=26.3 {
+               /*Gpu.setPipeline(pass, PIPELINE);
+               pass.setUniform("ColorGradingConfig", configSlice);
+               Gpu.bindTexture(pass, "InSampler", copy.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+               *///?} else {
                pass.setPipeline(PIPELINE);
                pass.setUniform("ColorGradingConfig", configSlice);
                pass.bindTexture("InSampler", copy.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+               //?}
                Gpu.drawFullScreen(pass);
             } catch (Throwable var15) {
                if (pass != null) {
@@ -102,13 +108,21 @@ final class ColorGradingPass {
    }
 
    private static boolean shaderReady(GpuDevice device) {
+      //? if >=26.3 {
+      /*if (Gpu.compiled(PIPELINE)) {
+      *///?} else {
       if (device.precompilePipeline(PIPELINE).isValid()) {
+      //?}
          invalidShaderLogged = false;
          return true;
       } else {
          if (!invalidShaderLogged) {
             invalidShaderLogged = true;
+            //? if >=26.3 {
+            /*LOGGER.warn("Color Grading shader {} did not compile; the picture is left as it is", Gpu.fragmentShader(PIPELINE));
+            *///?} else {
             LOGGER.warn("Color Grading shader {} did not compile; the picture is left as it is", PIPELINE.getFragmentShader());
+            //?}
          }
 
          return false;

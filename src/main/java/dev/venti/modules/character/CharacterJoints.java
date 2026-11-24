@@ -72,9 +72,20 @@ final class CharacterJoints {
             }
 
             HumanoidArm arm = right ? HumanoidArm.RIGHT : HumanoidArm.LEFT;
+            //? if >=26.3 {
+            /*// 26.3 describes the swing by hand and progress.
+            net.minecraft.world.entity.LivingEntity.SwingDescription current = state.currentSwing;
+            HumanoidArm swingArm = current == null
+               ? null
+               : current.hand() == net.minecraft.world.InteractionHand.MAIN_HAND ? state.mainArm : state.mainArm.getOpposite();
+            if (state.swingAnimation > 0.0F && swingArm == arm && current.animation().type() == SwingAnimationType.WHACK) {
+               flex += 0.6F * Mth.sin(state.swingAnimation * (float) Math.PI);
+            }
+            *///?} else {
             if (state.attackTime > 0.0F && state.attackArm == arm && state.swingAnimationType == SwingAnimationType.WHACK) {
                flex += 0.6F * Mth.sin(state.attackTime * (float) Math.PI);
             }
+            //?}
 
             return Math.min(1.6F, flex);
          }

@@ -7,7 +7,7 @@ import dev.venti.module.Module;
 import dev.venti.module.ModuleCategory;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 /** Hold the zoom key (default C) to zoom in; the scroll wheel adjusts the zoom while held. */
 public final class ZoomModule extends Module {
@@ -29,7 +29,7 @@ public final class ZoomModule extends Module {
 
    public ZoomModule() {
       super("zoom", "Zoom", "Hold the zoom key (Controls > Venti) to zoom in.", ModuleCategory.VISUALS, true);
-      this.key = ViewKeys.register("key.venti.zoom", GLFW.GLFW_KEY_C);
+      this.key = ViewKeys.register("key.venti.zoom", InputConstants.KEY_C);
       instance = this;
    }
 

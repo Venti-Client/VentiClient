@@ -25,6 +25,9 @@ import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.platform.Lighting.Entry;
 import com.mojang.blaze3d.systems.CommandEncoder;
+//? if >=26.3 {
+/*import com.mojang.blaze3d.systems.RenderPass;
+*///?}
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
@@ -372,8 +375,12 @@ public final class ItemIcons {
       }
       *///?}
 
+      // 26.3 has no output texture overrides; the icon gets a render pass of its own on the target.
+      //? if >=26.3 {
+      //?} else {
       GpuTextureView colorBefore = RenderSystem.outputColorTextureOverride;
       GpuTextureView depthBefore = RenderSystem.outputDepthTextureOverride;
+      //?}
       GpuBufferSlice lightsBefore = RenderSystem.getShaderLights();
       GpuBufferSlice fogBefore = RenderSystem.getShaderFog();
       GpuBufferSlice projectionBefore = RenderSystem.getProjectionMatrixBuffer();
@@ -385,8 +392,12 @@ public final class ItemIcons {
       modelView.identity();
 
       try {
+         // (no output overrides on 26.3)
+         //? if >=26.3 {
+         //?} else {
          RenderSystem.outputColorTextureOverride = targetView;
          RenderSystem.outputDepthTextureOverride = targetDepthView;
+         //?}
          //? if >=26.2 {
          if (projection == null) {
             projection = new ProjectionMatrixBuffer("Venti icons");
@@ -413,7 +424,16 @@ public final class ItemIcons {
 
          try {
             model.submit(pose, submits, 15728880, OverlayTexture.NO_OVERLAY, 0);
-            //? if >=26.2 {
+            //? if >=26.3 {
+            /*try (
+               net.minecraft.client.renderer.feature.FeatureRenderDispatcher.PreparedFrame frame =
+                  mc.gameRenderer.featureRenderDispatcher().prepareFrame(submits);
+               RenderPass pass = Gpu.pass(() -> "Venti HUD icon", targetView, targetDepthView)
+            ) {
+               RenderSystem.bindDefaultUniforms(pass);
+               net.minecraft.client.renderer.feature.FeatureRenderDispatcher.renderAllFeatures(pass, frame);
+            }
+            *///?} elif >=26.2 {
             mc.gameRenderer.featureRenderDispatcher().renderAllFeatures(submits);
             //?} else {
             /*features.renderAllFeatures();
@@ -426,8 +446,12 @@ public final class ItemIcons {
          }
       } finally {
          RenderSystem.disableScissorForRenderTypeDraws();
+         // (no output overrides on 26.3)
+         //? if >=26.3 {
+         //?} else {
          RenderSystem.outputColorTextureOverride = colorBefore;
          RenderSystem.outputDepthTextureOverride = depthBefore;
+         //?}
          RenderSystem.setShaderLights(lightsBefore);
          RenderSystem.setShaderFog(fogBefore);
          RenderSystem.setProjectionMatrix(projectionBefore, projectionTypeBefore);

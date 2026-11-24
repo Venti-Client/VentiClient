@@ -79,7 +79,11 @@ public final class AvatarModule extends Module {
       }
 
       this.refreshCharacters();
+      //? if >=26.3 {
+      /*com.mojang.blaze3d.Blaze3D.openPath(dir);
+      *///?} else {
       Util.getPlatform().openPath(dir);
+      //?}
    }
 
    private void prepare() {

@@ -69,7 +69,11 @@ public abstract class ViewCameraMixin {
 
    // No Render: keep the sky under blindness/darkness (LevelRenderer.doesMobEffectBlockSky up to 1.21.11).
    @Inject(method = "extractRenderState", at = @At("TAIL"))
+   //? if >=26.3 {
+   /*private void venti$keepSky(CameraRenderState cameraState, net.minecraft.client.DeltaTracker deltaTracker, CallbackInfo ci) {
+   *///?} else {
    private void venti$keepSky(CameraRenderState cameraState, float partialTicks, CallbackInfo ci) {
+   //?}
       if (NoRenderModule.hideBlindnessDarkness()) {
          cameraState.entityRenderState.doesMobEffectBlockSky = false;
       }

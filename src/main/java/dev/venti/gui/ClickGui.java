@@ -32,7 +32,11 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.Minecraft;
+//? if >=26.3 {
+/*import dev.venti.compat.Keys;
+*///?} else {
 import org.lwjgl.glfw.GLFW;
+//?}
 
 /**
  * Anubis-style click GUI: a category sidebar, module cards, and per-module pages with a picture banner
@@ -206,7 +210,11 @@ final class ClickGui {
          try {
             java.nio.file.Path dir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("venti");
             java.nio.file.Files.createDirectories(dir);
+            //? if >=26.3 {
+            /*com.mojang.blaze3d.Blaze3D.openPath(dir);
+            *///?} else {
             net.minecraft.util.Util.getPlatform().openFile(dir.toFile());
+            //?}
          } catch (java.io.IOException | RuntimeException ignored) {
          }
       }
@@ -669,9 +677,15 @@ final class ClickGui {
    private void listenForBind() {
       if (this.binding != null) {
          boolean[] now = keysDown();
+         //? if >=26.3 {
+         /*for (int key = Keys.GLFW_KEY_SPACE; key < now.length; key++) {
+            if (now[key] && !this.keysAtBindStart[key]) {
+               this.binding.settings().bind = key == Keys.GLFW_KEY_ESCAPE || key == Keys.GLFW_KEY_BACKSPACE ? -1 : key;
+         *///?} else {
          for (int key = GLFW.GLFW_KEY_SPACE; key < now.length; key++) {
             if (now[key] && !this.keysAtBindStart[key]) {
                this.binding.settings().bind = key == GLFW.GLFW_KEY_ESCAPE || key == GLFW.GLFW_KEY_BACKSPACE ? -1 : key;
+         //?}
                this.binding.settings().save();
                this.binding = null;
                return;
@@ -705,6 +719,9 @@ final class ClickGui {
    }
 
    private static boolean[] keysDown() {
+      //? if >=26.3 {
+      /*return Keys.glfwKeysDown();
+      *///?} else {
       long window = Minecraft.getInstance().getWindow().handle();
       boolean[] down = new boolean[GLFW.GLFW_KEY_LAST + 1];
       for (int key = GLFW.GLFW_KEY_SPACE; key <= GLFW.GLFW_KEY_LAST; key++) {
@@ -712,10 +729,15 @@ final class ClickGui {
       }
 
       return down;
+      //?}
    }
 
    static String keyName(int key) {
+      //? if >=26.3 {
+      /*return key <= 0 ? "None" : Keys.name(key);
+      *///?} else {
       return key <= 0 ? "None" : InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString().toUpperCase(Locale.ROOT);
+      //?}
    }
 
    private void takePickedFile() {

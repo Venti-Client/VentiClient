@@ -24,11 +24,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(WeatherEffectRenderer.class)
 public abstract class ViewNoRenderWeatherMixin {
    @Inject(
+      //? if >=26.3 {
+      /*method = "render(Lnet/minecraft/client/renderer/state/level/WeatherRenderState;Lcom/mojang/blaze3d/systems/RenderPass;Lcom/mojang/blaze3d/pipeline/RenderPipeline;)V",
+      *///?} else {
       method = "render(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/state/level/WeatherRenderState;)V",
+      //?}
       at = @At("HEAD"),
       cancellable = true
    )
+   //? if >=26.3 {
+   /*private void venti$hideWeather(
+      WeatherRenderState state, com.mojang.blaze3d.systems.RenderPass pass, com.mojang.blaze3d.pipeline.RenderPipeline pipeline, CallbackInfo ci
+   ) {
+   *///?} else {
    private void venti$hideWeather(Vec3 cameraPos, WeatherRenderState state, CallbackInfo ci) {
+   //?}
       if (NoRenderModule.hideWeather()) {
          ci.cancel();
       }

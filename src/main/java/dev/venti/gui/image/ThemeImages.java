@@ -28,7 +28,11 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
+//? if >=26.3 {
+/*import dev.venti.compat.SdlDialogs;
+*///?} else {
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
+//?}
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -336,6 +340,28 @@ public final class ThemeImages {
    }
 
    public void browseAsync() {
+      //? if >=26.3 {
+      /*if (!this.dialogOpen) {
+         this.dialogOpen = true;
+         // 26.3: SDL3's asynchronous file dialog (tinyfd is gone).
+         try {
+            SdlDialogs.open("Images (png, jpg, gif)", "png;jpg;jpeg;gif", null, result -> {
+               try {
+                  if (result != null) {
+                     this.pendingImport = Path.of(result);
+                  }
+               } catch (RuntimeException e) {
+                  LOGGER.warn("[Venti] File dialog failed", e);
+               } finally {
+                  this.dialogOpen = false;
+               }
+            });
+         } catch (Throwable e) {
+            this.dialogOpen = false;
+            LOGGER.warn("[Venti] File dialog failed", e);
+         }
+      }
+      *///?} else {
       if (!this.dialogOpen) {
          this.dialogOpen = true;
          Thread thread = new Thread(() -> {
@@ -373,6 +399,7 @@ public final class ThemeImages {
          thread.setDaemon(true);
          thread.start();
       }
+      //?}
    }
 
    public boolean dialogOpen() {

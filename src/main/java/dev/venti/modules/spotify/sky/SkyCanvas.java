@@ -181,13 +181,21 @@ public final class SkyCanvas implements SkyPaint {
                      RenderPipeline wanted = run.additive ? ADD : BLEND;
                      if (wanted != active) {
                         active = wanted;
+                        //? if >=26.3 {
+                        /*Gpu.setPipeline(pass, wanted);
+                        *///?} else {
                         pass.setPipeline(wanted);
+                        //?}
                         RenderSystem.bindDefaultUniforms(pass);
                         pass.setUniform("DynamicTransforms", transforms);
                         vertices.bind(pass);
                      }
 
+                     //? if >=26.3 {
+                     /*Gpu.bindTexture(pass, "Sampler0", run.texture.view(), run.texture.sampler());
+                     *///?} else {
                      pass.bindTexture("Sampler0", run.texture.view(), run.texture.sampler());
+                     //?}
                      vertices.draw(pass, run.first * 6, run.count * 6);
                   }
                }

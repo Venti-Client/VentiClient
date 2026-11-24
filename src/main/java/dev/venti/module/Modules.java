@@ -5,7 +5,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import net.minecraft.client.Minecraft;
+//? if >=26.3 {
+/*import dev.venti.compat.Keys;
+*///?} else {
 import org.lwjgl.glfw.GLFW;
+//?}
 
 /** Every module, in GUI order. Register in {@link dev.venti.VentiClient}. */
 public final class Modules {
@@ -52,7 +56,11 @@ public final class Modules {
       for (int i = 0; i < ALL.size(); i++) {
          Module module = ALL.get(i);
          int key = module.settings().bind;
+         //? if >=26.3 {
+         /*boolean down = key > 0 && Keys.isDown(key);
+         *///?} else {
          boolean down = key > 0 && GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS;
+         //?}
          if (down && !bindDown[i] && acceptBinds) {
             module.toggle();
          }

@@ -1,3 +1,63 @@
+//? if >=26.3 {
+/*package dev.venti.mixin.streamhider;
+
+import com.mojang.blaze3d.platform.Window;
+import com.mojang.blaze3d.platform.WindowEventHandler;
+import dev.venti.modules.streamhider.BorderlessFullscreen;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+// Fullscreen becomes a borderless window covering the monitor while No Inv Leak's Stream Only asks for it.
+// 26.3 (SDL3) already uses a borderless window on Windows unless exclusive fullscreen is chosen, so this only
+// overrides that choice while Stream Only wants it.
+@Mixin(Window.class)
+public abstract class BorderlessWindowMixin implements BorderlessFullscreen.Switchable {
+   @Shadow
+   @Final
+   private WindowEventHandler eventHandler;
+   @Shadow
+   private boolean fullscreen;
+   @Shadow
+   private boolean exclusiveFullscreen;
+   @Unique
+   private boolean venti$forced;
+
+   @Shadow
+   protected abstract void setMode();
+
+   @Inject(method = "useBorderlessFullscreenWindow()Z", at = @At("RETURN"), cancellable = true)
+   private void venti$borderless(CallbackInfoReturnable<Boolean> cir) {
+      this.venti$forced = !cir.getReturnValueZ() && BorderlessFullscreen.wanted();
+      if (this.venti$forced) {
+         cir.setReturnValue(true);
+      }
+   }
+
+   @Override
+   public boolean venti$isBorderless() {
+      return this.venti$forced;
+   }
+
+   @Override
+   public void venti$reapplyMode() {
+      this.setMode();
+      this.eventHandler.framebufferSizeChanged();
+   }
+
+   @Override
+   public void venti$sync(boolean wanted) {
+      // Exclusive fullscreen is the only mode the override changes.
+      if (this.fullscreen && (wanted ? this.exclusiveFullscreen && !this.venti$forced : this.venti$forced)) {
+         this.venti$reapplyMode();
+      }
+   }
+}
+*///?} else {
 package dev.venti.mixin.streamhider;
 
 import com.mojang.blaze3d.platform.Monitor;
@@ -188,3 +248,4 @@ public abstract class BorderlessWindowMixin implements BorderlessFullscreen.Swit
    }
 }
 *///?}
+//?}

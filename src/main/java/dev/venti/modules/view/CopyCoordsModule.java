@@ -23,7 +23,11 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
+// (26.3: no GLFW)
+//? if >=26.3 {
+//?} else {
 import org.lwjgl.glfw.GLFW;
+//?}
 
 /** Press the Coord Snapper key (Controls > Venti, unbound by default) to copy coordinates to the clipboard. */
 public final class CopyCoordsModule extends Module {
@@ -39,7 +43,11 @@ public final class CopyCoordsModule extends Module {
       super("copy-coords", "Copy Coords", "Copies the coordinates you look at or stand on with one key (Controls > Venti).", ModuleCategory.MISC);
       this.range.visibleWhen(() -> this.target.is("Looked At"));
       this.stopAtFluids.visibleWhen(() -> this.target.is("Looked At"));
+      //? if >=26.3 {
+      /*this.key = ViewKeys.register("key.venti.coord_snapper", com.mojang.blaze3d.platform.InputConstants.UNKNOWN.getValue());
+      *///?} else {
       this.key = ViewKeys.register("key.venti.coord_snapper", GLFW.GLFW_KEY_UNKNOWN);
+      //?}
    }
 
    @Override

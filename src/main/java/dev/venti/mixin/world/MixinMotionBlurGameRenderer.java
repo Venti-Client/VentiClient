@@ -20,9 +20,17 @@ public abstract class MixinMotionBlurGameRenderer {
          target = "Lnet/minecraft/client/renderer/fog/FogRenderer;endFrame()V"
       )}
    )
+   //? if >=26.3 {
+   /*private void venti$motionBlur(CallbackInfo ci) {
+      if (MotionBlurModule.active != null) {
+         MotionBlurModule.afterWorld(((GameRenderer)(Object)this).gameRenderState().shouldRenderLevel);
+      }
+   }
+   *///?} else {
    private void venti$motionBlur(DeltaTracker deltaTracker, boolean renderLevel, CallbackInfo ci) {
       if (MotionBlurModule.active != null) {
          MotionBlurModule.afterWorld(renderLevel);
       }
    }
+   //?}
 }

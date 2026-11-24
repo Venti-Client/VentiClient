@@ -169,7 +169,11 @@ final class CharacterRenderer {
                float jy = part.jointY * s / 16.0F;
                float jz = part.jointZ * s / 16.0F;
                stack.translate(0.0F, -jy, -jz);
+               //? if >=26.3 {
+               /*stack.rotate(ROTATION.rotationX(bent));
+               *///?} else {
                stack.mulPose(ROTATION.rotationX(bent));
+               //?}
                stack.translate(0.0F, jy, jz);
             }
 
@@ -270,7 +274,11 @@ final class CharacterRenderer {
             pivot(stack, vp, part, s, pitch == null ? vp.xRot : pitch[part.bone.ordinal()]);
          } else {
             stack.translate(hand.x / 16.0F, hand.y / 16.0F, hand.z / 16.0F);
+            //? if >=26.3 {
+            /*stack.rotate(ROTATION.rotationZYX(hand.zRot, hand.yRot, hand.xRot));
+            *///?} else {
             stack.mulPose(ROTATION.rotationZYX(hand.zRot, hand.yRot, hand.xRot));
+            //?}
             float side = part.bone == Bone.RIGHT_ARM ? -1.0F : 1.0F;
             stack.translate(
                (side - (part.gripX - part.pivotX) * s) / 16.0F,
@@ -288,7 +296,11 @@ final class CharacterRenderer {
          if (rotate && angles != null && part.motionSlot >= 0) {
             int o = part.motionSlot * 3;
             if (angles[o] != 0.0F || angles[o + 1] != 0.0F || angles[o + 2] != 0.0F) {
+               //? if >=26.3 {
+               /*stack.rotate(ROTATION.rotationZYX(angles[o + 2], angles[o + 1], angles[o]));
+               *///?} else {
                stack.mulPose(ROTATION.rotationZYX(angles[o + 2], angles[o + 1], angles[o]));
+               //?}
             }
          }
       }
@@ -302,7 +314,11 @@ final class CharacterRenderer {
          (-s * part.pivotZ + (vp.z - rest.z()) * s) / 16.0F
       );
       if (xRot != 0.0F || vp.yRot != 0.0F || vp.zRot != 0.0F) {
+         //? if >=26.3 {
+         /*stack.rotate(ROTATION.rotationZYX(vp.zRot, vp.yRot, xRot));
+         *///?} else {
          stack.mulPose(ROTATION.rotationZYX(vp.zRot, vp.yRot, xRot));
+         //?}
       }
 
       if (vp.xScale != 1.0F || vp.yScale != 1.0F || vp.zScale != 1.0F) {

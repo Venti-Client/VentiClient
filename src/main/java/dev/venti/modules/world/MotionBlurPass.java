@@ -107,9 +107,15 @@ final class MotionBlurPass {
       RenderPass pass = Gpu.pass(encoder, PASS_LABEL, main.getColorTextureView(), null);
 
       try {
+         //? if >=26.3 {
+         /*Gpu.setPipeline(pass, PIPELINE);
+         pass.setUniform("MotionBlurConfig", configSlice);
+         Gpu.bindTexture(pass, "InSampler", history.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+         *///?} else {
          pass.setPipeline(PIPELINE);
          pass.setUniform("MotionBlurConfig", configSlice);
          pass.bindTexture("InSampler", history.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+         //?}
          Gpu.drawFullScreen(pass);
       } catch (Throwable var7) {
          if (pass != null) {
@@ -129,13 +135,21 @@ final class MotionBlurPass {
    }
 
    private static boolean shaderReady(GpuDevice device) {
+      //? if >=26.3 {
+      /*if (Gpu.compiled(PIPELINE)) {
+      *///?} else {
       if (device.precompilePipeline(PIPELINE).isValid()) {
+      //?}
          invalidShaderLogged = false;
          return true;
       } else {
          if (!invalidShaderLogged) {
             invalidShaderLogged = true;
+            //? if >=26.3 {
+            /*LOGGER.warn("Motion Blur shader {} did not compile; frames are passed through unblurred", Gpu.fragmentShader(PIPELINE));
+            *///?} else {
             LOGGER.warn("Motion Blur shader {} did not compile; frames are passed through unblurred", PIPELINE.getFragmentShader());
+            //?}
          }
 
          return false;

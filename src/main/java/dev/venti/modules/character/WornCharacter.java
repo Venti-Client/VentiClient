@@ -18,7 +18,10 @@ public final class WornCharacter {
       this.model = model;
       this.solid = RenderTypes.entitySolid(texture);
       this.decal = RenderTypes.entityTranslucent(texture);
-      //? if >=26.2 {
+      //? if >=26.3 {
+      /*// 26.3 has no separate item entity target.
+      this.ghost = RenderTypes.entityTranslucentCull(texture);
+      *///?} elif >=26.2 {
       this.ghost = RenderTypes.entityTranslucentCullItemTarget(texture);
       //?} else {
       /*this.ghost = RenderTypes.itemEntityTranslucentCull(texture);

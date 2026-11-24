@@ -194,7 +194,11 @@ public final class WorldQuads {
                Gpu.Mesh vertices = Gpu.upload(mesh);
                RenderTarget target = Mc.mainTarget();
                try (RenderPass pass = Gpu.pass(() -> "Venti world quads", target.getColorTextureView(), target.getDepthTextureView())) {
+                  //? if >=26.3 {
+                  /*Gpu.setPipeline(pass, this.pipeline);
+                  *///?} else {
                   pass.setPipeline(this.pipeline);
+                  //?}
                   RenderSystem.bindDefaultUniforms(pass);
                   pass.setUniform("DynamicTransforms", transforms);
                   vertices.drawAll(pass);

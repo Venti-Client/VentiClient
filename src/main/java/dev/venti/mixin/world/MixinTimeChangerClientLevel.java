@@ -17,7 +17,17 @@ import net.minecraft.client.multiplayer.ClientLevel;
 
 /** Time Changer: shows the chosen time of day instead of the server's. */
 @Environment(EnvType.CLIENT)
-//? if >=26.2 {
+//? if >=26.3 {
+/*@Mixin({ClientClockManager.ClientClockInstance.class})
+public abstract class MixinTimeChangerClientLevel {
+   // 26.3: every client reader of a world clock (sky, light, moon) goes through ClientClockInstance.totalTicks.
+   @ModifyReturnValue(method = "totalTicks()J", at = @At("RETURN"))
+   private long venti$timeChangerClock(long ticks) {
+      TimeChangerModule timeChanger = TimeChangerModule.active;
+      return timeChanger == null ? ticks : timeChanger.shownDayTime();
+   }
+}
+*///?} elif >=26.2 {
 @Mixin({ClientClockManager.class})
 public abstract class MixinTimeChangerClientLevel {
    // 26.x: every client reader of a world clock (sky, light, moon) goes through getTotalTicks.

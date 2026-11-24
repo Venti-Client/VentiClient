@@ -117,7 +117,11 @@ public final class Mc {
     * overlay draw with OpenGL directly and stay off there.
     */
    public static boolean openGl() {
-      //? if >=26.2 {
+      //? if >=26.3 {
+      /*// 26.3: the window no longer exposes its backend; ask the device.
+      com.mojang.blaze3d.systems.GpuDevice device = com.mojang.blaze3d.systems.RenderSystem.tryGetDevice();
+      return device != null && "OpenGL".equals(device.getDeviceInfo().backendName());
+      *///?} elif >=26.2 {
       return mc().getWindow() != null && mc().getWindow().backend() instanceof com.mojang.blaze3d.opengl.GlBackend;
       //?} else {
       /*return true;

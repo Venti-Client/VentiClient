@@ -58,7 +58,11 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
+// (26.3: no GLFW)
+//? if >=26.3 {
+//?} else {
 import org.lwjgl.glfw.GLFW;
+//?}
 
 public final class VentiClient implements ClientModInitializer {
    private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("venti", "keys"));
@@ -114,10 +118,16 @@ public final class VentiClient implements ClientModInitializer {
       Modules.register(new WaypointsModule());
       Modules.register(new EmojiModule());
       // VENTI-MODULES: further modules are registered here.
-      this.openGui = register("key.venti.gui", GLFW.GLFW_KEY_RIGHT_SHIFT);
+      this.openGui = register("key.venti.gui", InputConstants.KEY_RSHIFT);
+      //? if >=26.3 {
+      /*this.playPause = register("key.venti.play_pause", InputConstants.UNKNOWN.getValue());
+      this.next = register("key.venti.next", InputConstants.UNKNOWN.getValue());
+      this.previous = register("key.venti.previous", InputConstants.UNKNOWN.getValue());
+      *///?} else {
       this.playPause = register("key.venti.play_pause", GLFW.GLFW_KEY_UNKNOWN);
       this.next = register("key.venti.next", GLFW.GLFW_KEY_UNKNOWN);
       this.previous = register("key.venti.previous", GLFW.GLFW_KEY_UNKNOWN);
+      //?}
       SpotifyHudRenderer spotify = SpotifyHudRenderer.getInstance();
       ImGuiManager.getInstance().addHudRenderer(LowHealthWarningModule::renderOverlay, LowHealthWarningModule::hasOverlayWork);
       ImGuiManager.getInstance().addHudRenderer(HudRenderer.getInstance()::render, HudRenderer.getInstance()::hasWork);

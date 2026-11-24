@@ -226,7 +226,11 @@ public final class StreamOverlay {
          try {
             Minecraft mc = Minecraft.getInstance();
             Window win = mc.getWindow();
+            //? if >=26.3 {
+            /*if (win.isIconified()) {
+            *///?} else {
             if (win.isMinimized()) {
+            //?}
                fakeMask = 0L;
                hideAll();
             } else {
@@ -315,8 +319,13 @@ public final class StreamOverlay {
       if (!diagnosed) {
          diagnosed = true;
          transientFailures = 0;
+         //? if >=26.3 {
+         /*boolean fullscreen = mc.options.fullscreen().get();
+         boolean borderless = fullscreen && !win.isExclusiveFullscreen();
+         *///?} else {
          boolean fullscreen = win.isFullscreen();
          boolean borderless = fullscreen && ((BorderlessFullscreen.Switchable)(Object)win).venti$isBorderless();
+         //?}
          String mode = !fullscreen ? "windowed" : (borderless ? "borderless fullscreen" : "exclusive fullscreen");
 
          String renderer;

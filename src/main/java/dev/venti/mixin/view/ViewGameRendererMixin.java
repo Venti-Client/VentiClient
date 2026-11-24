@@ -39,15 +39,23 @@ public abstract class ViewGameRendererMixin {
    }
    *///?}
 
+   // (26.3: the totem animation starts in LocalPlayer, see ViewItemActivationMixin)
+   //? if >=26.3 {
+   //?} else {
    @Inject(method = "displayItemActivation(Lnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), cancellable = true)
    private void venti$hideTotemAnimation(ItemStack stack, CallbackInfo ci) {
       if (NoRenderModule.hideTotemAnimation()) {
          ci.cancel();
       }
    }
+   //?}
 
    @WrapOperation(
+      //? if >=26.3 {
+      /*method = "renderLevel()V",
+      *///?} else {
       method = "renderLevel(Lnet/minecraft/client/DeltaTracker;)V",
+      //?}
       at = @At(value = "INVOKE", target = "Ljava/lang/Math;max(FF)F")
    )
    private float venti$hideNauseaWobble(float portal, float nausea, Operation<Float> original) {

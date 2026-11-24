@@ -56,7 +56,11 @@ final class HandGlowPass {
    }
 
    static boolean begin() {
+      //? if >=26.3 {
+      /*if (capturing) {
+      *///?} else {
       if (capturing || RenderSystem.outputColorTextureOverride != null || RenderSystem.outputDepthTextureOverride != null) {
+      //?}
          return false;
       }
 
@@ -83,8 +87,12 @@ final class HandGlowPass {
       }
 
       Gpu.clearColorAndDepth(device.createCommandEncoder(), hand.getColorTexture(), hand.getDepthTexture());
+      // 26.3: MixinHandAuraGameRenderer opens the hand pass on the capture target (captureColor/captureDepth).
+      //? if >=26.3 {
+      //?} else {
       RenderSystem.outputColorTextureOverride = hand.getColorTextureView();
       RenderSystem.outputDepthTextureOverride = hand.getDepthTextureView();
+      //?}
       capturing = true;
       return true;
    }
@@ -95,11 +103,26 @@ final class HandGlowPass {
       }
 
       capturing = false;
+      // (26.3: no output overrides to reset)
+      //? if >=26.3 {
+      //?} else {
       RenderSystem.outputColorTextureOverride = null;
       RenderSystem.outputDepthTextureOverride = null;
+      //?}
       return true;
    }
 
+   //? if >=26.3 {
+   /*// The capture target while the hand pass is being captured (26.3), else null.
+   static GpuTextureView captureColor() {
+      return capturing ? hand.getColorTextureView() : null;
+   }
+
+   static GpuTextureView captureDepth() {
+      return capturing ? hand.getDepthTextureView() : null;
+   }
+
+   *///?}
    static void compose(int tintArgb, float aura, float reachPx, float rim, float rimPx, int sheenArgb, float sheen, float phase) {
       RenderTarget main = Mc.mainTarget();
       CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
@@ -114,10 +137,17 @@ final class HandGlowPass {
       configData.putFloat(44, 0.0F);
       encoder.writeToBuffer(configSlice, configData);
       try (RenderPass pass = Gpu.pass(encoder, PASS_LABEL, main.getColorTextureView(), null)) {
+         //? if >=26.3 {
+         /*Gpu.setPipeline(pass, PIPELINE);
+         pass.setUniform("HandGlowConfig", configSlice);
+         Gpu.bindTexture(pass, "CaptureSampler", hand.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+         Gpu.bindTexture(pass, "HaloSampler", halo, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+         *///?} else {
          pass.setPipeline(PIPELINE);
          pass.setUniform("HandGlowConfig", configSlice);
          pass.bindTexture("CaptureSampler", hand.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
          pass.bindTexture("HaloSampler", halo, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+         //?}
          Gpu.drawFullScreen(pass);
       }
    }
@@ -130,7 +160,11 @@ final class HandGlowPass {
    }
 
    private static boolean shaderReady(GpuDevice device) {
+      //? if >=26.3 {
+      /*if (Gpu.compiled(PIPELINE) && AuraBlur.compiled(device)) {
+      *///?} else {
       if (device.precompilePipeline(PIPELINE).isValid() && AuraBlur.compiled(device)) {
+      //?}
          invalidShaderLogged = false;
          return true;
       }

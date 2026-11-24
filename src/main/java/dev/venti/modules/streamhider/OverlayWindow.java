@@ -24,7 +24,12 @@ import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIOptions;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+//? if >=26.3 {
+/*import org.lwjgl.sdl.SDLProperties;
+import org.lwjgl.sdl.SDLVideo;
+*///?} else {
 import org.lwjgl.glfw.GLFWNativeWin32;
+//?}
 
 final class OverlayWindow {
    private static final int FIRST_EXCLUDING_BUILD = 19041;
@@ -68,7 +73,13 @@ final class OverlayWindow {
             classRegistered = true;
          }
 
+         //? if >=26.3 {
+         /*// 26.3: the game window is an SDL3 window.
+         long ownerHandle = SDLProperties.SDL_GetPointerProperty(SDLVideo.SDL_GetWindowProperties(glfwWindow), SDLVideo.SDL_PROP_WINDOW_WIN32_HWND_POINTER, 0L);
+         HWND owner = new HWND(new Pointer(ownerHandle));
+         *///?} else {
          HWND owner = new HWND(new Pointer(GLFWNativeWin32.glfwGetWin32Window(glfwWindow)));
+         //?}
          this.hwnd = User32.INSTANCE.CreateWindowEx(134742176, "VentiStreamHiderOverlay", "", Integer.MIN_VALUE, 0, 0, 1, 1, owner, null, instance, null);
          if (this.hwnd == null) {
             throw failure("CreateWindowEx");

@@ -20,9 +20,17 @@ public abstract class MixinColorGradingGameRenderer {
          target = "Lnet/minecraft/client/renderer/fog/FogRenderer;endFrame()V"
       )}
    )
+   //? if >=26.3 {
+   /*private void venti$colorGrading(CallbackInfo ci) {
+      if (ColorGradingModule.active != null) {
+         ColorGradingModule.afterWorld(((GameRenderer)(Object)this).gameRenderState().shouldRenderLevel);
+      }
+   }
+   *///?} else {
    private void venti$colorGrading(DeltaTracker deltaTracker, boolean renderLevel, CallbackInfo ci) {
       if (ColorGradingModule.active != null) {
          ColorGradingModule.afterWorld(renderLevel);
       }
    }
+   //?}
 }

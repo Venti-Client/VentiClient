@@ -19,6 +19,14 @@ public final class BorderlessFullscreen {
          return;
       }
 
+      //? if >=26.3 {
+      /*// 26.3 already makes fullscreen a borderless window on Windows unless exclusive fullscreen is chosen;
+      // the mixin only overrides that choice while Stream Only wants it.
+      Window window = mc.getWindow();
+      if (window != null) {
+         ((Switchable)(Object)window).venti$sync(wanted());
+      }
+      *///?} else {
       Window window = mc.getWindow();
       if (window != null && window.isFullscreen()) {
          Switchable switchable = (Switchable)(Object)window;
@@ -26,6 +34,7 @@ public final class BorderlessFullscreen {
             switchable.venti$reapplyMode();
          }
       }
+      //?}
    }
 
    /** Implemented on {@link Window} by {@code dev.venti.mixin.streamhider.BorderlessWindowMixin}. */
@@ -33,5 +42,10 @@ public final class BorderlessFullscreen {
       boolean venti$isBorderless();
 
       void venti$reapplyMode();
+      //? if >=26.3 {
+
+      /*// 26.3: reapplies the window mode when the wanted borderless override changed.
+      void venti$sync(boolean wanted);
+      *///?}
    }
 }

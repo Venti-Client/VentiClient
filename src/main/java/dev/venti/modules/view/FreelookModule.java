@@ -12,7 +12,6 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Turns the camera and the player separately while the freelook key (default Left Alt) is held or toggled.
@@ -36,7 +35,7 @@ public final class FreelookModule extends Module {
       super("freelook", "Freelook", "Hold the freelook key (Controls > Venti) to look around without turning.", ModuleCategory.VISUALS, true);
       this.sensitivity.visibleWhen(() -> this.mode.is("Camera"));
       this.arrowSpeed.visibleWhen(this.arrows::get);
-      this.key = ViewKeys.register("key.venti.freelook", GLFW.GLFW_KEY_LEFT_ALT);
+      this.key = ViewKeys.register("key.venti.freelook", InputConstants.KEY_LALT);
       instance = this;
    }
 
@@ -80,8 +79,8 @@ public final class FreelookModule extends Module {
       if (this.looking) {
          if (this.arrows.get() && Mc.screen() == null) {
             float turn = this.arrowSpeed.get();
-            float yawTurn = (held(mc, GLFW.GLFW_KEY_RIGHT) ? turn : 0.0F) - (held(mc, GLFW.GLFW_KEY_LEFT) ? turn : 0.0F);
-            float pitchTurn = (held(mc, GLFW.GLFW_KEY_DOWN) ? turn : 0.0F) - (held(mc, GLFW.GLFW_KEY_UP) ? turn : 0.0F);
+            float yawTurn = (held(mc, InputConstants.KEY_RIGHT) ? turn : 0.0F) - (held(mc, InputConstants.KEY_LEFT) ? turn : 0.0F);
+            float pitchTurn = (held(mc, InputConstants.KEY_DOWN) ? turn : 0.0F) - (held(mc, InputConstants.KEY_UP) ? turn : 0.0F);
             if (this.mode.is("Player")) {
                this.cameraYaw += yawTurn;
                this.cameraPitch += pitchTurn;
@@ -118,7 +117,11 @@ public final class FreelookModule extends Module {
    }
 
    private static boolean held(Minecraft mc, int key) {
+      //? if >=26.3 {
+      /*return InputConstants.isKeyDown(key);
+      *///?} else {
       return InputConstants.isKeyDown(mc.getWindow(), key);
+      //?}
    }
 
    /** The running freelook, or null when the camera follows the player as usual. */

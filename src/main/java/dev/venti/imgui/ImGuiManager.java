@@ -1,6 +1,7 @@
 package dev.venti.imgui;
 
 import com.mojang.blaze3d.opengl.GlStateManager;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.platform.cursor.CursorType;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
@@ -14,7 +15,11 @@ import imgui.ImFontGlyphRangesBuilder;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.gl3.SpotifyHudGl3;
+// (26.3: imgui-java's GLFW backend cannot run on SDL3; see ImGuiSdlInput)
+//? if >=26.3 {
+//?} else {
 import imgui.glfw.ImGuiImplGlfw;
+//?}
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -25,9 +30,14 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
+//? if >=26.3 {
+/*import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonInfo;
+*///?} else {
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWMonitorCallback;
+//?}
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
@@ -46,6 +56,9 @@ public final class ImGuiManager {
    public static final float HUD_LABEL_FONT_SIZE = 14.0F;
    private static final String EXTENDED_LATIN_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ÇĞİÖŞÜçğıöşüÂâÊêÎîÔôÛûÀÁÄÈÉËÌÍÏÒÓÖÙÚÜÝàáäèéëìíïòóöùúüýÿ−∞";
    private static final float REFERENCE_HEIGHT = 1080.0F;
+   //? if >=26.3 {
+   /*private final ImGuiSdlInput sdl = new ImGuiSdlInput();
+   *///?} else {
    private final ImGuiImplGlfw glfw = new ImGuiImplGlfw() {
       public void keyCallback(long window, int keycode, int scancode, int action, int mods) {
          boolean tracked = keycode >= 0 && keycode < ImGuiManager.this.imguiKeysDown.length;
@@ -86,10 +99,16 @@ public final class ImGuiManager {
          }
       }
    };
+   //?}
    private final SpotifyHudGl3 gl3 = new SpotifyHudGl3();
+   //? if >=26.3 {
+   /*// Indexed by SDL scancode (Minecraft's key code on 26.3).
+   private final boolean[] imguiKeysDown = new boolean[512];
+   *///?} else {
    private final boolean[] imguiKeysDown = new boolean[349];
    private GLFWKeyCallback minecraftKeys;
    private GLFWMonitorCallback minecraftMonitors;
+   //?}
    private boolean initialized;
    private boolean idleSkipped;
    private Runnable activeRenderer;
@@ -279,9 +298,71 @@ public final class ImGuiManager {
    }
 
    private boolean feedsKeyPress(int keycode, int mods) {
-      return this.activeRenderer != null && (keycode != 258 || (mods & 2) == 0);
+      return this.activeRenderer != null && (keycode != InputConstants.KEY_TAB || (mods & InputConstants.MOD_CONTROL) == 0);
    }
 
+   //? if >=26.3 {
+   /*// ---- 26.3 input: Minecraft's SDL3 event handling passes its events here first (dev.venti.mixin.ImGuiInputMixin).
+   private boolean textInput;
+
+   // SDL only sends typed text while text input is on; ImGui text fields need it like Minecraft's edit boxes.
+   private void syncTextInput(boolean want) {
+      if (want != this.textInput) {
+         this.textInput = want;
+         if (want) {
+            Minecraft.getInstance().textInputManager().startTextInput(this);
+         } else {
+            Minecraft.getInstance().textInputManager().stopTextInput(this);
+         }
+      }
+   }
+
+   // A key event; true when ImGui takes it, so Minecraft must not see it.
+   public boolean onKey(int action, KeyEvent event) {
+      if (!this.initialized) {
+         return false;
+      }
+
+      int key = event.key();
+      boolean tracked = key >= 0 && key < this.imguiKeysDown.length;
+      boolean feed = action == 0 ? tracked && this.imguiKeysDown[key] : this.feedsKeyPress(key, event.modifiers());
+      if (!feed) {
+         return false;
+      }
+
+      if (tracked && action != -1) {
+         this.imguiKeysDown[key] = action != 0;
+      }
+
+      this.sdl.key(action, event);
+      return true;
+   }
+
+   public void onText(String text) {
+      if (this.initialized) {
+         this.sdl.text(text);
+      }
+   }
+
+   public void onMouseMove(double x, double y) {
+      if (this.initialized) {
+         this.sdl.mouseMoved(x, y);
+      }
+   }
+
+   public void onMouseButton(MouseButtonInfo button, int action) {
+      if (this.initialized) {
+         this.sdl.mouseButton(button.button(), button.modifiers(), action == 1);
+      }
+   }
+
+   public void onScroll(double x, double y) {
+      if (this.initialized) {
+         this.sdl.scroll(x, y);
+      }
+   }
+
+   *///?}
    public void deactivate() {
       this.activeRenderer = null;
       if (this.initialized) {
@@ -347,7 +428,12 @@ public final class ImGuiManager {
       boolean stream = this.streamRenderer != null && this.streamHasWork.getAsBoolean();
       if (this.activeRenderer == null && !hud && !toasts && !overlay && !alert && !stream) {
          if (this.initialized) {
+            //? if >=26.3 {
+            /*ImGui.getIO().clearEventsQueue();
+            this.syncTextInput(false);
+            *///?} else {
             ImGui.getIO().clearEventsQueue();
+            //?}
             this.idleSkipped = true;
          }
       } else {
@@ -367,7 +453,11 @@ public final class ImGuiManager {
          GL30.glBindFramebuffer(36160, 0);
          GL11.glViewport(0, 0, w, h);
          GlStateManager._viewport(0, 0, w, h);
+         //? if >=26.3 {
+         /*this.sdl.newFrame();
+         *///?} else {
          this.glfw.newFrame();
+         //?}
          this.frameDelta = Math.min(ImGui.getIO().getDeltaTime(), 0.1F);
          ImGui.getIO().setDeltaTime(this.frameDelta);
          this.updateDisplayMetrics();
@@ -375,6 +465,9 @@ public final class ImGuiManager {
          ThemeImages.get().beginFrame();
          ImGui.newFrame();
          this.frameCount++;
+         //? if >=26.3 {
+         /*this.syncTextInput(ImGui.getIO().getWantTextInput());
+         *///?}
          boolean ended = false;
 
          try {
@@ -421,7 +514,11 @@ public final class ImGuiManager {
    public void dispose() {
       if (this.initialized) {
          this.gl3.shutdown();
+         //? if >=26.3 {
+         /*this.syncTextInput(false);
+         *///?} else {
          this.glfw.shutdown();
+         //?}
          ImGui.destroyContext();
          this.categoryFont = null;
          this.moduleFont = null;
@@ -452,11 +549,15 @@ public final class ImGuiManager {
          this.uiFont = chosenUiFont();
          this.hudFont = chosenHudFont();
          this.loadFonts(io);
+         //? if >=26.3 {
+         /*this.sdl.init();
+         *///?} else {
          this.minecraftKeys = GLFW.glfwSetKeyCallback(windowHandle, null);
          GLFW.glfwSetKeyCallback(windowHandle, this.minecraftKeys);
          this.minecraftMonitors = GLFW.glfwSetMonitorCallback(null);
          GLFW.glfwSetMonitorCallback(this.minecraftMonitors);
          this.glfw.init(windowHandle, true);
+         //?}
          this.gl3.init(null);
          this.initialized = true;
       }

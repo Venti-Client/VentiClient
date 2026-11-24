@@ -30,7 +30,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Per-world waypoints: labels and beams in the world, an "Add Waypoint" key, automatic death points,
@@ -66,7 +65,7 @@ public final class WaypointsModule extends Module implements CustomPage {
       this.coneAngle.visibleWhen(this.viewCone::get);
       this.keepDeaths.onChange(this::trimDeaths);
       this.nameBuffer.inputData.isResizable = true;
-      this.addKey = Fapi.registerKey(new KeyMapping("key.venti.add_waypoint", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY));
+      this.addKey = Fapi.registerKey(new KeyMapping("key.venti.add_waypoint", InputConstants.Type.KEYSYM, InputConstants.KEY_B, CATEGORY));
 
       ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> this.store.load(client, handler.getServerData())));
       ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(this.store::unload));

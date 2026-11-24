@@ -62,6 +62,17 @@ public final class HandGlowModule extends Module {
       return module != null && module.shows() && HandGlowPass.begin();
    }
 
+   //? if >=26.3 {
+   /*// 26.3: the texture views the first-person hand pass draws into while it is captured (null when not capturing).
+   public static com.mojang.blaze3d.textures.GpuTextureView captureColor() {
+      return HandGlowPass.captureColor();
+   }
+
+   public static com.mojang.blaze3d.textures.GpuTextureView captureDepth() {
+      return HandGlowPass.captureDepth();
+   }
+
+   *///?}
    public static void endCapture(boolean drawn) {
       if (HandGlowPass.end() && drawn) {
          HandGlowModule module = active;

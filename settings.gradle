@@ -17,7 +17,7 @@ stonecutter {
 
     create(getRootProject()) {
         // One subproject per Minecraft version: versions/<mc>/ (holds gradle.properties for that version).
-        versions '1.21.11', '26.2'
+        versions '1.21.11', '26.2', '26.3'
         // The version whose code is checked in to src/ (newest).
         vcsVersion = '26.2'
     }

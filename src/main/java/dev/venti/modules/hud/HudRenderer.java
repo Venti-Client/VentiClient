@@ -310,7 +310,11 @@ public final class HudRenderer {
    }
 
    private static String keyName(int key) {
+      //? if >=26.3 {
+      /*return key <= 0 ? "NONE" : dev.venti.compat.Keys.name(key);
+      *///?} else {
       return key <= 0 ? "NONE" : InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString().toUpperCase(Locale.ROOT);
+      //?}
    }
 
    private HudRenderer.DrawTransform transform(HudLayoutStore.HudElementState state, boolean editMode, boolean shownInGame) {

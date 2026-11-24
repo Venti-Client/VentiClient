@@ -549,7 +549,11 @@ final class PanelsGui {
    private static void open(Path dir) {
       try {
          java.nio.file.Files.createDirectories(dir);
+         //? if >=26.3 {
+         /*com.mojang.blaze3d.Blaze3D.openPath(dir);
+         *///?} else {
          Util.getPlatform().openFile(dir.toFile());
+         //?}
       } catch (java.io.IOException | RuntimeException ignored) {
       }
    }

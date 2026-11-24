@@ -94,7 +94,11 @@ final class WorldSkyMesh {
             RenderTarget target = Mc.mainTarget();
 
             try (RenderPass pass = Gpu.pass(() -> this.label, target.getColorTextureView(), target.getDepthTextureView())) {
+               //? if >=26.3 {
+               /*Gpu.setPipeline(pass, this.pipeline);
+               *///?} else {
                pass.setPipeline(this.pipeline);
+               //?}
                RenderSystem.bindDefaultUniforms(pass);
                pass.setUniform("DynamicTransforms", transforms);
                Gpu.drawQuads(pass, this.buffer, this.indexCount);

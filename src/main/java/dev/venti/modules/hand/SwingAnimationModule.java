@@ -89,6 +89,14 @@ public final class SwingAnimationModule extends Module {
       return !this.styled ? ticks : Math.max(1, Math.round(ticks / this.tempo.get()));
    }
 
+   //? if >=26.3 {
+   /*// 26.3: the swing duration for a swing that is about to start, with the style it will latch.
+   public int latchedSwingTicks(int ticks) {
+      boolean styled = !this.combatOnly.get() || inCombat();
+      return !styled ? ticks : Math.max(1, Math.round(ticks / this.tempo.get()));
+   }
+
+   *///?}
    public void pose(PoseStack pose, float progress, int side) {
       if (progress > 0.0F && progress < 1.0F) {
          float k = this.intensity.get();

@@ -13,7 +13,13 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
  * in some versions is compiled only for those versions and listed here.
  */
 public final class VentiMixinPlugin implements IMixinConfigPlugin {
-   //? if >=26.2 {
+   //? if >=26.3 {
+   /*private static final Map<String, List<String>> VERSION_MIXINS = Map.of(
+      "dev.venti.mixin", List.of("ImGuiKeyboardMixin", "ImGuiMouseMixin"),
+      "dev.venti.mixin.view", List.of("ViewNoRenderRainTickMixin", "ViewItemActivationMixin"),
+      "dev.venti.mixin.hand", List.of("MixinHandAuraGameRenderer")
+   );
+   *///?} elif >=26.2 {
    private static final Map<String, List<String>> VERSION_MIXINS = Map.of(
       "dev.venti.mixin.view", List.of("ViewNoRenderRainTickMixin"),
       "dev.venti.mixin.hand", List.of("MixinHandAuraGameRenderer")

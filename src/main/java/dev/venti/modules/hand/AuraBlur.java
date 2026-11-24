@@ -45,7 +45,11 @@ final class AuraBlur {
    }
 
    static boolean compiled(GpuDevice device) {
+      //? if >=26.3 {
+      /*return Gpu.compiled(PIPELINE);
+      *///?} else {
       return device.precompilePipeline(PIPELINE).isValid();
+      //?}
    }
 
    GpuTextureView spread(CommandEncoder encoder, GpuTextureView source, int width, int height, float reachPx) {
@@ -70,9 +74,15 @@ final class AuraBlur {
       this.configData.putFloat(4, dv);
       encoder.writeToBuffer(slice, this.configData);
       try (RenderPass pass = Gpu.pass(encoder, this.passLabel, into.getColorTextureView(), null)) {
+         //? if >=26.3 {
+         /*Gpu.setPipeline(pass, PIPELINE);
+         pass.setUniform("AuraSpread", slice);
+         Gpu.bindTexture(pass, "InSampler", from, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+         *///?} else {
          pass.setPipeline(PIPELINE);
          pass.setUniform("AuraSpread", slice);
          pass.bindTexture("InSampler", from, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+         //?}
          Gpu.drawFullScreen(pass);
       }
    }
